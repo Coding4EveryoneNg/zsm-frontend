@@ -1,0 +1,272 @@
+import React, { useState } from 'react'
+import { useQuery } from 'react-query'
+import { useNavigate } from 'react-router-dom'
+import { assignmentsService } from '../../services/apiServices'
+import Loading from '../../components/Common/Loading'
+import { useAuth } from '../../contexts/AuthContext'
+import { FileText, Clock, CheckCircle, XCircle, Calendar, User, BookOpen } from 'lucide-react'
+
+const Assignments = () => {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const [page, setPage] = useState(1)
+  const [filter, setFilter] = useState('all') // all, pending, submitted
+  const pageSize = 20
+
+  // Get studentId from URL params for parent view
+  const urlParams = new URLSearchParams(window.location.search)
+  const studentId = urlParams.get('studentId')
+
+  const { data, isLoading, error } = useQuery(
+    ['assignments', page, user?.role, studentId],
+    () => {
+      const params = { page, pageSize }
+      if (user?.role === 'Parent') {
+        // Use parent-specific endpoint
+        if (studentId) {
+          params.studentId = studentId
+        }
+        return assignmentsService.getParentAssignments(params)
+      }
+      return assignmentsService.getAssignments(params)
+    },
+    { keepPreviousData: true }
+  )
+
+  if (isLoading) return <Loading />
+
+  if (error) {
+    return (
+      <div className="page-container">
+        <div className="card">
+          <div className="empty-state">
+            <p className="empty-state-text">Error loading assignments</p>
+            <p className="empty-state-subtext">{error?.message || 'Please try again later'}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // API returns: { success: true, data: PaginatedResponse<AssignmentListItemResponse>, errors: [] }
+  // After axios interceptor: { success: true, data: PaginatedResponse, errors: [] }
+  // PaginatedResponse has: { items: [], currentPage, pageSize, totalCount, totalPages }
+  const paginatedData = data?.data || data
+  const assignments = paginatedData?.items || paginatedData?.assignments || (Array.isArray(data?.data) ? data.data : [])
+  const totalCount = paginatedData?.totalCount || paginatedData?.totalCount || assignments.length
+  const totalPages = paginatedData?.totalPages || Math.ceil(totalCount / pageSize)
+
+  // Debug: Log the response to see structure
+  console.log('Assignments data:', { data, paginatedData, assignments, assignmentsLength: assignments.length })
+
+  const filteredAssignments = filter === 'all' 
+    ? assignments 
+    : filter === 'pending'
+    ? assignments.filter(a => !(a.isSubmitted || a.IsSubmitted))
+    : assignments.filter(a => a.isSubmitted || a.IsSubmitted)
+
+  const getStatusBadge = (assignment) => {
+    const isSubmitted = assignment.isSubmitted || assignment.IsSubmitted || false
+    if (isSubmitted) {
+      return (
+        <span className="badge badge-success">
+          <CheckCircle size={14} style={{ marginRight: '0.25rem' }} />
+          Submitted
+        </span>
+      )
+    }
+    const dueDate = new Date(assignment.dueDate || assignment.DueDate)
+    const now = new Date()
+    if (dueDate < now) {
+      return (
+        <span className="badge badge-danger">
+          <XCircle size={14} style={{ marginRight: '0.25rem' }} />
+          Overdue
+        </span>
+      )
+    }
+    return (
+      <span className="badge badge-warning">
+        <Clock size={14} style={{ marginRight: '0.25rem' }} />
+        Pending
+      </span>
+    )
+  }
+
+  return (
+    <div className="page-container">
+      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+            Assignments
+          </h1>
+          {user?.role === 'Parent' && studentId && (
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+              Viewing assignments for selected child
+            </p>
+          )}
+        </div>
+        {user?.role === 'Teacher' && (
+          <button
+            className="btn btn-primary"
+            onClick={() => navigate('/assignments/create')}
+          >
+            Create Assignment
+          </button>
+        )}
+      </div>
+
+      {/* Filter Tabs */}
+      {user?.role === 'Student' && (
+        <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem' }}>
+          <button
+            className={`btn ${filter === 'all' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setFilter('all')}
+          >
+            All Assignments
+          </button>
+          <button
+            className={`btn ${filter === 'pending' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setFilter('pending')}
+          >
+            Pending
+          </button>
+          <button
+            className={`btn ${filter === 'submitted' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setFilter('submitted')}
+          >
+            Submitted
+          </button>
+        </div>
+      )}
+
+      {/* Assignments List */}
+      {filteredAssignments.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {filteredAssignments.map((assignment) => {
+            const isSubmitted = assignment.isSubmitted || assignment.IsSubmitted || false
+            const dueDate = assignment.dueDate || assignment.DueDate
+            const assignmentId = assignment.id || assignment.Id
+            return (
+            <div
+              key={assignmentId}
+              className="card"
+              style={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                borderLeft: `4px solid ${isSubmitted ? 'var(--success)' : (dueDate && new Date(dueDate) < new Date() ? 'var(--danger)' : 'var(--warning)')}`
+              }}
+              onClick={() => navigate(`/assignments/${assignmentId}`)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)'
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <FileText size={20} color="var(--primary)" />
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--text-primary)', margin: 0 }}>
+                      {assignment.title || assignment.Title || 'Untitled Assignment'}
+                    </h3>
+                    {getStatusBadge(assignment)}
+                  </div>
+                  
+                  {(assignment.description || assignment.Description) && (
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: '1.5' }}>
+                      {(() => {
+                        const desc = assignment.description || assignment.Description || ''
+                        return desc.length > 150 ? `${desc.substring(0, 150)}...` : desc
+                      })()}
+                    </p>
+                  )}
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                    {(assignment.subjectName || assignment.SubjectName) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <BookOpen size={14} />
+                        <span>{assignment.subjectName || assignment.SubjectName}</span>
+                      </div>
+                    )}
+                    {(assignment.teacherName || assignment.TeacherName) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <User size={14} />
+                        <span>{assignment.teacherName || assignment.TeacherName}</span>
+                      </div>
+                    )}
+                    {(assignment.className || assignment.ClassName) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span>Class: {assignment.className || assignment.ClassName}</span>
+                      </div>
+                    )}
+                    {(assignment.dueDate || assignment.DueDate) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Calendar size={14} />
+                        <span>Due: {new Date(assignment.dueDate || assignment.DueDate).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                    {(assignment.maxMarks || assignment.MaxMarks) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span>Max Marks: {assignment.maxMarks || assignment.MaxMarks}</span>
+                      </div>
+                    )}
+                    {(assignment.submittedAt || assignment.SubmittedAt) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <CheckCircle size={14} />
+                        <span>Submitted: {new Date(assignment.submittedAt || assignment.SubmittedAt).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="card">
+          <div className="empty-state">
+            <FileText size={48} color="var(--text-muted)" style={{ marginBottom: '1rem' }} />
+            <p className="empty-state-text">No assignments found</p>
+            <p className="empty-state-subtext">
+              {filter === 'pending' 
+                ? 'You have no pending assignments' 
+                : filter === 'submitted'
+                ? 'You have no submitted assignments'
+                : 'No assignments available at this time'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+          <button
+            className="btn btn-outline"
+            disabled={page === 1}
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+          >
+            Previous
+          </button>
+          <span style={{ display: 'flex', alignItems: 'center', padding: '0 1rem' }}>
+            Page {page} of {totalPages}
+          </span>
+          <button
+            className="btn btn-outline"
+            disabled={page >= totalPages}
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+          >
+            Next
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default Assignments
