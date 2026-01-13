@@ -2,7 +2,9 @@ import api from './api'
 import logger from '../utils/logger'
 
 export const authService = {
-  login: async (email, password, rememberMe = false) => {
+  
+  try:{
+    login: async (email, password, rememberMe = false) => {
     const response = await api.post('/auth/login', { email, password, rememberMe })
     if (response.success && response.data?.token) {
       localStorage.setItem('token', response.data.token)
@@ -12,7 +14,14 @@ export const authService = {
       }
     }
     return response
-  },
+  }
+  },catch (err) {
+  if (err.response?.status === 401) {
+    setError(err.response.data.message);
+  } else {
+    setError("Something went wrong");
+  }
+},
 
   register: async (userData) => {
     return await api.post('/auth/register', userData)
