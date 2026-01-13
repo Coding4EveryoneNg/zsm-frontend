@@ -2,24 +2,36 @@ import api from './api'
 import logger from '../utils/logger'
 
 export const authService = {
-  
-  try:{
-    login: async (email, password, rememberMe = false) => {
-    const response = await api.post('/auth/login', { email, password, rememberMe })
-    if (response.success && response.data?.token) {
-      localStorage.setItem('token', response.data.token)
-      localStorage.setItem('user', JSON.stringify(response.data.user))
-      if (response.data.expiresAt) {
-        localStorage.setItem('tokenExpiry', response.data.expiresAt)
+  login: async (email, password, rememberMe = false) => {
+  try {
+    const response = await api.post('/auth/login', {
+      email,
+      password,
+      rememberMe
+    });
+
+    const { data } = response;
+
+    if (data?.token) {
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      if (data.expiresAt) {
+        localStorage.setItem('tokenExpiry', data.expiresAt);
       }
     }
-    return response
-  }
-  },catch (err) {
-  if (err.response?.status === 401) {
-    setError(err.response.data.message);
-  } else {
-    setError("Something went wrong");
+
+    return data;
+  } catch (error) {
+    logger.error('Login failed', error);
+
+    return {
+      error: true,
+      status: error.response?.status,
+      message:
+        error.response?.data?.message ||
+        'Invalid email or password'
+    };
   }
 },
 
