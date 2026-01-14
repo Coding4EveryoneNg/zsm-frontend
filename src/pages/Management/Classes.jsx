@@ -18,7 +18,7 @@ const Classes = () => {
 
   if (isLoading) return <Loading />
 
-  const classes = data?.data?.classes || data?.data || []
+  const classes = data?.data?.items || data?.data || []
   const pagination = data?.data?.pagination || {}
 
   // Filter classes based on search term
