@@ -28,7 +28,7 @@ const CreateTeacher = () => {
         department: data.department || null,
         employeeId: data.employeeId || null,
         hireDate: data.hireDate || null,
-        salary: data.salary ? parse(data.salary) : null,
+        salary: data.salary ? parseInt(data.salary) : null,
         experience: data.experience ? parseInt(data.experience) : null,
       }
 
