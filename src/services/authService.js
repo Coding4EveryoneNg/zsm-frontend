@@ -7,27 +7,25 @@ export const authService = {
     const response = await api.post('/auth/login', {
       email,
       password,
-      rememberMe
+      rememberMe,
     });
 
-    const { data } = response;
+    const data = response.data;
 
-    if (data?.token) {
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
 
-      if (data.expiresAt) {
-        localStorage.setItem('tokenExpiry', data.expiresAt);
-      }
+    if (data.expiresAt) {
+      localStorage.setItem('tokenExpiry', data.expiresAt);
     }
 
-    return data;
-  } catch (error) {
-    logger.error('Login failed', error);
-
     return {
-      error: true,
-      status: error.response?.status,
+      success: true,
+      data
+    };
+  } catch (error) {
+    return {
+      success: false,
       message:
         error.response?.data?.message ||
         'Invalid email or password'
