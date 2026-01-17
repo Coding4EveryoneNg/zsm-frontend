@@ -15,33 +15,38 @@ const Login = () => {
   } = useForm()
 
   const onSubmit = async (data) => {
-    setLoading(true)
-    try {
-      const result = await login(data.email, data.password, data.rememberMe)
-      if (result.success) {
-        // Get user from auth context after login
-        const userStr = localStorage.getItem('user')
-        if (userStr) {
-          const user = JSON.parse(userStr)
-          // Navigate based on role
-          const roleRoutes = {
-            Student: '/dashboard/student',
-            Teacher: '/dashboard/teacher',
-            Admin: '/dashboard/admin',
-            Principal: '/dashboard/principal',
-            SuperAdmin: '/dashboard/superadmin',
-            Parent: '/dashboard/parent',
-          }
-          const redirectTo = roleRoutes[user?.role] || '/dashboard'
-          navigate(redirectTo)
-        }
-      }
-    } catch (error) {
-      console.error('Login error:', error)
-    } finally {
-      setLoading(false)
-    }
+  setLoading(true);
+
+  const result = await login(
+    data.email,
+    data.password,
+    data.rememberMe
+  );
+
+  if (!result.success) {
+    alert(result.message); // or toast
+    setLoading(false);
+    return;
   }
+
+  const userStr = localStorage.getItem('user');
+  if (!userStr) return;
+
+  const user = JSON.parse(userStr);
+
+  const roleRoutes = {
+    Student: '/dashboard/student',
+    Teacher: '/dashboard/teacher',
+    Admin: '/dashboard/admin',
+    Principal: '/dashboard/principal',
+    SuperAdmin: '/dashboard/superadmin',
+    Parent: '/dashboard/parent',
+  };
+
+  navigate(roleRoutes[user.role] || '/dashboard');
+  setLoading(false);
+};
+
 
   return (
     <div
