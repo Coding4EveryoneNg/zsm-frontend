@@ -56,26 +56,52 @@ const TeacherDetails = () => {
         <div className="card-header">
           <h2 className="card-title">Teacher Details</h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
           <div>
             <label className="form-label">Employee ID</label>
-            <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem' }}>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem', fontWeight: 500 }}>
               {teacher.employeeId || teacher.id}
             </p>
           </div>
           <div>
             <label className="form-label">Name</label>
-            <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem' }}>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem', fontWeight: 500 }}>
               {teacher.firstName} {teacher.lastName}
             </p>
           </div>
           <div>
             <label className="form-label">Email</label>
-            <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem' }}>{teacher.email}</p>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>{teacher.email}</p>
+          </div>
+          <div>
+            <label className="form-label">Phone Number</label>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>{teacher.phoneNumber || 'N/A'}</p>
           </div>
           <div>
             <label className="form-label">Department</label>
-            <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem' }}>{teacher.department || 'N/A'}</p>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>{teacher.department || 'N/A'}</p>
+          </div>
+          <div>
+            <label className="form-label">Specialization</label>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>{teacher.specialization || 'N/A'}</p>
+          </div>
+          <div>
+            <label className="form-label">Hire Date</label>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>
+              {teacher.hireDate ? new Date(teacher.hireDate).toLocaleDateString() : 'N/A'}
+            </p>
+          </div>
+          <div>
+            <label className="form-label">Experience (Years)</label>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>
+              {teacher.experience ?? 'N/A'}
+            </p>
+          </div>
+          <div>
+            <label className="form-label">Salary</label>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>
+              {teacher.salary != null ? new Intl.NumberFormat(undefined, { style: 'currency', currency: 'NGN' }).format(teacher.salary) : 'N/A'}
+            </p>
           </div>
           <div>
             <label className="form-label">Status</label>
