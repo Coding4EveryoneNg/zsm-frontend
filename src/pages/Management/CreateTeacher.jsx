@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form'
 import { teachersService } from '../../services/apiServices'
 import { ArrowLeft, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { parse } from 'date-fns'
 
 const CreateTeacher = () => {
   const navigate = useNavigate()
@@ -28,7 +27,6 @@ const CreateTeacher = () => {
         department: data.department || null,
         employeeId: data.employeeId || null,
         hireDate: data.hireDate || null,
-        salary: data.salary ? parseInt(data.salary) : null,
         experience: data.experience ? parseInt(data.experience) : null,
       }
 
@@ -206,25 +204,6 @@ const CreateTeacher = () => {
             {errors.experience && (
               <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
                 {errors.experience.message}
-              </span>
-            )}
-          </div>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label className="form-label">Salary</label>
-            <input
-              type="number"
-              {...register('salary', { 
-                min: { value: 0, message: 'Salary cannot be negative' },
-                max: { value: 1000000, message: 'Salary cannot exceed 1,000,000' }
-              })}
-              className="form-input"
-              placeholder="0"
-              min="0"
-              max="1000000"
-            />
-            {errors.salary && (
-              <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
-                {errors.salary.message}
               </span>
             )}
           </div>

@@ -38,8 +38,10 @@ import CreateAdmin from './pages/Management/CreateAdmin'
 import SuperAdmins from './pages/Management/SuperAdmins'
 import SuperAdminDetails from './pages/Management/SuperAdminDetails'
 import Classes from './pages/Management/Classes'
+import ClassDetails from './pages/Management/ClassDetails'
 import CreateClass from './pages/Management/CreateClass'
 import Subjects from './pages/Management/Subjects'
+import SubjectDetails from './pages/Management/SubjectDetails'
 import CreateSubject from './pages/Management/CreateSubject'
 import AdminDetails from './pages/Management/AdminDetails'
 
@@ -308,6 +310,14 @@ function App() {
           }
         />
         <Route
+          path="/classes/:id"
+          element={
+            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
+              <ClassDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/subjects"
           element={
             <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
@@ -320,6 +330,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
               <CreateSubject />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/subjects/:id"
+          element={
+            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
+              <SubjectDetails />
             </ProtectedRoute>
           }
         />

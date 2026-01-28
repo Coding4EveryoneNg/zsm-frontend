@@ -2,27 +2,25 @@ import React from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from 'react-query'
 import Loading from '../../components/Common/Loading'
-import { ArrowLeft } from 'lucide-react'
-import { teachersService } from '../../services/apiServices'
+import { ArrowLeft, BookOpen } from 'lucide-react'
+import { subjectsService } from '../../services/apiServices'
 
-const TeacherDetails = () => {
+const SubjectDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
 
-  const { data, isLoading } = useQuery(['teacher', id], () => teachersService.getTeacher(id))
+  const { data, isLoading } = useQuery(['subject', id], () => subjectsService.getSubject(id))
 
   if (isLoading) return <Loading />
 
-  // Support different possible API response shapes:
-  // { teacher: { ... } } or { data: { ... } } or plain { ... }
-  const teacherResponse = data?.data
-  const teacher =
-    teacherResponse?.teacher ||
-    teacherResponse?.data ||
-    teacherResponse ||
+  const subjectResponse = data?.data
+  const subject =
+    subjectResponse?.subject ||
+    subjectResponse?.data ||
+    subjectResponse ||
     null
 
-  if (!teacher) {
+  if (!subject) {
     return (
       <div>
         <button
@@ -34,8 +32,8 @@ const TeacherDetails = () => {
           Back
         </button>
         <div className="card">
-          <h2 className="card-title">Teacher Details</h2>
-          <p>Teacher not found.</p>
+          <h2 className="card-title">Subject Details</h2>
+          <p>Subject not found.</p>
         </div>
       </div>
     )
@@ -54,34 +52,33 @@ const TeacherDetails = () => {
 
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Teacher Details</h2>
+          <h2 className="card-title">Subject Details</h2>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
           <div>
-            <label className="form-label">Employee ID</label>
+            <label className="form-label">Subject Name</label>
             <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem' }}>
-              {teacher.employeeId || teacher.id}
+              <BookOpen size={16} style={{ marginRight: '0.5rem' }} />
+              {subject.name || subject.Name}
             </p>
           </div>
           <div>
-            <label className="form-label">Name</label>
+            <label className="form-label">Code</label>
             <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem' }}>
-              {teacher.firstName} {teacher.lastName}
+              {subject.code || subject.Code || 'N/A'}
             </p>
           </div>
           <div>
-            <label className="form-label">Email</label>
-            <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem' }}>{teacher.email}</p>
-          </div>
-          <div>
-            <label className="form-label">Department</label>
-            <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem' }}>{teacher.department || 'N/A'}</p>
+            <label className="form-label">Description</label>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem' }}>
+              {subject.description || subject.Description || 'N/A'}
+            </p>
           </div>
           <div>
             <label className="form-label">Status</label>
             <p>
-              <span className={`badge ${teacher.isActive ? 'badge-success' : 'badge-danger'}`}>
-                {teacher.isActive ? 'Active' : 'Inactive'}
+              <span className={`badge ${(subject.isActive !== false) ? 'badge-success' : 'badge-danger'}`}>
+                {(subject.isActive !== false) ? 'Active' : 'Inactive'}
               </span>
             </p>
           </div>
@@ -91,5 +88,5 @@ const TeacherDetails = () => {
   )
 }
 
-export default TeacherDetails
+export default SubjectDetails
 
