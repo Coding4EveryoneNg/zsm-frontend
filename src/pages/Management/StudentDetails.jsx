@@ -1,23 +1,46 @@
 import React from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from 'react-query'
-import api from '../../services/api'
 import Loading from '../../components/Common/Loading'
 import { ArrowLeft } from 'lucide-react'
+import { studentsService } from '../../services/apiServices'
 
 const StudentDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { data, isLoading } = useQuery(['student', id], () => api.get(`/students/${id}`))
+
+  const { data, isLoading } = useQuery(
+    ['student', id],
+    () => studentsService.getStudent(id),
+    { enabled: !!id }
+  )
 
   if (isLoading) return <Loading />
 
-  const student = data?.data?.student
+  // Support different possible API response shapes:
+  // { student: { ... } } or { data: { ... } } or plain { ... }
+  const studentResponse = data?.data
+  const student =
+    studentResponse?.student ||
+    studentResponse?.data ||
+    studentResponse ||
+    null
 
   if (!student) {
     return (
       <div>
-        <p>Student not found</p>
+        <button
+          className="btn btn-secondary"
+          onClick={() => navigate(-1)}
+          style={{ marginBottom: '1.5rem' }}
+        >
+          <ArrowLeft size={18} />
+          Back
+        </button>
+        <div className="card">
+          <h2 className="card-title">Student Details</h2>
+          <p>Student not found.</p>
+        </div>
       </div>
     )
   }
@@ -37,24 +60,46 @@ const StudentDetails = () => {
         <div className="card-header">
           <h2 className="card-title">Student Details</h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
           <div>
-            <label className="form-label">Student ID</label>
-            <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem' }}>{student.studentId || student.id}</p>
+            <label className="form-label">Student Number</label>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem', fontWeight: 500 }}>
+              {student.studentNumber || student.studentId || student.id}
+            </p>
           </div>
           <div>
             <label className="form-label">Name</label>
-            <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem' }}>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem', fontWeight: 500 }}>
               {student.firstName} {student.lastName}
             </p>
           </div>
           <div>
             <label className="form-label">Email</label>
-            <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem' }}>{student.email}</p>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>{student.email}</p>
+          </div>
+          <div>
+            <label className="form-label">Phone Number</label>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>{student.phoneNumber || 'N/A'}</p>
           </div>
           <div>
             <label className="form-label">Class</label>
-            <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem' }}>{student.className || 'N/A'}</p>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>{student.className || 'N/A'}</p>
+          </div>
+          <div>
+            <label className="form-label">Gender</label>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>{student.gender || 'N/A'}</p>
+          </div>
+          <div>
+            <label className="form-label">Date of Birth</label>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>
+              {student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : 'N/A'}
+            </p>
+          </div>
+          <div>
+            <label className="form-label">Admission Date</label>
+            <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>
+              {student.admissionDate ? new Date(student.admissionDate).toLocaleDateString() : 'N/A'}
+            </p>
           </div>
           <div>
             <label className="form-label">Status</label>
