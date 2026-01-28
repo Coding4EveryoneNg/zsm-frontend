@@ -121,18 +121,18 @@ const CreateStudent = () => {
         schoolId: schoolId,
       }
 
-      const response = await createParentMutation.mutateAsync(parentData)
-      
-      // Wait a bit for the database to update, then refetch and find the parent
-      setTimeout(async () => {
-        const { data: updatedParents } = await refetchParents()
-        const newParent = updatedParents?.data?.find(p => 
-          (p.email || '').toLowerCase() === (data.parentEmail || '').toLowerCase()
-        )
-        if (newParent) {
-          setValue('parentId', newParent.id || newParent.Id)
-        }
-      }, 500)
+      await createParentMutation.mutateAsync(parentData)
+
+      // Refetch and select the newly created parent by email in a single round-trip
+      const { data: updatedParents } = await refetchParents()
+      const newParent = updatedParents?.data?.find((p) => {
+        const parentEmail = (p.email || p.Email || '').toLowerCase()
+        return parentEmail === (data.parentEmail || '').toLowerCase()
+      })
+
+      if (newParent) {
+        setValue('parentId', newParent.id || newParent.Id)
+      }
     } catch (error) {
       console.error('Error creating parent:', error)
     } finally {
@@ -419,11 +419,22 @@ const CreateStudent = () => {
                   disabled={showAddParent}
                 >
                   <option value="">None - Create student without parent</option>
-                  {parents.map((parent) => (
-                    <option key={parent.id || parent.Id} value={parent.id || parent.Id}>
-                      {parent.name || parent.Name} {parent.email ? `(${parent.email})` : ''}
-                    </option>
-                  ))}
+                  {parents.map((parent) => {
+                    const parentName =
+                      parent.name ||
+                      parent.Name ||
+                      [parent.firstName || parent.FirstName, parent.lastName || parent.LastName]
+                        .filter(Boolean)
+                        .join(' ')
+
+                    const parentEmail = parent.email || parent.Email
+
+                    return (
+                      <option key={parent.id || parent.Id} value={parent.id || parent.Id}>
+                        {parentName || 'Unnamed Parent'} {parentEmail ? `(${parentEmail})` : ''}
+                      </option>
+                    )
+                  })}
                 </select>
                 {!showAddParent && (
                   <button
