@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useNavigate } from 'react-router-dom'
 import { notificationsService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
-import { Bell, CheckCircle, Circle, Clock, X } from 'lucide-react'
+import { Bell, CheckCircle, Clock, ExternalLink } from 'lucide-react'
 
 const Notifications = () => {
+  const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState('all') // all, unread, read
   const pageSize = 20
@@ -181,7 +183,7 @@ const Notifications = () => {
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                     {notification.createdAt && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                         <Clock size={12} />
@@ -192,6 +194,21 @@ const Notifications = () => {
                       <span className="badge badge-outline" style={{ fontSize: '0.75rem' }}>
                         {notification.type}
                       </span>
+                    )}
+                    {(notification.actionUrl || notification.action_url) && (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline"
+                        style={{ marginLeft: 'auto' }}
+                        onClick={() => {
+                          const url = notification.actionUrl || notification.action_url
+                          if (url?.startsWith('http')) window.open(url, '_blank')
+                          else if (url) navigate(url.startsWith('/') ? url : `/${url}`)
+                        }}
+                      >
+                        <ExternalLink size={12} style={{ marginRight: '0.25rem' }} />
+                        {notification.actionText || notification.action_text || 'View'}
+                      </button>
                     )}
                   </div>
                 </div>

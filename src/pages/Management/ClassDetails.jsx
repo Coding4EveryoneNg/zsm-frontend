@@ -78,7 +78,7 @@ const ClassDetails = () => {
             <label className="form-label">Current Students</label>
             <p style={{ color: 'var(--text-primary)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <Users size={14} />
-              <span>{cls.currentStudentCount || cls.CurrentStudentCount || 0}</span>
+              <span>{cls.currentStudentCount ?? cls.CurrentStudentCount ?? cls.studentCount ?? cls.StudentCount ?? 0}</span>
             </p>
           </div>
           <div>
