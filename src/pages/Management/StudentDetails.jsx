@@ -110,6 +110,44 @@ const StudentDetails = () => {
             </p>
           </div>
         </div>
+
+        {(student.parentName || student.parentEmail || student.parentPhone) && (
+          <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+              Parent Information
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+              {student.parentName && (
+                <div>
+                  <label className="form-label">Parent Name</label>
+                  <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem', fontWeight: 500 }}>
+                    {student.parentName}
+                  </p>
+                </div>
+              )}
+              {student.relationship && (
+                <div>
+                  <label className="form-label">Relationship</label>
+                  <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>
+                    {student.relationship}
+                  </p>
+                </div>
+              )}
+              {student.parentEmail && (
+                <div>
+                  <label className="form-label">Parent Email</label>
+                  <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>{student.parentEmail}</p>
+                </div>
+              )}
+              {student.parentPhone && (
+                <div>
+                  <label className="form-label">Parent Phone</label>
+                  <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>{student.parentPhone}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
