@@ -9,7 +9,7 @@ const StudentDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
 
-  const { data, isLoading } = useQuery(
+  const { data, isLoading, isError, error, refetch } = useQuery(
     ['student', id],
     () => studentsService.getStudent(id),
     { enabled: !!id }
@@ -17,14 +17,32 @@ const StudentDetails = () => {
 
   if (isLoading) return <Loading />
 
-  // Support different possible API response shapes:
-  // { student: { ... } } or { data: { ... } } or plain { ... }
-  const studentResponse = data?.data
-  const student =
-    studentResponse?.student ||
-    studentResponse?.data ||
-    studentResponse ||
-    null
+  // API returns { success, data: <student payload> }; axios puts response body in data
+  const student = data?.data ?? null
+
+  if (isError) {
+    return (
+      <div>
+        <button
+          className="btn btn-secondary"
+          onClick={() => navigate(-1)}
+          style={{ marginBottom: '1.5rem' }}
+        >
+          <ArrowLeft size={18} />
+          Back
+        </button>
+        <div className="card">
+          <h2 className="card-title">Student Details</h2>
+          <p style={{ color: 'var(--text-danger, #dc3545)', marginBottom: '1rem' }}>
+            {error?.response?.data?.message || error?.message || 'Failed to load student.'}
+          </p>
+          <button type="button" className="btn btn-primary" onClick={() => refetch()}>
+            Try again
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (!student) {
     return (
@@ -111,7 +129,7 @@ const StudentDetails = () => {
           </div>
         </div>
 
-        {(student.parentName || student.parentEmail || student.parentPhone) && (
+        {student.parentName || student.parentEmail || student.parentPhone ? (
           <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
             <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-primary)' }}>
               Parent Information
@@ -147,6 +165,10 @@ const StudentDetails = () => {
               )}
             </div>
           </div>
+        ) : (
+          <p style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+            No parent or guardian information on file.
+          </p>
         )}
       </div>
     </div>
