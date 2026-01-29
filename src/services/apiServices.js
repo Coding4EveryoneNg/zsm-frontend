@@ -242,6 +242,12 @@ export const booksService = {
   createBook: (data) => api.post('/books', data),
   updateBook: (id, data) => api.put(`/books/${id}`, data),
   deleteBook: (id) => api.delete(`/books/${id}`),
+  /** Assign a book to a class (Admin/Principal). A book can be in multiple classes; assignment is optional. */
+  assignBookToClass: (data) => api.post('/books/assign-to-class', data),
+  /** Remove a book from a class. A book may have zero or more class assignments. */
+  removeBookFromClass: (bookId, classId) => api.delete('/books/remove-from-class', { params: { bookId, classId } }),
+  /** Get classes a book is assigned to (Admin/Principal). */
+  getBookClasses: (bookId) => api.get(`/books/${bookId}/classes`),
   // Parent-specific endpoints
   getParentBooks: (params) => api.get('/books/parent', { params }),
 }
