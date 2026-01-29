@@ -1,15 +1,21 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { useAuth } from '../../contexts/AuthContext'
 import { schoolApplicationsService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import ConfirmDialog from '../../components/Common/ConfirmDialog'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
 import logger from '../../utils/logger'
-import { Search, FileText, CheckCircle, XCircle, Eye, Clock, AlertCircle } from 'lucide-react'
+import { Search, FileText, CheckCircle, XCircle, Eye, Clock, AlertCircle, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const SchoolApplications = () => {
+  const navigate = useNavigate()
+  const { user } = useAuth()
   const queryClient = useQueryClient()
+  const isSuperAdmin = user?.role === 'SuperAdmin'
+  const isAdmin = user?.role === 'Admin'
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [searchTerm, setSearchTerm] = useState('')
@@ -62,9 +68,10 @@ const SchoolApplications = () => {
     }
   )
 
-  const applications = data?.data?.applications || []
-  const pagination = data?.data?.pagination || {}
-  const totalPages = pagination.totalPages || 1
+  const listData = data?.data ?? {}
+  const applications = listData.applications || listData.Applications || []
+  const totalPages = listData.totalPages ?? 1
+  const pagination = { totalPages, currentPage: listData.currentPage ?? page }
 
   const filteredApplications = applications.filter(app => {
     if (!searchTerm) return true
@@ -198,6 +205,16 @@ const SchoolApplications = () => {
         <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
           School Applications
         </h1>
+        {isAdmin && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate('/settings/school-applications/create')}
+          >
+            <Plus size={18} style={{ marginRight: '0.5rem' }} />
+            Apply for another school
+          </button>
+        )}
       </div>
 
       {error && (
@@ -302,7 +319,7 @@ const SchoolApplications = () => {
                         >
                           <Eye size={16} />
                         </button>
-                        {(String(app.status || '').toLowerCase() === 'pending' || 
+                        {isSuperAdmin && (String(app.status || '').toLowerCase() === 'pending' ||
                           String(app.status || '').toLowerCase() === 'submitted' ||
                           String(app.status || '').toLowerCase() === 'underreview' ||
                           app.status === 0 || app.status === 1 || app.status === 2) && (
@@ -384,6 +401,7 @@ const SchoolApplications = () => {
           }}
           onApprove={handleApprove}
           onReject={handleReject}
+          showApproveReject={isSuperAdmin}
         />
       )}
 
@@ -485,7 +503,7 @@ const SchoolApplications = () => {
 }
 
 // Application Details Modal Component
-const ApplicationDetailsModal = ({ application, onClose, onApprove, onReject, isLoading }) => {
+const ApplicationDetailsModal = ({ application, onClose, onApprove, onReject, isLoading, showApproveReject = true }) => {
   if (isLoading && !application) {
     return (
       <div
@@ -705,7 +723,7 @@ const ApplicationDetailsModal = ({ application, onClose, onApprove, onReject, is
           </div>
 
           <div style={{ marginTop: '2rem', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-            {(String(application.status || '').toLowerCase() === 'pending' || 
+            {showApproveReject && (String(application.status || '').toLowerCase() === 'pending' ||
               String(application.status || '').toLowerCase() === 'submitted' ||
               String(application.status || '').toLowerCase() === 'underreview' ||
               application.status === 0 || application.status === 1 || application.status === 2) && (

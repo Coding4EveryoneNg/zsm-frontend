@@ -33,6 +33,7 @@ import CreateStudent from './pages/Management/CreateStudent'
 import Teachers from './pages/Management/Teachers'
 import TeacherDetails from './pages/Management/TeacherDetails'
 import CreateTeacher from './pages/Management/CreateTeacher'
+import CreatePrincipal from './pages/Management/CreatePrincipal'
 import Admins from './pages/Management/Admins'
 import CreateAdmin from './pages/Management/CreateAdmin'
 import SuperAdmins from './pages/Management/SuperAdmins'
@@ -74,6 +75,7 @@ import SessionTerm from './pages/Settings/SessionTerm'
 import SchoolManagement from './pages/Settings/SchoolManagement'
 import TenantManagement from './pages/Settings/TenantManagement'
 import SchoolApplications from './pages/Settings/SchoolApplications'
+import CreateSchoolApplication from './pages/Settings/CreateSchoolApplication'
 import SchoolDetails from './pages/Settings/SchoolDetails'
 
 // Protected Route Component
@@ -250,6 +252,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
               <TeacherDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/principals/create"
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <CreatePrincipal />
             </ProtectedRoute>
           }
         />
@@ -536,8 +546,16 @@ function App() {
         <Route
           path="/settings/school-applications"
           element={
-            <ProtectedRoute allowedRoles={['SuperAdmin']}>
+            <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}>
               <SchoolApplications />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/school-applications/create"
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <CreateSchoolApplication />
             </ProtectedRoute>
           }
         />
