@@ -52,6 +52,12 @@ const Sidebar = () => {
       roles: ['Admin', 'Principal'],
     },
     {
+      title: 'Add Principal',
+      icon: Users,
+      path: '/principals/create',
+      roles: ['Admin'],
+    },
+    {
       title: 'Admins',
       icon: Users,
       path: '/admins',
@@ -132,7 +138,7 @@ const Sidebar = () => {
         { title: 'Session & Term', path: '/settings/session-term', roles: ['Admin', 'Principal'] },
         { title: 'School', path: '/settings/school', roles: ['Admin', 'SuperAdmin'] },
         { title: 'Tenants', path: '/settings/tenants', roles: ['SuperAdmin'] },
-        { title: 'School Applications', path: '/settings/school-applications', roles: ['SuperAdmin'] },
+        { title: 'School Applications', path: '/settings/school-applications', roles: ['SuperAdmin', 'Admin'] },
       ],
     },
   ]

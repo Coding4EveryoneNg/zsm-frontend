@@ -194,7 +194,7 @@ export const schoolApplicationsService = {
   createApplication: (data) => api.post('/schoolapplications', data),
   submitApplication: (applicationId) => api.post(`/schoolapplications/${applicationId}/submit`),
   approveApplication: (applicationId, notes) => api.post(`/schoolapplications/${applicationId}/approve`, notes ? { notes } : {}),
-  rejectApplication: (applicationId, reason) => api.post(`/schoolapplications/${applicationId}/reject`, { reason }),
+  rejectApplication: (applicationId, reason) => api.post(`/schoolapplications/${applicationId}/reject`, { rejectionReason: reason }),
 }
 
 // Tenants Services (SuperAdmin only)
@@ -287,5 +287,6 @@ export const userManagementService = {
   getParentsBySchool: (schoolId) => api.get(`/userManagement/schools/${schoolId}/parents`),
   getClassesBySchool: (schoolId) => api.get(`/userManagement/schools/${schoolId}/classes`),
   createParent: (data) => api.post('/userManagement/parents', data),
+  createPrincipal: (data) => api.post('/userManagement/principals', data),
 }
 
