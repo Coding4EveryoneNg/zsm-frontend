@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { Calendar, School, Building2, FileCheck, Settings as SettingsIcon } from 'lucide-react'
+import { Calendar, School, Building2, FileCheck, Settings as SettingsIcon, UserPlus, CalendarClock } from 'lucide-react'
 
 const Settings = () => {
   const { user } = useAuth()
@@ -21,6 +21,20 @@ const Settings = () => {
       path: '/settings/school',
       icon: School,
       roles: ['Admin', 'SuperAdmin'],
+    },
+    {
+      title: 'Manage Principals',
+      description: 'Add, view, edit, and manage principals for all schools in your tenant.',
+      path: '/principals',
+      icon: UserPlus,
+      roles: ['Admin'],
+    },
+    {
+      title: 'Exam Timetable',
+      description: 'View and manage examination schedules by class, term, and session.',
+      path: '/academic/examination-timetable',
+      icon: CalendarClock,
+      roles: ['Student', 'Teacher', 'Admin', 'Principal'],
     },
     {
       title: 'Tenants',
@@ -50,7 +64,7 @@ const Settings = () => {
             <SettingsIcon size={48} color="var(--text-muted)" style={{ marginBottom: '1rem' }} />
             <p className="empty-state-text">Settings</p>
             <p className="empty-state-subtext">
-              Settings are available to Admin, Principal, and Super Admin only.
+              Settings are available to Admin, Principal, Super Admin, Student, and Teacher.
             </p>
           </div>
         </div>
