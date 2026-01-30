@@ -10,10 +10,10 @@ const Settings = () => {
   const settingActions = [
     {
       title: 'Session & Term',
-      description: 'Create and manage academic sessions and terms. All school members are notified when you create or update them.',
+      description: 'Create and manage academic sessions and terms. SuperAdmin can add for any school; Admin/Principal manage their school. All school members are notified when you create or update them.',
       path: '/settings/session-term',
       icon: Calendar,
-      roles: ['Admin', 'Principal'],
+      roles: ['SuperAdmin', 'Admin', 'Principal'],
     },
     {
       title: 'School',

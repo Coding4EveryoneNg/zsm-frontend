@@ -55,6 +55,7 @@ import Examinations from './pages/Academic/Examinations'
 import ExaminationDetails from './pages/Academic/ExaminationDetails'
 import CreateExamination from './pages/Academic/CreateExamination'
 import TakeExamination from './pages/Academic/TakeExamination'
+import ExaminationTimetable from './pages/Academic/ExaminationTimetable'
 import Courses from './pages/Academic/Courses'
 import CourseDetails from './pages/Academic/CourseDetails'
 import Books from './pages/Academic/Books'
@@ -72,6 +73,7 @@ import Reports from './pages/Reports/Reports'
 import Notifications from './pages/Notifications/Notifications'
 import Settings from './pages/Settings/Settings'
 import SessionTerm from './pages/Settings/SessionTerm'
+import SchoolCalendar from './pages/Settings/SchoolCalendar'
 import SchoolManagement from './pages/Settings/SchoolManagement'
 import TenantManagement from './pages/Settings/TenantManagement'
 import SchoolApplications from './pages/Settings/SchoolApplications'
@@ -394,6 +396,14 @@ function App() {
           }
         />
         <Route
+          path="/academic/examination-timetable"
+          element={
+            <ProtectedRoute allowedRoles={['Student', 'Teacher', 'Admin', 'Principal']}>
+              <ExaminationTimetable />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/examinations/create"
           element={
             <ProtectedRoute allowedRoles={['Teacher']}>
@@ -522,8 +532,16 @@ function App() {
         <Route
           path="/settings/session-term"
           element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
+            <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin', 'Principal']}>
               <SessionTerm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/school-calendar"
+          element={
+            <ProtectedRoute allowedRoles={['Student', 'Teacher', 'Admin', 'Principal', 'Parent']}>
+              <SchoolCalendar />
             </ProtectedRoute>
           }
         />

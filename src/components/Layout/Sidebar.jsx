@@ -16,6 +16,8 @@ import {
   Building2,
   Menu,
   X,
+  CalendarDays,
+  CalendarClock,
 } from 'lucide-react'
 import logo from '../../assets/logo2.jpg'
 
@@ -100,6 +102,12 @@ const Sidebar = () => {
       roles: ['Student', 'Teacher', 'Admin', 'Principal', 'Parent'],
     },
     {
+      title: 'Exam Timetable',
+      icon: CalendarClock,
+      path: '/academic/examination-timetable',
+      roles: ['Student', 'Teacher', 'Admin', 'Principal'],
+    },
+    {
       title: 'Courses',
       icon: BookOpen,
       path: '/courses',
@@ -109,6 +117,12 @@ const Sidebar = () => {
       title: 'Books',
       icon: BookOpen,
       path: '/books',
+      roles: ['Student', 'Teacher', 'Admin', 'Principal', 'Parent'],
+    },
+    {
+      title: 'School Calendar',
+      icon: CalendarDays,
+      path: '/school-calendar',
       roles: ['Student', 'Teacher', 'Admin', 'Principal', 'Parent'],
     },
     {
@@ -135,7 +149,7 @@ const Sidebar = () => {
       path: '/settings',
       roles: ['Admin', 'Principal', 'SuperAdmin'],
       submenu: [
-        { title: 'Session & Term', path: '/settings/session-term', roles: ['Admin', 'Principal'] },
+        { title: 'Session & Term', path: '/settings/session-term', roles: ['SuperAdmin', 'Admin', 'Principal'] },
         { title: 'School', path: '/settings/school', roles: ['Admin', 'SuperAdmin'] },
         { title: 'Tenants', path: '/settings/tenants', roles: ['SuperAdmin'] },
         { title: 'School Applications', path: '/settings/school-applications', roles: ['SuperAdmin', 'Admin'] },
