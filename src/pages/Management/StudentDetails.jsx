@@ -17,8 +17,34 @@ const StudentDetails = () => {
 
   if (isLoading) return <Loading />
 
-  // API returns { success, data: <student payload> }; axios puts response body in data
-  const student = data?.data ?? null
+  // API returns { success, data: <student payload> }; support both camelCase and PascalCase
+  const rawPayload = data?.data ?? data?.Data ?? data
+  const rawStudent = rawPayload && typeof rawPayload === 'object' && ('id' in rawPayload || 'Id' in rawPayload)
+    ? rawPayload
+    : null
+  // Normalize to camelCase for display (API may return PascalCase)
+  const student = rawStudent ? {
+    id: rawStudent.id ?? rawStudent.Id,
+    studentId: rawStudent.studentId ?? rawStudent.StudentId,
+    studentNumber: rawStudent.studentNumber ?? rawStudent.StudentNumber,
+    firstName: rawStudent.firstName ?? rawStudent.FirstName,
+    lastName: rawStudent.lastName ?? rawStudent.LastName,
+    email: rawStudent.email ?? rawStudent.Email,
+    phoneNumber: rawStudent.phoneNumber ?? rawStudent.PhoneNumber,
+    className: rawStudent.className ?? rawStudent.ClassName,
+    classId: rawStudent.classId ?? rawStudent.ClassId,
+    gender: rawStudent.gender ?? rawStudent.Gender,
+    dateOfBirth: rawStudent.dateOfBirth ?? rawStudent.DateOfBirth,
+    admissionDate: rawStudent.admissionDate ?? rawStudent.AdmissionDate,
+    address: rawStudent.address ?? rawStudent.Address,
+    schoolName: rawStudent.schoolName ?? rawStudent.SchoolName,
+    isActive: rawStudent.isActive ?? rawStudent.IsActive,
+    parentId: rawStudent.parentId ?? rawStudent.ParentId,
+    parentName: rawStudent.parentName ?? rawStudent.ParentName,
+    parentEmail: rawStudent.parentEmail ?? rawStudent.ParentEmail,
+    parentPhone: rawStudent.parentPhone ?? rawStudent.ParentPhone,
+    relationship: rawStudent.relationship ?? rawStudent.Relationship
+  } : null
 
   if (isError) {
     return (
