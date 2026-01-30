@@ -113,10 +113,15 @@ const Sidebar = () => {
       roles: ['Student', 'Teacher', 'Admin', 'Principal', 'Parent'],
     },
     {
-      title: 'Payments',
+      title: 'Fees and Payment',
       icon: CreditCard,
       path: '/payments',
+      activePaths: ['/payments', '/settings/fee-structures'],
       roles: ['Student', 'Parent', 'Admin', 'Principal'],
+      submenu: [
+        { title: 'Payments', path: '/payments', roles: ['Student', 'Parent', 'Admin', 'Principal'] },
+        { title: 'School Fees', path: '/settings/fee-structures', roles: ['Admin', 'Principal'] },
+      ],
     },
     {
       title: 'Reports',
@@ -139,7 +144,6 @@ const Sidebar = () => {
         { title: 'Session & Term', path: '/settings/session-term', roles: ['SuperAdmin', 'Admin', 'Principal'] },
         { title: 'School', path: '/settings/school', roles: ['Admin', 'SuperAdmin'] },
         { title: 'Manage Principals', path: '/principals', roles: ['Admin'] },
-        { title: 'Fee Structures', path: '/settings/fee-structures', roles: ['Admin', 'Principal'] },
         { title: 'Exam Timetable', path: '/academic/examination-timetable', roles: ['Student', 'Teacher', 'Admin', 'Principal'] },
         { title: 'Tenants', path: '/settings/tenants', roles: ['SuperAdmin'] },
         { title: 'School Applications', path: '/settings/school-applications', roles: ['SuperAdmin', 'Admin'] },
@@ -196,7 +200,9 @@ const Sidebar = () => {
       </div>
       {filteredMenuItems.map((item) => {
         const Icon = item.icon
-        const active = isActive(item.path)
+        const active = item.activePaths
+          ? item.activePaths.some((p) => location.pathname.startsWith(p))
+          : isActive(item.path)
 
         return (
           <div key={item.path}>
