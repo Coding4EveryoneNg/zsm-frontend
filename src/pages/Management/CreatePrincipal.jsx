@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { userManagementService } from '../../services/apiServices'
+import { useQuery } from 'react-query'
+import { principalsService, commonService } from '../../services/apiServices'
 import { ArrowLeft, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -14,6 +15,9 @@ const CreatePrincipal = () => {
     formState: { errors },
   } = useForm()
 
+  const { data: schoolsData } = useQuery('schools-dropdown', () => commonService.getSchoolsDropdown())
+  const schools = schoolsData?.data?.data ?? schoolsData?.data ?? []
+
   const onSubmit = async (data) => {
     setLoading(true)
     try {
@@ -24,15 +28,16 @@ const CreatePrincipal = () => {
         lastName: data.lastName,
         phoneNumber: data.phoneNumber || null,
         employeeId: data.employeeId || null,
+        schoolId: data.schoolId,
       }
 
-      const response = await userManagementService.createPrincipal(requestData)
+      const response = await principalsService.createPrincipal(requestData)
       const body = response?.data
       const success = body?.success ?? response?.success
 
       if (success) {
         toast.success(body?.message || 'Principal created successfully!')
-        navigate('/teachers')
+        navigate('/principals')
       } else {
         const errMsg =
           body?.message ||
@@ -59,7 +64,7 @@ const CreatePrincipal = () => {
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
         <button
           className="btn btn-secondary"
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/principals')}
           style={{ padding: '0.5rem' }}
         >
           <ArrowLeft size={20} />
@@ -71,7 +76,7 @@ const CreatePrincipal = () => {
 
       <div className="card">
         <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
-          Add a principal for your school. The principal will have access to the principal dashboard and reports.
+          Add a principal for a school in your tenant. Select the school they will manage.
         </p>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
@@ -129,6 +134,36 @@ const CreatePrincipal = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
             <div>
+              <label className="form-label">School <span style={{ color: '#ef4444' }}>*</span></label>
+              <select
+                {...register('schoolId', { required: 'Please select a school' })}
+                className="form-input"
+              >
+                <option value="">Select school</option>
+                {Array.isArray(schools) && schools.map((s) => (
+                  <option key={s.id || s.Id} value={s.id || s.Id}>
+                    {s.name || s.Name}
+                  </option>
+                ))}
+              </select>
+              {errors.schoolId && (
+                <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
+                  {errors.schoolId.message}
+                </span>
+              )}
+            </div>
+            <div>
+              <label className="form-label">Employee ID (optional)</label>
+              <input
+                {...register('employeeId')}
+                className="form-input"
+                placeholder="Leave empty for auto-generation"
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div>
               <label className="form-label">Password <span style={{ color: '#ef4444' }}>*</span></label>
               <input
                 type="password"
@@ -145,18 +180,10 @@ const CreatePrincipal = () => {
                 </span>
               )}
             </div>
-            <div>
-              <label className="form-label">Employee ID (optional)</label>
-              <input
-                {...register('employeeId')}
-                className="form-input"
-                placeholder="Leave empty for auto-generation"
-              />
-            </div>
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
-            <button type="button" className="btn btn-secondary" onClick={() => navigate(-1)}>
+            <button type="button" className="btn btn-secondary" onClick={() => navigate('/principals')}>
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>

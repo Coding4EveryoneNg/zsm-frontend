@@ -248,6 +248,15 @@ export const adminsService = {
   createAdmin: (data) => api.post('/admins', data),
 }
 
+// Principals Services (Admin manages principals for all schools in tenant)
+export const principalsService = {
+  getPrincipals: (params) => api.get('/principals', { params }),
+  getPrincipal: (id) => api.get(`/principals/${id}`),
+  createPrincipal: (data) => api.post('/principals', data),
+  updatePrincipal: (id, data) => api.put(`/principals/${id}`, data),
+  deletePrincipal: (id) => api.delete(`/principals/${id}`),
+}
+
 // SuperAdmins Services
 export const superAdminsService = {
   getSuperAdmins: (params) => api.get('/superadmins', { params }),
@@ -315,7 +324,7 @@ export const commonService = {
 export const userManagementService = {
   getParentsBySchool: (schoolId) => api.get(`/userManagement/schools/${schoolId}/parents`),
   getClassesBySchool: (schoolId) => api.get(`/userManagement/schools/${schoolId}/classes`),
+  getSchoolsByTenant: (tenantId) => api.get(`/userManagement/tenants/${tenantId}/schools`),
   createParent: (data) => api.post('/userManagement/parents', data),
-  createPrincipal: (data) => api.post('/userManagement/principals', data),
 }
 

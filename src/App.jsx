@@ -34,6 +34,8 @@ import Teachers from './pages/Management/Teachers'
 import TeacherDetails from './pages/Management/TeacherDetails'
 import CreateTeacher from './pages/Management/CreateTeacher'
 import CreatePrincipal from './pages/Management/CreatePrincipal'
+import Principals from './pages/Management/Principals'
+import PrincipalDetails from './pages/Management/PrincipalDetails'
 import Admins from './pages/Management/Admins'
 import CreateAdmin from './pages/Management/CreateAdmin'
 import SuperAdmins from './pages/Management/SuperAdmins'
@@ -258,10 +260,26 @@ function App() {
           }
         />
         <Route
+          path="/principals"
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <Principals />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/principals/create"
           element={
             <ProtectedRoute allowedRoles={['Admin']}>
               <CreatePrincipal />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/principals/:id"
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <PrincipalDetails />
             </ProtectedRoute>
           }
         />
