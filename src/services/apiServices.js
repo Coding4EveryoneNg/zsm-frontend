@@ -187,6 +187,27 @@ export const sessionTermService = {
   exportSessionsPDF: (params) => api.get('/sessionterm/export/pdf', { params, responseType: 'blob' }),
 }
 
+// School Calendar Services
+export const schoolCalendarService = {
+  getEvents: (params) => api.get('/schoolcalendar/events', { params }),
+  createEvent: (data) => api.post('/schoolcalendar/events', data),
+  updateEvent: (id, data) => api.put(`/schoolcalendar/events/${id}`, data),
+  deleteEvent: (id) => api.delete(`/schoolcalendar/events/${id}`),
+}
+
+// Examination Timetable Services
+export const examinationTimetableService = {
+  list: (params) => api.get('/examination-timetable', { params }),
+  get: (id) => api.get(`/examination-timetable/${id}`),
+  getEntries: (id) => api.get(`/examination-timetable/${id}/entries`),
+  getSubjectsForClass: (classId) => api.get('/examination-timetable/subjects-for-class', { params: { classId } }),
+  create: (data) => api.post('/examination-timetable', data),
+  addEntry: (id, data) => api.post(`/examination-timetable/${id}/entries`, data),
+  updateEntry: (entryId, data) => api.put(`/examination-timetable/entries/${entryId}`, data),
+  deleteEntry: (entryId) => api.delete(`/examination-timetable/entries/${entryId}`),
+  delete: (id) => api.delete(`/examination-timetable/${id}`),
+}
+
 // School Applications Services
 export const schoolApplicationsService = {
   getApplications: (params) => api.get('/schoolapplications', { params }),

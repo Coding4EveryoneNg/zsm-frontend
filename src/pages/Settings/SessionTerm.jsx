@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { sessionTermService } from '../../services/apiServices'
+import { sessionTermService, commonService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
 import { Calendar, Plus, BookMarked } from 'lucide-react'
@@ -13,13 +13,22 @@ const SessionTerm = () => {
   const [addTermSessionId, setAddTermSessionId] = useState(null)
   const [sessionForm, setSessionForm] = useState({ name: '', startDate: '', endDate: '', isCurrent: false })
   const [termForm, setTermForm] = useState({ name: '', termNumber: 1, startDate: '', endDate: '', isCurrent: false })
+  const [selectedSchoolId, setSelectedSchoolId] = useState('')
 
-  const canManage = user?.role === 'Admin' || user?.role === 'Principal'
+  const canManage = user?.role === 'Admin' || user?.role === 'Principal' || user?.role === 'SuperAdmin'
+  const isSuperAdmin = user?.role === 'SuperAdmin'
+
+  const { data: schoolsData } = useQuery(
+    ['common', 'schools'],
+    () => commonService.getSchoolsDropdown(),
+    { enabled: isSuperAdmin }
+  )
+  const schools = schoolsData?.data?.data ?? schoolsData?.data ?? []
 
   const { data, isLoading, error } = useQuery(
-    ['sessionterm', 'sessions'],
-    () => sessionTermService.getSessions({ page: 1, pageSize: 50 }),
-    { enabled: canManage }
+    ['sessionterm', 'sessions', selectedSchoolId],
+    () => sessionTermService.getSessions({ page: 1, pageSize: 50, schoolId: selectedSchoolId || undefined }),
+    { enabled: canManage && (!isSuperAdmin || !!selectedSchoolId) }
   )
 
   const createSessionMutation = useMutation(
@@ -76,11 +85,16 @@ const SessionTerm = () => {
       toast.error('Name, start date and end date are required')
       return
     }
+    if (isSuperAdmin && !selectedSchoolId) {
+      toast.error('Please select a school')
+      return
+    }
     createSessionMutation.mutate({
       name: sessionForm.name,
       startDate: sessionForm.startDate,
       endDate: sessionForm.endDate,
-      isCurrent: sessionForm.isCurrent
+      isCurrent: sessionForm.isCurrent,
+      ...(isSuperAdmin && selectedSchoolId ? { schoolId: selectedSchoolId } : {})
     })
   }
 
@@ -111,7 +125,7 @@ const SessionTerm = () => {
         <div className="card">
           <div className="empty-state">
             <Calendar size={48} color="var(--text-muted)" style={{ marginBottom: '1rem' }} />
-            <p className="empty-state-text">Session & Term management is available to Admin and Principal only.</p>
+            <p className="empty-state-text">Session & Term management is available to SuperAdmin, Admin, and Principal only.</p>
           </div>
         </div>
       </div>
@@ -134,23 +148,47 @@ const SessionTerm = () => {
 
   return (
     <div className="page-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
           Session & Term
         </h1>
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => setShowSessionForm(true)}
-        >
-          <Plus size={18} style={{ marginRight: '0.5rem' }} />
-          Create session
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          {isSuperAdmin && (
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>School</label>
+              <select
+                className="form-control"
+                value={selectedSchoolId}
+                onChange={(e) => setSelectedSchoolId(e.target.value)}
+                style={{ minWidth: '200px' }}
+              >
+                <option value="">Select school</option>
+                {schools.map((s) => (
+                  <option key={s.id || s.Id} value={s.id || s.Id}>
+                    {s.name || s.Name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setShowSessionForm(true)}
+            disabled={isSuperAdmin && !selectedSchoolId}
+          >
+            <Plus size={18} style={{ marginRight: '0.5rem' }} />
+            Create session
+          </button>
+        </div>
       </div>
 
       {showSessionForm && (
         <div className="card" style={{ marginBottom: '2rem' }}>
           <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>New academic session</h3>
+          {isSuperAdmin && !selectedSchoolId && (
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Select a school above first.</p>
+          )}
           <form onSubmit={handleCreateSession} style={{ display: 'grid', gap: '1rem', maxWidth: '400px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>Name</label>
@@ -192,7 +230,7 @@ const SessionTerm = () => {
             </label>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button type="button" className="btn btn-outline" onClick={() => setShowSessionForm(false)}>Cancel</button>
-              <button type="submit" className="btn btn-primary" disabled={createSessionMutation.isLoading}>
+              <button type="submit" className="btn btn-primary" disabled={createSessionMutation.isLoading || (isSuperAdmin && !selectedSchoolId)}>
                 {createSessionMutation.isLoading ? 'Creating…' : 'Create session'}
               </button>
             </div>
@@ -200,7 +238,14 @@ const SessionTerm = () => {
         </div>
       )}
 
-      {sessions.length === 0 && !showSessionForm ? (
+      {isSuperAdmin && !selectedSchoolId && !showSessionForm ? (
+        <div className="card">
+          <div className="empty-state">
+            <Calendar size={48} color="var(--text-muted)" style={{ marginBottom: '1rem' }} />
+            <p className="empty-state-text">Select a school to view and manage sessions and terms.</p>
+          </div>
+        </div>
+      ) : sessions.length === 0 && !showSessionForm ? (
         <div className="card">
           <div className="empty-state">
             <Calendar size={48} color="var(--text-muted)" style={{ marginBottom: '1rem' }} />
