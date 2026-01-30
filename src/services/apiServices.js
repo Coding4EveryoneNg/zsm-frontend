@@ -183,6 +183,8 @@ export const sessionTermService = {
   createTerm: (data) => api.post('/sessionterm/terms', data),
   createTermForSession: (sessionId, data) => api.post(`/sessionterm/sessions/${sessionId}/terms`, data),
   setCurrentTerm: (termId) => api.post(`/sessionterm/terms/${termId}/set-current`),
+  getTermFormat: (params) => api.get('/sessionterm/term-format', { params }),
+  setTermFormat: (data, config) => api.put('/sessionterm/term-format', data, config ?? {}),
   exportSessions: (params) => api.get('/sessionterm/sessions/export/excel', { params, responseType: 'blob' }),
   exportSessionsPDF: (params) => api.get('/sessionterm/export/pdf', { params, responseType: 'blob' }),
 }

@@ -93,6 +93,10 @@ const SessionTerm = () => {
       toast.error('Name, start date and end date are required')
       return
     }
+    if (!isValidSessionName(sessionForm.name)) {
+      toast.error('Session name must be in format YYYY/YYYY (e.g. 2025/2026). Second year must be first year + 1.')
+      return
+    }
     if (isSuperAdmin && !selectedSchoolId) {
       toast.error('Please select a school')
       return
@@ -126,6 +130,32 @@ const SessionTerm = () => {
 
   const res = data?.data || data
   const sessions = res?.sessions || res?.Sessions || []
+  const termFormat = res?.termFormat || res?.TermFormat || 'Numeric'
+  const NUMERIC_TERMS = ['First Term', 'Second Term', 'Third Term']
+  const SEASONAL_TERMS = ['Summer', 'Spring', 'Autumn']
+  const termOptions = termFormat === 'Seasonal' ? SEASONAL_TERMS : NUMERIC_TERMS
+
+  const setTermFormatMutation = useMutation(
+    ({ termFormat: fmt }) => {
+      const config = isSuperAdmin && selectedSchoolId ? { params: { schoolId: selectedSchoolId } } : {}
+      return sessionTermService.setTermFormat({ termFormat: fmt }, config)
+    },
+    {
+      onSuccess: () => {
+        toast.success('Term format updated.')
+        queryClient.invalidateQueries('sessionterm')
+      },
+      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to update term format')
+    }
+  )
+
+  const isValidSessionName = (name) => /^\d{4}\/\d{4}$/.test((name || '').trim()) && (() => {
+    const parts = (name || '').trim().split('/')
+    if (parts.length !== 2) return false
+    const y1 = parseInt(parts[0], 10)
+    const y2 = parseInt(parts[1], 10)
+    return y2 === y1 + 1 && y1 >= 2000 && y1 <= 2100
+  })()
 
   if (!canManage) {
     return (
@@ -179,6 +209,21 @@ const SessionTerm = () => {
               </select>
             </div>
           )}
+          {(!isSuperAdmin || selectedSchoolId) && (
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>Term format</label>
+              <select
+                className="form-control"
+                value={termFormat}
+                onChange={(e) => setTermFormatMutation.mutate({ termFormat: e.target.value })}
+                disabled={setTermFormatMutation.isLoading}
+                style={{ minWidth: '160px' }}
+              >
+                <option value="Numeric">First / Second / Third Term</option>
+                <option value="Seasonal">Summer / Spring / Autumn</option>
+              </select>
+            </div>
+          )}
           <button
             type="button"
             className="btn btn-primary"
@@ -205,8 +250,10 @@ const SessionTerm = () => {
                 className="form-control"
                 value={sessionForm.name}
                 onChange={(e) => setSessionForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="e.g. 2024/2025"
+                placeholder="e.g. 2025/2026"
+                title="Use format YYYY/YYYY (e.g. 2025/2026). Second year must be first year + 1."
               />
+              <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Format: YYYY/YYYY (e.g. 2025/2026)</small>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
@@ -308,22 +355,36 @@ const SessionTerm = () => {
                   <form onSubmit={handleCreateTerm} style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: '1fr 1fr auto', alignItems: 'end', flexWrap: 'wrap' }}>
                     <div>
                       <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>Name</label>
-                      <input
-                        type="text"
+                      <select
                         className="form-control"
                         value={termForm.name}
-                        onChange={(e) => setTermForm((f) => ({ ...f, name: e.target.value }))}
-                        placeholder="e.g. First Term"
-                      />
+                        onChange={(e) => {
+                          const name = e.target.value
+                          const idx = termOptions.indexOf(name)
+                          setTermForm((f) => ({ ...f, name, termNumber: idx >= 0 ? idx + 1 : f.termNumber }))
+                        }}
+                      >
+                        <option value="">Select term</option>
+                        {termOptions.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                      <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                        {termFormat === 'Seasonal' ? 'Summer, Spring, Autumn' : 'First Term, Second Term, Third Term'}
+                      </small>
                     </div>
                     <div>
                       <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>Term number</label>
                       <input
                         type="number"
                         min={1}
+                        max={3}
                         className="form-control"
                         value={termForm.termNumber}
-                        onChange={(e) => setTermForm((f) => ({ ...f, termNumber: parseInt(e.target.value, 10) || 1 }))}
+                        onChange={(e) => {
+                          const num = parseInt(e.target.value, 10) || 1
+                          setTermForm((f) => ({ ...f, termNumber: num, name: termOptions[num - 1] || f.name }))
+                        }}
                       />
                     </div>
                     <div />
