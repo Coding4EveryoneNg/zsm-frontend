@@ -318,6 +318,15 @@ export const commonService = {
   getExaminationsDropdown: (params) => api.get('/common/examinations', { params }),
   getTermsDropdown: (params) => api.get('/common/terms', { params }),
   getSessionsDropdown: () => api.get('/common/sessions'),
+  getFeeStructuresDropdown: (params) => api.get('/common/fee-structures', { params }),
+}
+
+// Fee Structures Services (Admin manages fees)
+export const feeStructuresService = {
+  getFeeStructures: (params) => api.get('/fee-structures', { params }),
+  createFeeStructure: (data) => api.post('/fee-structures', data),
+  updateFeeStructure: (id, data) => api.put(`/fee-structures/${id}`, data),
+  deleteFeeStructure: (id) => api.delete(`/fee-structures/${id}`),
 }
 
 // User Management Services

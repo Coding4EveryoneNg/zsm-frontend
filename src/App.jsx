@@ -81,6 +81,7 @@ import TenantManagement from './pages/Settings/TenantManagement'
 import SchoolApplications from './pages/Settings/SchoolApplications'
 import CreateSchoolApplication from './pages/Settings/CreateSchoolApplication'
 import SchoolDetails from './pages/Settings/SchoolDetails'
+import FeeStructures from './pages/Settings/FeeStructures'
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -568,6 +569,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin']}>
               <SchoolManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/fee-structures"
+          element={
+            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
+              <FeeStructures />
             </ProtectedRoute>
           }
         />

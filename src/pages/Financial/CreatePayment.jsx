@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { useQuery } from 'react-query'
-import { paymentsService, studentsService, commonService } from '../../services/apiServices'
+import { paymentsService, commonService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
 import { ArrowLeft, Save } from 'lucide-react'
@@ -21,45 +21,44 @@ const CreatePayment = () => {
 
   const selectedStudentId = watch('studentId')
 
-  // Fetch students for dropdown
+  // Fetch students and fee structures for dropdowns
   const { data: studentsData, isLoading: studentsLoading } = useQuery(
     ['students-dropdown'],
     () => commonService.getStudentsDropdown({ pageSize: 100 })
   )
+  const students = studentsData?.data ?? []
+  const selectedStudent = students?.find((s) => (s.id || s.Id) === selectedStudentId)
+  const schoolIdForFees = selectedStudent?.schoolId || selectedStudent?.SchoolId
 
-  const students = studentsData?.data?.students || studentsData?.data || []
+  const { data: feeStructuresData } = useQuery(
+    ['fee-structures-dropdown', schoolIdForFees],
+    () => commonService.getFeeStructuresDropdown(schoolIdForFees ? { schoolId: schoolIdForFees } : {}),
+    { enabled: true }
+  )
+
+  const feeStructures = feeStructuresData?.data ?? []
 
   const onSubmit = async (data) => {
     setLoading(true)
     try {
-      // For now, we'll create a simplified payment request
-      // Note: FeeStructureId might need to be handled differently
-      // This is a simplified version - you may need to adjust based on your fee structure setup
       const requestData = {
         studentId: data.studentId,
+        feeStructureId: data.feeStructureId,
         amount: parseFloat(data.amount),
         paymentType: data.paymentType || 'Full',
         description: data.description || null,
         dueDate: data.dueDate,
-        term: data.term || null,
-        session: data.session || null,
-      }
-
-      // If feeStructureId is available, include it
-      // Otherwise, you may need to create a fee structure first or use a default
-      if (data.feeStructureId) {
-        requestData.feeStructureId = data.feeStructureId
+        termId: data.termId || null,
       }
 
       const response = await paymentsService.createPayment(requestData)
+      const body = response?.data
 
-      if (response && response.success !== false) {
-        toast.success('Payment created successfully!')
+      if (body?.success !== false && body?.data) {
+        toast.success(body?.message || 'Payment created successfully!')
         navigate('/payments')
       } else {
-        const errorMessage = response?.message || 
-                           (response?.errors && response.errors.length > 0 ? response.errors[0] : null) ||
-                           'Failed to create payment'
+        const errorMessage = body?.errors?.[0] || body?.message || 'Failed to create payment'
         toast.error(errorMessage)
       }
     } catch (error) {
@@ -101,28 +100,60 @@ const CreatePayment = () => {
       </div>
 
       <div className="card">
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+          Create a payment for a student. Select what the payment is for from the fee structures configured for your school.
+        </p>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label className="form-label">
-              Student <span style={{ color: '#ef4444' }}>*</span>
-            </label>
-            <select
-              {...register('studentId', { required: 'Student is required' })}
-              className="form-input"
-            >
-              <option value="">Select Student</option>
-              {students.map((student) => (
-                <option key={student.id || student.Id} value={student.id || student.Id}>
-                  {student.firstName || student.FirstName} {student.lastName || student.LastName} 
-                  {student.email ? ` (${student.email || student.Email})` : ''}
-                </option>
-              ))}
-            </select>
-            {errors.studentId && (
-              <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
-                {errors.studentId.message}
-              </span>
-            )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div>
+              <label className="form-label">
+                Student <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <select
+                {...register('studentId', { required: 'Student is required' })}
+                className="form-input"
+              >
+                <option value="">Select Student</option>
+                {Array.isArray(students) && students.map((student) => (
+                  <option key={student.id || student.Id} value={student.id || student.Id}>
+                    {student.name || student.Name || `${student.firstName || student.FirstName} ${student.lastName || student.LastName}`}
+                    {student.email ? ` (${student.email || student.Email})` : ''}
+                  </option>
+                ))}
+              </select>
+              {errors.studentId && (
+                <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
+                  {errors.studentId.message}
+                </span>
+              )}
+            </div>
+
+            <div>
+              <label className="form-label">
+                What is being paid for <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <select
+                {...register('feeStructureId', { required: 'Please select what is being paid for' })}
+                className="form-input"
+              >
+                <option value="">Select payment type</option>
+                {Array.isArray(feeStructures) && feeStructures.map((fs) => (
+                  <option key={fs.id || fs.Id} value={fs.id || fs.Id}>
+                    {fs.name || fs.Name} - {typeof (fs.amount ?? fs.Amount) === 'number' ? (fs.amount ?? fs.Amount).toLocaleString() : (fs.amount ?? fs.Amount)}
+                  </option>
+                ))}
+              </select>
+              {errors.feeStructureId && (
+                <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
+                  {errors.feeStructureId.message}
+                </span>
+              )}
+              {Array.isArray(feeStructures) && feeStructures.length === 0 && !studentsLoading && (
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginTop: '0.25rem', display: 'block' }}>
+                  No fee structures found. Contact your admin to add fees (school fees, books, etc.) in Settings.
+                </span>
+              )}
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
@@ -187,22 +218,13 @@ const CreatePayment = () => {
             </div>
 
             <div>
-              <label className="form-label">Term</label>
+              <label className="form-label">Term (optional)</label>
               <input
                 {...register('term')}
                 className="form-input"
-                placeholder="e.g., First Term, Second Term"
+                placeholder="Auto-detected if not selected"
               />
             </div>
-          </div>
-
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label className="form-label">Session</label>
-            <input
-              {...register('session')}
-              className="form-input"
-              placeholder="e.g., 2023/2024"
-            />
           </div>
 
           <div style={{ marginBottom: '1.5rem' }}>
