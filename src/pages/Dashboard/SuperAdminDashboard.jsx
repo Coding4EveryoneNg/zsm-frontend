@@ -209,8 +209,6 @@ const SuperAdminDashboard = () => {
     totalRevenueAcrossSchools: financialSummaryData.totalGlobalRevenue || financialSummaryData.TotalGlobalRevenue || globalStats.totalRevenueAcrossSchools || globalStats.TotalRevenueAcrossSchools || calculatedFinancialMetrics.totalRevenue || 0,
     totalPendingPayments: financialSummaryData.totalGlobalPendingPayments || financialSummaryData.TotalGlobalPendingPayments || globalStats.totalPendingPayments || globalStats.TotalPendingPayments || calculatedFinancialMetrics.totalPendingPayments || 0,
     totalOverduePayments: financialSummaryData.totalGlobalOverduePayments || financialSummaryData.TotalGlobalOverduePayments || globalStats.totalOverduePayments || globalStats.TotalOverduePayments || calculatedFinancialMetrics.totalOverduePayments || 0,
-    activeSchools: globalStats.activeSchools || globalStats.ActiveSchools || 0,
-    inactiveSchools: globalStats.inactiveSchools || globalStats.InactiveSchools || 0,
     topPerformingSchools: globalStats.topPerformingSchools || globalStats.TopPerformingSchools || []
   }
   
@@ -785,9 +783,8 @@ const SuperAdminDashboard = () => {
                     Configure system settings and preferences
                   </p>
                   <button className="btn btn-secondary">Go</button>
-                  </div>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </div>

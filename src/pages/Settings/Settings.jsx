@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { Calendar, School, Building2, FileCheck, Settings } from 'lucide-react'
+import { Calendar, School, Building2, FileCheck, Settings as SettingsIcon } from 'lucide-react'
 
 const Settings = () => {
   const { user } = useAuth()
@@ -47,7 +47,7 @@ const Settings = () => {
       <div className="page-container">
         <div className="card">
           <div className="empty-state">
-            <Settings size={48} color="var(--text-muted)" style={{ marginBottom: '1rem' }} />
+            <SettingsIcon size={48} color="var(--text-muted)" style={{ marginBottom: '1rem' }} />
             <p className="empty-state-text">Settings</p>
             <p className="empty-state-subtext">
               Settings are available to Admin, Principal, and Super Admin only.
