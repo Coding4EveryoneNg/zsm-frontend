@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { Calendar, School, Building2, FileCheck, Settings as SettingsIcon, UserPlus, CalendarClock } from 'lucide-react'
+import { Calendar, School, Building2, FileCheck, Settings as SettingsIcon, UserPlus, CalendarClock, Banknote } from 'lucide-react'
 
 const Settings = () => {
   const { user } = useAuth()
@@ -21,6 +21,13 @@ const Settings = () => {
       path: '/settings/school',
       icon: School,
       roles: ['Admin', 'SuperAdmin'],
+    },
+    {
+      title: 'Fee Structures',
+      description: 'Set school fees per class, book prices, and other payments. These appear when adding payments.',
+      path: '/settings/fee-structures',
+      icon: Banknote,
+      roles: ['Admin', 'Principal'],
     },
     {
       title: 'Manage Principals',
