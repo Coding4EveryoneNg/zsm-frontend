@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { sessionTermService, commonService } from '../../services/apiServices'
+import { sessionTermService, commonService, dashboardService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
 import { Calendar, Plus, BookMarked } from 'lucide-react'
@@ -15,15 +15,23 @@ const SessionTerm = () => {
   const [termForm, setTermForm] = useState({ name: '', termNumber: 1, startDate: '', endDate: '', isCurrent: false })
   const [selectedSchoolId, setSelectedSchoolId] = useState('')
 
-  const canManage = user?.role === 'Admin' || user?.role === 'Principal' || user?.role === 'SuperAdmin'
-  const isSuperAdmin = user?.role === 'SuperAdmin'
+  const role = (user?.role || user?.Role || '').toString()
+  const canManage = ['Admin', 'Principal', 'SuperAdmin'].some((r) => role.toLowerCase() === r.toLowerCase())
+  const isSuperAdmin = role.toLowerCase() === 'superadmin'
 
   const { data: schoolsData } = useQuery(
     ['common', 'schools'],
     () => commonService.getSchoolsDropdown(),
     { enabled: isSuperAdmin }
   )
-  const schools = schoolsData?.data?.data ?? schoolsData?.data ?? []
+  const { data: schoolSwitchingData } = useQuery(
+    ['dashboard', 'school-switching'],
+    () => dashboardService.getSchoolSwitchingData(),
+    { enabled: isSuperAdmin }
+  )
+  const schoolsFromCommon = schoolsData?.data?.data ?? schoolsData?.data ?? []
+  const schoolsFromSwitching = schoolSwitchingData?.data?.data?.availableSchools ?? schoolSwitchingData?.data?.availableSchools ?? []
+  const schools = schoolsFromCommon.length > 0 ? schoolsFromCommon : schoolsFromSwitching
 
   const { data, isLoading, error } = useQuery(
     ['sessionterm', 'sessions', selectedSchoolId],
