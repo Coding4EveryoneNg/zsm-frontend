@@ -32,18 +32,18 @@ const FeeStructures = () => {
   const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
   const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
   const schoolIdForClasses = formData.schoolId || principalOrAdminSchoolId || schoolsList?.[0]?.id || schoolsList?.[0]?.Id || ''
-  const { data: classesData } = useQuery(
-    ['classes-dropdown', schoolIdForClasses],
-    () => commonService.getClassesDropdown(schoolIdForClasses ? { schoolId: schoolIdForClasses } : {}),
-    { enabled: true }
-  )
-
   const feeStructures = feeData?.data ?? feeData?.Data ?? []
   const schools = schoolsList
-  const classes = classesData?.data ?? classesData?.Data ?? []
-  const schoolIdForTerms = formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null
   const editingFs = feeStructures?.find((f) => (f.id || f.Id) === editingId)
   const editingSchoolId = editingFs?.schoolId || editingFs?.SchoolId || schoolIdForClasses
+  const effectiveSchoolIdForClasses = editingId ? editingSchoolId : schoolIdForClasses
+  const { data: classesData } = useQuery(
+    ['classes-dropdown', effectiveSchoolIdForClasses],
+    () => commonService.getClassesDropdown({ schoolId: effectiveSchoolIdForClasses }),
+    { enabled: !!effectiveSchoolIdForClasses }
+  )
+  const classes = classesData?.data ?? classesData?.Data ?? []
+  const schoolIdForTerms = formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null
   const effectiveSchoolIdForTerms = schoolIdForTerms || editingSchoolId || (formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null)
   const { data: termsData } = useQuery(
     ['terms-dropdown', effectiveSchoolIdForTerms],
@@ -251,16 +251,25 @@ const FeeStructures = () => {
               )}
               <div>
                 <label className="form-label">Target Class</label>
+                {!effectiveSchoolIdForClasses && (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '0.5rem' }}>
+                    {!isPrincipal ? 'Select a school first to load classes.' : 'Loading…'}
+                  </p>
+                )}
                 <select
                   className="form-input"
                   value={formData.classId || ''}
                   onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
+                  disabled={!effectiveSchoolIdForClasses}
                 >
                   <option value="">All classes (general payment)</option>
                   {Array.isArray(classes) && classes.map((c) => (
                     <option key={c.id || c.Id} value={c.id || c.Id}>{c.name || c.Name}</option>
                   ))}
                 </select>
+                {effectiveSchoolIdForClasses && Array.isArray(classes) && classes.length === 0 && (
+                  <p style={{ color: 'var(--warning)', fontSize: '0.8125rem', marginTop: '0.25rem' }}>No classes found for this school.</p>
+                )}
                 <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Leave as &quot;All classes&quot; for fees that apply to every student</small>
               </div>
               <div>

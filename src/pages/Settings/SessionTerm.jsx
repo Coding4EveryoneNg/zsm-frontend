@@ -27,6 +27,7 @@ const SessionTerm = () => {
   const canManage = ['Admin', 'Principal', 'SuperAdmin'].some((r) => role.toLowerCase() === r.toLowerCase())
   const isSuperAdmin = role.toLowerCase() === 'superadmin'
   const canEditDelete = ['Admin', 'SuperAdmin'].some((r) => role.toLowerCase() === r.toLowerCase())
+  const canDelete = isSuperAdmin
 
   const { data: schoolsData } = useQuery(
     ['common', 'schools'],
@@ -411,15 +412,17 @@ const SessionTerm = () => {
                       >
                         <Edit2 size={14} />
                       </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline"
-                        onClick={() => setDeletingSessionId(session.id || session.Id)}
-                        title="Delete session"
-                        style={{ color: 'var(--danger)' }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      {canDelete && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline"
+                          onClick={() => setDeletingSessionId(session.id || session.Id)}
+                          title="Delete session"
+                          style={{ color: 'var(--danger)' }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </>
                   )}
                   {!(session.isCurrent || session.IsCurrent) && (
@@ -627,7 +630,9 @@ const SessionTerm = () => {
                                     isCurrent: term.isCurrent || term.IsCurrent || false
                                   })
                                 }} title="Edit term"><Edit2 size={12} /></button>
-                                <button type="button" className="btn btn-sm btn-outline" style={{ padding: '0.2rem 0.4rem', color: 'var(--danger)' }} onClick={() => setDeletingTermId(term.id || term.Id)} title="Delete term"><Trash2 size={12} /></button>
+                                {canDelete && (
+                                  <button type="button" className="btn btn-sm btn-outline" style={{ padding: '0.2rem 0.4rem', color: 'var(--danger)' }} onClick={() => setDeletingTermId(term.id || term.Id)} title="Delete term"><Trash2 size={12} /></button>
+                                )}
                               </>
                             )}
                             {!(term.isCurrent || term.IsCurrent) && (
