@@ -36,18 +36,18 @@ const CreatePayment = () => {
     ['students-dropdown'],
     () => commonService.getStudentsDropdown({ pageSize: 100 })
   )
-  const students = studentsData?.data ?? []
+  const students = studentsData?.data ?? studentsData?.Data ?? []
   const selectedStudent = students?.find((s) => (s.id || s.Id) === selectedStudentId)
   const schoolIdForFees = selectedStudent?.schoolId || selectedStudent?.SchoolId
   const classIdForFees = selectedStudent?.classId || selectedStudent?.ClassId
 
-  // Terms dropdown - when School Fees selected, for the student's school
+  // Terms dropdown - when School Fees selected (filter by school when student selected)
   const { data: termsData } = useQuery(
-    ['terms-dropdown', schoolIdForFees],
+    ['terms-dropdown', schoolIdForFees, paymentCategory],
     () => commonService.getTermsDropdown(schoolIdForFees ? { schoolId: schoolIdForFees } : {}),
-    { enabled: !!schoolIdForFees && paymentCategory === PAYMENT_CATEGORY_SCHOOL_FEES }
+    { enabled: paymentCategory === PAYMENT_CATEGORY_SCHOOL_FEES }
   )
-  const terms = termsData?.data ?? []
+  const terms = termsData?.data ?? termsData?.Data ?? []
 
   // Fee structures for School Fees by term - when term selected
   const { data: schoolFeesData } = useQuery(
@@ -64,7 +64,7 @@ const CreatePayment = () => {
     ),
     { enabled: !!schoolIdForFees && !!selectedTermId && paymentCategory === PAYMENT_CATEGORY_SCHOOL_FEES }
   )
-  const schoolFeesForTerm = schoolFeesData?.data ?? []
+  const schoolFeesForTerm = schoolFeesData?.data ?? schoolFeesData?.Data ?? []
   const matchedSchoolFee = schoolFeesForTerm?.[0]
 
   // Fee structures for Books/Other - exclude school fees (school fees are term-based)
@@ -81,7 +81,7 @@ const CreatePayment = () => {
     ),
     { enabled: !!schoolIdForFees && paymentCategory === PAYMENT_CATEGORY_OTHER }
   )
-  const otherFees = otherFeesData?.data ?? []
+  const otherFees = otherFeesData?.data ?? otherFeesData?.Data ?? []
   const selectedFeeStructure = otherFees?.find((f) => (f.id || f.Id) === selectedFeeStructureId)
 
   // When School Fees + term selected: set feeStructureId and amount from matched school fee
@@ -230,6 +230,11 @@ const CreatePayment = () => {
           {paymentCategory === PAYMENT_CATEGORY_SCHOOL_FEES && (
             <div style={{ marginBottom: '1.5rem' }}>
               <label className="form-label">Term <span style={{ color: '#ef4444' }}>*</span></label>
+              {!schoolIdForFees && (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '0.5rem' }}>
+                  Select a student first to load terms for their school.
+                </p>
+              )}
               <select
                 {...register('termId', {
                   required: paymentCategory === PAYMENT_CATEGORY_SCHOOL_FEES ? 'Select term for school fees' : false,
