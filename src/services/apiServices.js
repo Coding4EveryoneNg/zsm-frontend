@@ -323,6 +323,7 @@ export const commonService = {
   getExaminationsDropdown: (params) => api.get('/common/examinations', { params }),
   getTermsDropdown: (params) => api.get('/common/terms', { params }),
   getSessionsDropdown: () => api.get('/common/sessions'),
+  getParentsDropdown: (params) => api.get('/common/parents', { params }),
   getFeeStructuresDropdown: (params) => api.get('/common/fee-structures', { params }),
 }
 
