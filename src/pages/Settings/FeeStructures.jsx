@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { feeStructuresService, commonService } from '../../services/apiServices'
+import { feeStructuresService, commonService, dashboardService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
 import { ArrowLeft, Plus, Save, Edit2 } from 'lucide-react'
@@ -24,7 +24,14 @@ const FeeStructures = () => {
     'schools-dropdown',
     () => commonService.getSchoolsDropdown()
   )
-  const schoolIdForClasses = formData.schoolId || (schoolsData?.data ?? schoolsData?.Data ?? [])?.[0]?.id || (schoolsData?.data ?? schoolsData?.Data ?? [])?.[0]?.Id || ''
+  const { data: schoolSwitchingData } = useQuery(
+    ['dashboard', 'school-switching'],
+    () => dashboardService.getSchoolSwitchingData(),
+    { enabled: user?.role?.toLowerCase() === 'principal' || user?.role?.toLowerCase() === 'admin' }
+  )
+  const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
+  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
+  const schoolIdForClasses = formData.schoolId || principalOrAdminSchoolId || schoolsList?.[0]?.id || schoolsList?.[0]?.Id || ''
   const { data: classesData } = useQuery(
     ['classes-dropdown', schoolIdForClasses],
     () => commonService.getClassesDropdown(schoolIdForClasses ? { schoolId: schoolIdForClasses } : {}),
@@ -32,15 +39,16 @@ const FeeStructures = () => {
   )
 
   const feeStructures = feeData?.data ?? feeData?.Data ?? []
-  const schools = schoolsData?.data ?? schoolsData?.Data ?? []
+  const schools = schoolsList
   const classes = classesData?.data ?? classesData?.Data ?? []
   const schoolIdForTerms = formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null
   const editingFs = feeStructures?.find((f) => (f.id || f.Id) === editingId)
   const editingSchoolId = editingFs?.schoolId || editingFs?.SchoolId || schoolIdForClasses
+  const effectiveSchoolIdForTerms = schoolIdForTerms || editingSchoolId || (formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null)
   const { data: termsData } = useQuery(
-    ['terms-dropdown', schoolIdForTerms || editingSchoolId],
-    () => commonService.getTermsDropdown((schoolIdForTerms || editingSchoolId) ? { schoolId: schoolIdForTerms || editingSchoolId } : {}),
-    { enabled: !!(schoolIdForTerms || (editingId && editingSchoolId)) }
+    ['terms-dropdown', effectiveSchoolIdForTerms],
+    () => commonService.getTermsDropdown(effectiveSchoolIdForTerms ? { schoolId: effectiveSchoolIdForTerms } : {}),
+    { enabled: !!(formData.feeCategory === 'SchoolFees' && effectiveSchoolIdForTerms) || !!(editingId && editingSchoolId) }
   )
 
   const createMutation = useMutation(
@@ -215,11 +223,17 @@ const FeeStructures = () => {
               {formData.feeCategory === 'SchoolFees' && (
               <div>
                 <label className="form-label">Term <span style={{ color: '#ef4444' }}>*</span></label>
+                {!effectiveSchoolIdForTerms && (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '0.5rem' }}>
+                    {!isPrincipal ? 'Select a school first to load terms.' : 'Loading school…'}
+                  </p>
+                )}
                 <select
                   className="form-input"
                   value={formData.termId || ''}
                   onChange={(e) => setFormData({ ...formData, termId: e.target.value })}
                   required={formData.feeCategory === 'SchoolFees'}
+                  disabled={!effectiveSchoolIdForTerms}
                 >
                   <option value="">Select term</option>
                   {Array.isArray(terms) && terms.map((t) => (
@@ -228,6 +242,11 @@ const FeeStructures = () => {
                     </option>
                   ))}
                 </select>
+                {effectiveSchoolIdForTerms && Array.isArray(terms) && terms.length === 0 && (
+                  <p style={{ color: 'var(--warning)', fontSize: '0.8125rem', marginTop: '0.25rem' }}>
+                    No terms found. Add terms in Settings → Session & Term first.
+                  </p>
+                )}
               </div>
               )}
               <div>
