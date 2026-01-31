@@ -5,6 +5,7 @@ import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
 import { dashboardService, examinationsService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { Users, Award, CreditCard, FileText, Zap, BookOpen, TrendingUp, ClipboardList, Clock, CheckCircle } from 'lucide-react'
+import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import { defaultChartOptions, chartColors, createPieChartData } from '../../utils/chartConfig'
 import logger from '../../utils/logger'
 
@@ -209,7 +210,8 @@ const ParentDashboard = () => {
       )}
 
       {/* Header - Always visible */}
-      <div style={{ marginBottom: '2rem' }}>
+      <div className="dashboard-with-calendar" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '1.5rem', marginBottom: '2rem', alignItems: 'start' }}>
+        <div>
         <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#333' }}>
           Parent Dashboard
         </h1>
@@ -223,6 +225,8 @@ const ParentDashboard = () => {
             Welcome, {safeDashboard.userName || safeDashboard.UserName}
           </p>
         )}
+        </div>
+        <DashboardCalendar />
       </div>
 
       {/* Always show stat cards, even if values are zero */}

@@ -178,10 +178,15 @@ export const notificationsService = {
 // Session & Term Services
 export const sessionTermService = {
   getSessions: (params) => api.get('/sessionterm/sessions', { params }),
+  getSession: (id, params) => api.get(`/sessionterm/sessions/${id}`, { params }),
   createSession: (data) => api.post('/sessionterm/sessions', data),
+  updateSession: (id, data, config) => api.put(`/sessionterm/sessions/${id}`, data, config ?? {}),
+  deleteSession: (id, config) => api.delete(`/sessionterm/sessions/${id}`, config ?? {}),
   setCurrentSession: (sessionId) => api.post(`/sessionterm/sessions/${sessionId}/set-current`),
   createTerm: (data) => api.post('/sessionterm/terms', data),
   createTermForSession: (sessionId, data) => api.post(`/sessionterm/sessions/${sessionId}/terms`, data),
+  updateTerm: (id, data) => api.put(`/sessionterm/terms/${id}`, data),
+  deleteTerm: (id) => api.delete(`/sessionterm/terms/${id}`),
   setCurrentTerm: (termId) => api.post(`/sessionterm/terms/${termId}/set-current`),
   getTermFormat: (params) => api.get('/sessionterm/term-format', { params }),
   setTermFormat: (data, config) => api.put('/sessionterm/term-format', data, config ?? {}),

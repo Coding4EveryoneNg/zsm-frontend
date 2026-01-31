@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
 import { dashboardService, examinationsService, schoolApplicationsService, schoolsService, tenantsService, notificationsService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
+import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import { 
   Building2, Users, School, TrendingUp, Zap, Eye, Settings, Plus, 
   GraduationCap, DollarSign, Clock, AlertTriangle, Trophy, 
@@ -310,8 +311,10 @@ const SuperAdminDashboard = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+      {/* Header and Calendar */}
+      <div className="dashboard-with-calendar" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '1.5rem', marginBottom: '2rem', alignItems: 'start' }}>
+        <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
             Welcome back, {dashboard.userName || 'Super Admin'}!
@@ -529,6 +532,9 @@ const SuperAdminDashboard = () => {
             Refresh
           </button>
         </div>
+      </div>
+        </div>
+        <DashboardCalendar />
       </div>
 
       {/* Global Statistics Cards */}

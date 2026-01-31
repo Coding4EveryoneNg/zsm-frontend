@@ -4,6 +4,7 @@ import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
 import { dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { BookOpen, ClipboardList, FileText, Award, Calendar, TrendingUp } from 'lucide-react'
+import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartConfig'
 import logger from '../../utils/logger'
 
@@ -198,7 +199,8 @@ const StudentDashboard = () => {
         </div>
       )}
 
-      <div style={{ marginBottom: '2rem' }}>
+      <div className="dashboard-with-calendar" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '1.5rem', marginBottom: '2rem', alignItems: 'start' }}>
+        <div>
         <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
           Student Dashboard
         </h1>
@@ -212,6 +214,8 @@ const StudentDashboard = () => {
             {currentSessionTerm.sessionName || currentSessionTerm.SessionName} • {currentSessionTerm.termName || currentSessionTerm.TermName}
           </p>
         )}
+        </div>
+        <DashboardCalendar />
       </div>
 
       {/* Stats Cards */}

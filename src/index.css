@@ -468,3 +468,10 @@ code {
   }
 }
 
+/* Dashboard calendar stacks on smaller screens */
+@media (max-width: 900px) {
+  .dashboard-with-calendar {
+    grid-template-columns: 1fr !important;
+  }
+}
+

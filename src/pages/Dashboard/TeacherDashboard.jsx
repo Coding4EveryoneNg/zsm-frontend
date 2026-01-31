@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
 import { dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
+import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import { Users, FileText, ClipboardList, TrendingUp, Zap, Plus, Eye, Clock, CheckCircle } from 'lucide-react'
 import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartConfig'
 import logger from '../../utils/logger'
@@ -86,9 +87,12 @@ const TeacherDashboard = () => {
         </div>
       )}
 
-      <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '2rem', color: 'var(--text-primary)' }}>
-        Teacher Dashboard
-      </h1>
+      <div className="dashboard-with-calendar" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '1.5rem', marginBottom: '2rem', alignItems: 'start' }}>
+        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: 'var(--text-primary)' }}>
+          Teacher Dashboard
+        </h1>
+        <DashboardCalendar />
+      </div>
 
       {/* Quick Actions */}
       <div className="card" style={{ marginBottom: '2rem' }}>
