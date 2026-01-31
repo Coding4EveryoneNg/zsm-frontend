@@ -432,14 +432,16 @@ const SessionTerm = () => {
                       Set as current
                     </button>
                   )}
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-primary"
-                    onClick={() => setAddTermSessionId(addTermSessionId === (session.id || session.Id) ? null : session.id || session.Id)}
-                  >
-                    <Plus size={14} style={{ marginRight: '0.25rem' }} />
-                    Add term
-                  </button>
+                  {(session.terms || session.Terms || []).length < 3 && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-primary"
+                      onClick={() => setAddTermSessionId(addTermSessionId === (session.id || session.Id) ? null : session.id || session.Id)}
+                    >
+                      <Plus size={14} style={{ marginRight: '0.25rem' }} />
+                      Add term
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -492,7 +494,7 @@ const SessionTerm = () => {
                 </div>
               )}
 
-              {addTermSessionId === (session.id || session.Id) && (
+              {addTermSessionId === (session.id || session.Id) && (session.terms || session.Terms || []).length < 3 && (
                 <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px' }}>
                   <h4 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>New term</h4>
                   <form onSubmit={handleCreateTerm} style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: '1fr 1fr auto', alignItems: 'end', flexWrap: 'wrap' }}>
@@ -508,9 +510,11 @@ const SessionTerm = () => {
                         }}
                       >
                         <option value="">Select term</option>
-                        {termOptions.map((opt) => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
+                        {termOptions
+                          .filter((opt) => !(session.terms || session.Terms || []).some((t) => (t.name || t.Name || '').toLowerCase() === opt.toLowerCase()))
+                          .map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
                       </select>
                       <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                         {termFormat === 'Seasonal' ? 'Summer, Spring, Autumn' : 'First Term, Second Term, Third Term'}
