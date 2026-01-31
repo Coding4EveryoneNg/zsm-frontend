@@ -16,10 +16,13 @@ const CreatePayment = () => {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm()
 
   const selectedStudentId = watch('studentId')
+  const selectedFeeStructureId = watch('feeStructureId')
+  const paymentType = watch('paymentType')
 
   // Fetch students and fee structures for dropdowns
   const { data: studentsData, isLoading: studentsLoading } = useQuery(
@@ -29,14 +32,27 @@ const CreatePayment = () => {
   const students = studentsData?.data ?? []
   const selectedStudent = students?.find((s) => (s.id || s.Id) === selectedStudentId)
   const schoolIdForFees = selectedStudent?.schoolId || selectedStudent?.SchoolId
+  const classIdForFees = selectedStudent?.classId || selectedStudent?.ClassId
 
   const { data: feeStructuresData } = useQuery(
-    ['fee-structures-dropdown', schoolIdForFees],
-    () => commonService.getFeeStructuresDropdown(schoolIdForFees ? { schoolId: schoolIdForFees } : {}),
+    ['fee-structures-dropdown', schoolIdForFees, classIdForFees],
+    () => commonService.getFeeStructuresDropdown(
+      schoolIdForFees ? { schoolId: schoolIdForFees, ...(classIdForFees && { classId: classIdForFees }) } : {}
+    ),
     { enabled: true }
   )
 
   const feeStructures = feeStructuresData?.data ?? []
+
+  // Auto-fill amount when Full Payment selected and fee structure chosen
+  useEffect(() => {
+    if (paymentType === 'Full' && selectedFeeStructureId && feeStructures.length > 0) {
+      const fs = feeStructures.find((f) => (f.id || f.Id) === selectedFeeStructureId)
+      if (fs && (fs.amount ?? fs.Amount) != null) {
+        setValue('amount', fs.amount ?? fs.Amount)
+      }
+    }
+  }, [paymentType, selectedFeeStructureId, feeStructures, setValue])
 
   const onSubmit = async (data) => {
     setLoading(true)
@@ -187,7 +203,7 @@ const CreatePayment = () => {
                 {...register('paymentType', { required: 'Payment type is required' })}
                 className="form-input"
               >
-                <option value="Full">Full Payment</option>
+                <option value="Full">Full Payment (amount auto-filled from fee)</option>
                 <option value="Partial">Partial Payment</option>
                 <option value="Installment">Installment</option>
               </select>

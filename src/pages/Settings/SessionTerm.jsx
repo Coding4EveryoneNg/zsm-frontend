@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { sessionTermService, commonService, dashboardService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
-import { Calendar, Plus, BookMarked } from 'lucide-react'
+import ConfirmDialog from '../../components/Common/ConfirmDialog'
+import { Calendar, Plus, BookMarked, Eye, Edit2, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const SessionTerm = () => {
@@ -14,10 +15,18 @@ const SessionTerm = () => {
   const [sessionForm, setSessionForm] = useState({ name: '', startDate: '', endDate: '', isCurrent: false })
   const [termForm, setTermForm] = useState({ name: '', termNumber: 1, startDate: '', endDate: '', isCurrent: false })
   const [selectedSchoolId, setSelectedSchoolId] = useState('')
+  const [viewingSessionId, setViewingSessionId] = useState(null)
+  const [editingSessionId, setEditingSessionId] = useState(null)
+  const [editingSessionForm, setEditingSessionForm] = useState({ name: '', startDate: '', endDate: '', isCurrent: false })
+  const [deletingSessionId, setDeletingSessionId] = useState(null)
+  const [editingTermId, setEditingTermId] = useState(null)
+  const [editingTermForm, setEditingTermForm] = useState({ name: '', termNumber: 1, startDate: '', endDate: '', isCurrent: false })
+  const [deletingTermId, setDeletingTermId] = useState(null)
 
   const role = (user?.role || user?.Role || '').toString()
   const canManage = ['Admin', 'Principal', 'SuperAdmin'].some((r) => role.toLowerCase() === r.toLowerCase())
   const isSuperAdmin = role.toLowerCase() === 'superadmin'
+  const canEditDelete = ['Admin', 'SuperAdmin'].some((r) => role.toLowerCase() === r.toLowerCase())
 
   const { data: schoolsData } = useQuery(
     ['common', 'schools'],
@@ -84,6 +93,54 @@ const SessionTerm = () => {
         queryClient.invalidateQueries('sessionterm')
       },
       onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to set current term')
+    }
+  )
+
+  const updateSessionMutation = useMutation(
+    ({ id, data: d }) => sessionTermService.updateSession(id, d, isSuperAdmin && selectedSchoolId ? { params: { schoolId: selectedSchoolId } } : {}),
+    {
+      onSuccess: () => {
+        toast.success('Session updated successfully.')
+        queryClient.invalidateQueries('sessionterm')
+        setEditingSessionId(null)
+      },
+      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to update session')
+    }
+  )
+
+  const deleteSessionMutation = useMutation(
+    (id) => sessionTermService.deleteSession(id, isSuperAdmin && selectedSchoolId ? { params: { schoolId: selectedSchoolId } } : {}),
+    {
+      onSuccess: () => {
+        toast.success('Session deleted successfully.')
+        queryClient.invalidateQueries('sessionterm')
+        setDeletingSessionId(null)
+      },
+      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to delete session')
+    }
+  )
+
+  const updateTermMutation = useMutation(
+    ({ id, data: d }) => sessionTermService.updateTerm(id, d),
+    {
+      onSuccess: () => {
+        toast.success('Term updated successfully.')
+        queryClient.invalidateQueries('sessionterm')
+        setEditingTermId(null)
+      },
+      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to update term')
+    }
+  )
+
+  const deleteTermMutation = useMutation(
+    (id) => sessionTermService.deleteTerm(id),
+    {
+      onSuccess: () => {
+        toast.success('Term deleted successfully.')
+        queryClient.invalidateQueries('sessionterm')
+        setDeletingTermId(null)
+      },
+      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to delete term')
     }
   )
 
@@ -327,7 +384,44 @@ const SessionTerm = () => {
                     {session.startDate || session.StartDate} – {session.endDate || session.EndDate}
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {canEditDelete && (
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline"
+                        onClick={() => setViewingSessionId(session.id || session.Id)}
+                        title="View details"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline"
+                        onClick={() => {
+                          setEditingSessionId(session.id || session.Id)
+                          setEditingSessionForm({
+                            name: session.name || session.Name || '',
+                            startDate: (session.startDate || session.StartDate || '').toString().slice(0, 10),
+                            endDate: (session.endDate || session.EndDate || '').toString().slice(0, 10),
+                            isCurrent: session.isCurrent || session.IsCurrent || false
+                          })
+                        }}
+                        title="Edit session"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline"
+                        onClick={() => setDeletingSessionId(session.id || session.Id)}
+                        title="Delete session"
+                        style={{ color: 'var(--danger)' }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </>
+                  )}
                   {!(session.isCurrent || session.IsCurrent) && (
                     <button
                       type="button"
@@ -348,6 +442,55 @@ const SessionTerm = () => {
                   </button>
                 </div>
               </div>
+
+              {editingSessionId === (session.id || session.Id) && canEditDelete && (
+                <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+                  <h4 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>Edit session</h4>
+                  <form onSubmit={(e) => {
+                    e.preventDefault()
+                    if (!editingSessionForm.name || !editingSessionForm.startDate || !editingSessionForm.endDate) {
+                      toast.error('Name, start date and end date are required')
+                      return
+                    }
+                    if (!isValidSessionName(editingSessionForm.name)) {
+                      toast.error('Session name must be in format YYYY/YYYY (e.g. 2025/2026).')
+                      return
+                    }
+                    updateSessionMutation.mutate({
+                      id: editingSessionId,
+                      data: {
+                        name: editingSessionForm.name,
+                        startDate: editingSessionForm.startDate,
+                        endDate: editingSessionForm.endDate,
+                        isCurrent: editingSessionForm.isCurrent
+                      }
+                    })
+                  }} style={{ display: 'grid', gap: '1rem', maxWidth: '400px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>Name</label>
+                      <input type="text" className="form-control" value={editingSessionForm.name} onChange={(e) => setEditingSessionForm((f) => ({ ...f, name: e.target.value }))} placeholder="2025/2026" />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>Start date</label>
+                        <input type="date" className="form-control" value={editingSessionForm.startDate} onChange={(e) => setEditingSessionForm((f) => ({ ...f, startDate: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>End date</label>
+                        <input type="date" className="form-control" value={editingSessionForm.endDate} onChange={(e) => setEditingSessionForm((f) => ({ ...f, endDate: e.target.value }))} />
+                      </div>
+                    </div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input type="checkbox" checked={editingSessionForm.isCurrent} onChange={(e) => setEditingSessionForm((f) => ({ ...f, isCurrent: e.target.checked }))} />
+                      Set as current session
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button type="button" className="btn btn-outline" onClick={() => setEditingSessionId(null)}>Cancel</button>
+                      <button type="submit" className="btn btn-primary" disabled={updateSessionMutation.isLoading}>{updateSessionMutation.isLoading ? 'Saving…' : 'Save'}</button>
+                    </div>
+                  </form>
+                </div>
+              )}
 
               {addTermSessionId === (session.id || session.Id) && (
                 <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px' }}>
@@ -431,24 +574,66 @@ const SessionTerm = () => {
                 ) : (
                   <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
                     {(session.terms || session.Terms || []).map((term) => (
-                      <li key={term.id || term.Id} style={{ marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <li key={term.id || term.Id} style={{ marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <BookMarked size={14} color="var(--text-muted)" />
-                        <span>{term.name || term.Name}</span>
-                        {(term.isCurrent || term.IsCurrent) && <span className="badge badge-outline" style={{ fontSize: '0.7rem' }}>Current</span>}
-                        {!(term.isCurrent || term.IsCurrent) && (
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline"
-                            style={{ marginLeft: '0.5rem' }}
-                            onClick={() => setCurrentTermMutation.mutate(term.id || term.Id)}
-                            disabled={setCurrentTermMutation.isLoading}
-                          >
-                            Set as current
-                          </button>
+                        {editingTermId === (term.id || term.Id) && canEditDelete ? (
+                          <form onSubmit={(e) => {
+                            e.preventDefault()
+                            if (!editingTermForm.name || !editingTermForm.startDate || !editingTermForm.endDate) {
+                              toast.error('Name, start date and end date are required')
+                              return
+                            }
+                            updateTermMutation.mutate({
+                              id: term.id || term.Id,
+                              data: {
+                                name: editingTermForm.name,
+                                termNumber: editingTermForm.termNumber,
+                                startDate: editingTermForm.startDate,
+                                endDate: editingTermForm.endDate,
+                                isCurrent: editingTermForm.isCurrent
+                              }
+                            })
+                          }} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <select className="form-control" style={{ width: 'auto' }} value={editingTermForm.name} onChange={(e) => {
+                              const name = e.target.value
+                              const idx = termOptions.indexOf(name)
+                              setEditingTermForm((f) => ({ ...f, name, termNumber: idx >= 0 ? idx + 1 : f.termNumber }))
+                            }}>
+                              {termOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                            </select>
+                            <input type="date" className="form-control" style={{ width: 'auto' }} value={editingTermForm.startDate} onChange={(e) => setEditingTermForm((f) => ({ ...f, startDate: e.target.value }))} />
+                            <input type="date" className="form-control" style={{ width: 'auto' }} value={editingTermForm.endDate} onChange={(e) => setEditingTermForm((f) => ({ ...f, endDate: e.target.value }))} />
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}><input type="checkbox" checked={editingTermForm.isCurrent} onChange={(e) => setEditingTermForm((f) => ({ ...f, isCurrent: e.target.checked }))} />Current</label>
+                            <button type="submit" className="btn btn-sm btn-primary" disabled={updateTermMutation.isLoading}>Save</button>
+                            <button type="button" className="btn btn-sm btn-outline" onClick={() => setEditingTermId(null)}>Cancel</button>
+                          </form>
+                        ) : (
+                          <>
+                            <span>{term.name || term.Name}</span>
+                            {(term.isCurrent || term.IsCurrent) && <span className="badge badge-outline" style={{ fontSize: '0.7rem' }}>Current</span>}
+                            {canEditDelete && (
+                              <>
+                                <button type="button" className="btn btn-sm btn-outline" style={{ padding: '0.2rem 0.4rem' }} onClick={() => {
+                                  setEditingTermId(term.id || term.Id)
+                                  setEditingTermForm({
+                                    name: term.name || term.Name || '',
+                                    termNumber: term.termNumber ?? term.TermNumber ?? 1,
+                                    startDate: (term.startDate || term.StartDate || '').toString().slice(0, 10),
+                                    endDate: (term.endDate || term.EndDate || '').toString().slice(0, 10),
+                                    isCurrent: term.isCurrent || term.IsCurrent || false
+                                  })
+                                }} title="Edit term"><Edit2 size={12} /></button>
+                                <button type="button" className="btn btn-sm btn-outline" style={{ padding: '0.2rem 0.4rem', color: 'var(--danger)' }} onClick={() => setDeletingTermId(term.id || term.Id)} title="Delete term"><Trash2 size={12} /></button>
+                              </>
+                            )}
+                            {!(term.isCurrent || term.IsCurrent) && (
+                              <button type="button" className="btn btn-sm btn-outline" style={{ marginLeft: '0.25rem' }} onClick={() => setCurrentTermMutation.mutate(term.id || term.Id)} disabled={setCurrentTermMutation.isLoading}>Set as current</button>
+                            )}
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              {term.startDate || term.StartDate} – {term.endDate || term.EndDate}
+                            </span>
+                          </>
                         )}
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {term.startDate || term.StartDate} – {term.endDate || term.EndDate}
-                        </span>
                       </li>
                     ))}
                   </ul>
@@ -458,6 +643,67 @@ const SessionTerm = () => {
           ))}
         </div>
       )}
+
+      {viewingSessionId && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setViewingSessionId(null)}>
+          <div className="card" style={{ maxWidth: 480, width: '90%', maxHeight: '80vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
+            {(() => {
+              const session = sessions.find((s) => (s.id || s.Id) === viewingSessionId)
+              if (!session) return null
+              const terms = session.terms || session.Terms || []
+              return (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Session detail</h3>
+                    <button type="button" className="btn btn-sm btn-outline" onClick={() => setViewingSessionId(null)}>Close</button>
+                  </div>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>{session.name || session.Name}</p>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                      {session.startDate || session.StartDate} – {session.endDate || session.EndDate}
+                    </p>
+                    {(session.isCurrent || session.IsCurrent) && <span className="badge badge-primary" style={{ marginTop: '0.5rem' }}>Current</span>}
+                  </div>
+                  <h4 style={{ fontSize: '0.9375rem', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Terms</h4>
+                  <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+                    {terms.length === 0 ? (
+                      <li style={{ color: 'var(--text-muted)' }}>No terms yet.</li>
+                    ) : (
+                      terms.map((t) => (
+                        <li key={t.id || t.Id} style={{ marginBottom: '0.25rem' }}>
+                          {t.name || t.Name} {(t.isCurrent || t.IsCurrent) && <span className="badge badge-outline" style={{ fontSize: '0.65rem' }}>Current</span>}
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                            {t.startDate || t.StartDate} – {t.endDate || t.EndDate}
+                          </span>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </>
+              )
+            })()}
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        isOpen={!!deletingSessionId}
+        onClose={() => setDeletingSessionId(null)}
+        onConfirm={() => deletingSessionId && deleteSessionMutation.mutate(deletingSessionId)}
+        title="Delete session"
+        message="Are you sure you want to delete this session? This will deactivate it."
+        confirmText="Delete"
+        variant="danger"
+      />
+      <ConfirmDialog
+        isOpen={!!deletingTermId}
+        onClose={() => setDeletingTermId(null)}
+        onConfirm={() => deletingTermId && deleteTermMutation.mutate(deletingTermId)}
+        title="Delete term"
+        message="Are you sure you want to delete this term? This will deactivate it."
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   )
 }

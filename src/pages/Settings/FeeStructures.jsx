@@ -13,8 +13,8 @@ const FeeStructures = () => {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [editForm, setEditForm] = useState({ name: '', description: '', amount: '', feeType: 'Yearly' })
-  const [formData, setFormData] = useState({ schoolId: '', name: '', description: '', amount: '', feeType: 'Yearly' })
+  const [editForm, setEditForm] = useState({ name: '', description: '', amount: '', feeType: 'Yearly', classId: '' })
+  const [formData, setFormData] = useState({ schoolId: '', classId: '', name: '', description: '', amount: '', feeType: 'Yearly' })
 
   const { data: feeData, isLoading } = useQuery(
     ['fee-structures'],
@@ -24,6 +24,12 @@ const FeeStructures = () => {
     'schools-dropdown',
     () => commonService.getSchoolsDropdown()
   )
+  const schoolIdForClasses = formData.schoolId || (schoolsData?.data ?? [])?.[0]?.id || (schoolsData?.data ?? [])?.[0]?.Id || ''
+  const { data: classesData } = useQuery(
+    ['classes-dropdown', schoolIdForClasses],
+    () => commonService.getClassesDropdown(schoolIdForClasses ? { schoolId: schoolIdForClasses } : {}),
+    { enabled: true }
+  )
 
   const createMutation = useMutation(
     (data) => feeStructuresService.createFeeStructure(data),
@@ -32,7 +38,7 @@ const FeeStructures = () => {
         toast.success('Fee structure created successfully')
         queryClient.invalidateQueries(['fee-structures'])
         setShowForm(false)
-        setFormData({ schoolId: '', name: '', description: '', amount: '', feeType: 'Yearly' })
+        setFormData({ schoolId: '', classId: '', name: '', description: '', amount: '', feeType: 'Yearly' })
       },
       onError: (err) => {
         toast.error(err.response?.data?.errors?.[0] || err.response?.data?.message || 'Failed to create')
@@ -56,6 +62,7 @@ const FeeStructures = () => {
 
   const feeStructures = feeData?.data ?? []
   const schools = schoolsData?.data ?? []
+  const classes = classesData?.data ?? []
   const defaultSchoolId = schools?.[0]?.id || schools?.[0]?.Id || ''
   const isPrincipal = user?.role?.toLowerCase() === 'principal'
 
@@ -75,13 +82,15 @@ const FeeStructures = () => {
       toast.error('Valid amount is required')
       return
     }
-    createMutation.mutate({
+    const payload = {
       schoolId: isPrincipal ? undefined : (schoolId || defaultSchoolId),
       name: formData.name.trim(),
       description: formData.description?.trim() || null,
       amount,
       feeType: formData.feeType || 'Yearly',
-    })
+    }
+    if (formData.classId) payload.classId = formData.classId
+    createMutation.mutate(payload)
   }
 
   const handleEdit = (fs) => {
@@ -91,6 +100,7 @@ const FeeStructures = () => {
       description: fs.description || fs.Description || '',
       amount: String(fs.amount ?? fs.Amount ?? 0),
       feeType: fs.feeType || fs.FeeType || 'Yearly',
+      classId: fs.classId || fs.ClassId || '',
     })
   }
 
@@ -101,15 +111,17 @@ const FeeStructures = () => {
       toast.error('Valid amount is required')
       return
     }
+    const updateData = {
+      name: editForm.name.trim(),
+      description: editForm.description?.trim() || null,
+      amount,
+      feeType: editForm.feeType || 'Yearly',
+      isActive: true,
+    }
+    if (editForm.classId) updateData.classId = editForm.classId
     updateMutation.mutate({
       id: editingId,
-      data: {
-        name: editForm.name.trim(),
-        description: editForm.description?.trim() || null,
-        amount,
-        feeType: editForm.feeType || 'Yearly',
-        isActive: true,
-      },
+      data: updateData,
     })
   }
 
@@ -155,6 +167,20 @@ const FeeStructures = () => {
                 </select>
               </div>
               )}
+              <div>
+                <label className="form-label">Target Class</label>
+                <select
+                  className="form-input"
+                  value={formData.classId || ''}
+                  onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
+                >
+                  <option value="">All classes (general payment)</option>
+                  {Array.isArray(classes) && classes.map((c) => (
+                    <option key={c.id || c.Id} value={c.id || c.Id}>{c.name || c.Name}</option>
+                  ))}
+                </select>
+                <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Leave as &quot;All classes&quot; for fees that apply to every student</small>
+              </div>
               <div>
                 <label className="form-label">Fee Type (Period)</label>
                 <select
@@ -221,6 +247,7 @@ const FeeStructures = () => {
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Target</th>
                 <th>Amount</th>
                 <th>Fee Type</th>
                 <th>Status</th>
@@ -233,8 +260,21 @@ const FeeStructures = () => {
                   <tr key={fs.id || fs.Id}>
                     {editingId === (fs.id || fs.Id) ? (
                       <>
-                        <td colSpan="5">
+                        <td colSpan="6">
                           <form onSubmit={handleUpdateSubmit} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                            <div>
+                              <label className="form-label">Target Class</label>
+                              <select
+                                className="form-input"
+                                value={editForm.classId || ''}
+                                onChange={(e) => setEditForm({ ...editForm, classId: e.target.value })}
+                              >
+                                <option value="">All classes</option>
+                                {Array.isArray(classes) && classes.map((c) => (
+                                  <option key={c.id || c.Id} value={c.id || c.Id}>{c.name || c.Name}</option>
+                                ))}
+                              </select>
+                            </div>
                             <div>
                               <label className="form-label">Name</label>
                               <input
@@ -282,6 +322,7 @@ const FeeStructures = () => {
                     ) : (
                       <>
                         <td>{fs.name || fs.Name}</td>
+                        <td>{fs.className || fs.ClassName || 'All classes'}</td>
                         <td>{(fs.amount ?? fs.Amount)?.toLocaleString?.() ?? fs.amount ?? fs.Amount}</td>
                         <td>{fs.feeType || fs.FeeType || 'Yearly'}</td>
                         <td>
@@ -306,7 +347,7 @@ const FeeStructures = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                     No fee structures yet. Click &quot;Add Fee Structure&quot; to set school fees, book prices, and other charges.
                   </td>
                 </tr>

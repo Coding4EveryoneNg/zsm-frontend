@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
 import { dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
+import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import { Users, GraduationCap, School, BookOpen, Zap, Plus, Eye, CreditCard, FileText, Settings } from 'lucide-react'
 import { defaultChartOptions } from '../../utils/chartConfig'
 import logger from '../../utils/logger'
@@ -87,6 +88,8 @@ const AdminDashboard = () => {
         Admin Dashboard
       </h1>
 
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '1.5rem', marginBottom: '2rem', alignItems: 'start' }} className="dashboard-with-calendar">
+        <div>
       {/* Quick Actions */}
       <div className="card" style={{ marginBottom: '2rem' }}>
         <div className="card-header">
@@ -149,7 +152,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
         {statCards.map((stat, index) => {
           const Icon = stat.icon
           return (
@@ -172,6 +175,9 @@ const AdminDashboard = () => {
             </div>
           )
         })}
+      </div>
+        </div>
+        <DashboardCalendar />
       </div>
 
       {/* Charts Section */}

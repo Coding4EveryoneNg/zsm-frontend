@@ -10,6 +10,8 @@ const EVENT_TYPES = [
   { value: 'Resumption', label: 'Resumption' },
   { value: 'EndOfTerm', label: 'End of Term' },
   { value: 'Examination', label: 'Examination' },
+  { value: 'PublicHoliday', label: 'Public Holiday' },
+  { value: 'ImportantDate', label: 'Important Date' },
   { value: 'Other', label: 'Other' }
 ]
 
