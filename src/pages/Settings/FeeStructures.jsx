@@ -86,7 +86,8 @@ const FeeStructures = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    const schoolId = isPrincipal ? '' : (formData.schoolId || defaultSchoolId)
+    // Use schoolIdForClasses to match the school we loaded classes/terms for - ensures class belongs to selected school
+    const schoolId = isPrincipal ? '' : (formData.schoolId || schoolIdForClasses || defaultSchoolId)
     if (!isPrincipal && !schoolId) {
       toast.error('Please select a school')
       return
@@ -105,7 +106,7 @@ const FeeStructures = () => {
       return
     }
     const payload = {
-      schoolId: isPrincipal ? undefined : (schoolId || defaultSchoolId),
+      schoolId: isPrincipal ? undefined : schoolId,
       feeCategory: formData.feeCategory || 'Other',
       name: formData.name.trim(),
       description: formData.description?.trim() || null,
