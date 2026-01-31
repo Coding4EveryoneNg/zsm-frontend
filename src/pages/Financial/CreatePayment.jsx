@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { useQuery } from 'react-query'
-import { paymentsService, commonService } from '../../services/apiServices'
+import { paymentsService, commonService, dashboardService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
 import { ArrowLeft, Save } from 'lucide-react'
@@ -26,24 +26,43 @@ const CreatePayment = () => {
   })
 
   const selectedStudentId = watch('studentId')
+  const selectedSchoolId = watch('schoolId')
   const paymentCategory = watch('paymentCategory')
   const selectedTermId = watch('termId')
   const selectedFeeStructureId = watch('feeStructureId')
   const paymentType = watch('paymentType')
 
-  // Fetch students
+  const isAdmin = (user?.role || user?.Role || '').toString().toLowerCase() === 'admin'
+  const { data: schoolsData } = useQuery(
+    'schools-dropdown',
+    () => commonService.getSchoolsDropdown(),
+    { enabled: isAdmin }
+  )
+  const { data: schoolSwitchingData } = useQuery(
+    ['dashboard', 'school-switching'],
+    () => dashboardService.getSchoolSwitchingData(),
+    { enabled: !isAdmin }
+  )
+  const schools = schoolsData?.data ?? schoolsData?.Data ?? []
+  const principalSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId
+  const schoolIdForStudents = isAdmin
+    ? (selectedSchoolId || schools?.[0]?.id || schools?.[0]?.Id || '')
+    : (user?.schoolId || user?.SchoolId || principalSchoolId || '')
+
+  // Fetch students (only for selected/current school)
   const { data: studentsData, isLoading: studentsLoading } = useQuery(
-    ['students-dropdown'],
-    () => commonService.getStudentsDropdown({ pageSize: 100 })
+    ['students-dropdown', schoolIdForStudents],
+    () => commonService.getStudentsDropdown({ schoolId: schoolIdForStudents }),
+    { enabled: !!schoolIdForStudents }
   )
   const students = studentsData?.data ?? studentsData?.Data ?? []
   const selectedStudent = students?.find((s) => (s.id || s.Id) === selectedStudentId)
   const schoolIdForFees = selectedStudent?.schoolId || selectedStudent?.SchoolId
   const classIdForFees = selectedStudent?.classId || selectedStudent?.ClassId
 
-  // Terms dropdown - only after student is selected AND School Fees is chosen (use selected student's school)
+  // Terms dropdown - refetched whenever selected student or payment category changes (schoolIdForFees comes from selected student)
   const { data: termsData, isLoading: termsLoading } = useQuery(
-    ['terms-dropdown', schoolIdForFees, paymentCategory],
+    ['terms-dropdown', selectedStudentId, schoolIdForFees, paymentCategory],
     () => commonService.getTermsDropdown({ schoolId: schoolIdForFees }),
     { enabled: paymentCategory === PAYMENT_CATEGORY_SCHOOL_FEES && !!schoolIdForFees }
   )
@@ -168,7 +187,14 @@ const CreatePayment = () => {
     }
   }
 
-  if (studentsLoading) return <Loading />
+  useEffect(() => {
+    if (isAdmin && schools?.length > 0 && !selectedSchoolId) {
+      const firstId = schools[0]?.id || schools[0]?.Id
+      if (firstId) setValue('schoolId', firstId)
+    }
+  }, [isAdmin, schools, selectedSchoolId, setValue])
+
+  if (studentsLoading && !!schoolIdForStudents) return <Loading />
 
   return (
     <div>
@@ -181,9 +207,30 @@ const CreatePayment = () => {
 
       <div className="card">
         <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
-          Create a payment for a student. Select school fees (by term) or books/other payments.
+          Create a payment for a student. Select school (admin), then student, then school fees (by term) or books/other payments.
         </p>
         <form onSubmit={handleSubmit(onSubmit)}>
+          {isAdmin && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label">School <span style={{ color: '#ef4444' }}>*</span></label>
+              <select
+                {...register('schoolId', { required: isAdmin ? 'School is required' : false })}
+                className="form-input"
+                onChange={(e) => {
+                  setValue('schoolId', e.target.value)
+                  setValue('studentId', '')
+                  setValue('termId', '')
+                  setValue('feeStructureId', '')
+                  setValue('paymentCategory', PAYMENT_CATEGORY_OTHER)
+                }}
+              >
+                <option value="">Select School</option>
+                {Array.isArray(schools) && schools.map((s) => (
+                  <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
             <div>
               <label className="form-label">Student <span style={{ color: '#ef4444' }}>*</span></label>
@@ -192,8 +239,10 @@ const CreatePayment = () => {
                 className="form-input"
                 onChange={(e) => {
                   const newStudentId = e.target.value
+                  setValue('studentId', newStudentId)
                   setValue('termId', '')
                   setValue('feeStructureId', '')
+                  setValue('amount', '')
                   if (!newStudentId) setValue('paymentCategory', PAYMENT_CATEGORY_OTHER)
                 }}
               >

@@ -30,14 +30,17 @@ const CreateExamination = () => {
   const [correctAnswer, setCorrectAnswer] = useState('')
   const [options, setOptions] = useState(['', '', '', ''])
 
-  // Fetch dropdown data
+  // Fetch dropdown data (terms only take schoolId; get school from selected class)
   const { data: classesData } = useQuery('classes-dropdown', () => commonService.getClassesDropdown())
   const { data: subjectsData } = useQuery('subjects-dropdown', () => commonService.getSubjectsDropdown())
   const { data: sessionsData } = useQuery('sessions-dropdown', () => commonService.getSessionsDropdown())
+  const classes = classesData?.data ?? classesData?.Data ?? []
+  const selectedClassForTerms = classes.find((c) => (c.id || c.Id) === formData.classId)
+  const schoolIdForTerms = selectedClassForTerms?.schoolId ?? selectedClassForTerms?.SchoolId
   const { data: termsData } = useQuery(
-    ['terms-dropdown'],
-    () => commonService.getTermsDropdown(),
-    { enabled: true }
+    ['terms-dropdown', schoolIdForTerms],
+    () => commonService.getTermsDropdown({ schoolId: schoolIdForTerms }),
+    { enabled: !!schoolIdForTerms }
   )
 
   const createMutation = useMutation(
@@ -121,9 +124,8 @@ const CreateExamination = () => {
     setOptions(newOptions)
   }
 
-  const classes = classesData?.data || []
-  const subjects = subjectsData?.data || []
-  const terms = termsData?.data || []
+  const subjects = subjectsData?.data ?? subjectsData?.Data ?? []
+  const terms = termsData?.data ?? termsData?.Data ?? []
 
   return (
     <div className="page-container">
