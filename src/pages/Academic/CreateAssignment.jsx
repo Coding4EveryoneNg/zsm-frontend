@@ -40,14 +40,15 @@ const CreateAssignment = () => {
   const { data: subjectsData } = useQuery('subjects-dropdown', () => commonService.getSubjectsDropdown())
   const { data: teachersData } = useQuery('teachers-dropdown', () => commonService.getTeachersDropdown())
   const { data: sessionsData } = useQuery('sessions-dropdown', () => commonService.getSessionsDropdown())
+  const sessions = sessionsData?.data ?? sessionsData?.Data ?? []
+  const selectedSession = formData.session && formData.session.length === 36
+    ? sessions.find((s) => (s.id || s.Id) === formData.session)
+    : null
+  const schoolIdForTerms = selectedSession?.schoolId ?? selectedSession?.SchoolId
   const { data: termsData } = useQuery(
-    ['terms-dropdown', formData.session],
-    () => {
-      // Extract session ID from session string if it's a GUID
-      const sessionId = formData.session && formData.session.length === 36 ? formData.session : null
-      return commonService.getTermsDropdown({ sessionId: sessionId || undefined })
-    },
-    { enabled: !!formData.session }
+    ['terms-dropdown', schoolIdForTerms],
+    () => commonService.getTermsDropdown({ schoolId: schoolIdForTerms }),
+    { enabled: !!schoolIdForTerms }
   )
 
   const createMutation = useMutation(
@@ -146,7 +147,6 @@ const CreateAssignment = () => {
   const classes = classesData?.data || []
   const subjects = subjectsData?.data || []
   const teachers = teachersData?.data || []
-  const sessions = sessionsData?.data || []
   const terms = termsData?.data || []
 
   return (

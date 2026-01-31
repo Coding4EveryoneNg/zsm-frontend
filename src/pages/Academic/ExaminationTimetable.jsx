@@ -37,10 +37,13 @@ const ExaminationTimetable = () => {
     () => commonService.getClassesDropdown(),
     { enabled: showCreate || showAddEntry }
   )
+  const classes = classesData?.data ?? classesData?.Data ?? []
+  const createFormClass = classes.find((c) => (c.id || c.Id) === createForm.classId)
+  const schoolIdForTerms = createFormClass?.schoolId ?? createFormClass?.SchoolId
   const { data: termsData } = useQuery(
-    ['terms-dropdown'],
-    () => commonService.getTermsDropdown(),
-    { enabled: showCreate || showAddEntry }
+    ['terms-dropdown', schoolIdForTerms],
+    () => commonService.getTermsDropdown({ schoolId: schoolIdForTerms }),
+    { enabled: (showCreate || showAddEntry) && !!schoolIdForTerms }
   )
   const { data: sessionsData } = useQuery(
     'sessions-dropdown',
@@ -92,9 +95,8 @@ const ExaminationTimetable = () => {
 
   const timetables = listData?.data?.data?.timetables ?? listData?.data?.timetables ?? []
   const entries = entriesData?.data?.data ?? entriesData?.data ?? []
-  const classes = classesData?.data?.data ?? classesData?.data ?? []
-  const terms = termsData?.data ?? []
-  const sessions = sessionsData?.data ?? []
+  const terms = termsData?.data ?? termsData?.Data ?? []
+  const sessions = sessionsData?.data ?? sessionsData?.Data ?? []
   const subjects = subjectsData?.data?.data?.subjects ?? subjectsData?.data?.subjects ?? []
   const selected = detailData?.data?.data ?? detailData?.data
 

@@ -27,13 +27,20 @@ const TeacherSubmissions = () => {
   const [showBulkGrade, setShowBulkGrade] = useState(false)
   const pageSize = 20
 
-  // Fetch classes and students for filters
+  // Fetch classes and students for filters (students dropdown only takes schoolId; filter by class on frontend)
   const { data: classesData } = useQuery('classes-dropdown', () => commonService.getClassesDropdown())
+  const classes = classesData?.data ?? classesData?.Data ?? []
+  const selectedClass = classes.find((c) => (c.id || c.Id) === selectedClassId)
+  const schoolIdFromClass = selectedClass?.schoolId ?? selectedClass?.SchoolId
   const { data: studentsData } = useQuery(
-    ['students-dropdown', selectedClassId],
-    () => commonService.getStudentsDropdown({ classId: selectedClassId || undefined }),
-    { enabled: !!selectedClassId }
+    ['students-dropdown', schoolIdFromClass],
+    () => commonService.getStudentsDropdown({ schoolId: schoolIdFromClass }),
+    { enabled: !!schoolIdFromClass }
   )
+  const allStudentsInSchool = studentsData?.data ?? studentsData?.Data ?? []
+  const students = selectedClassId
+    ? allStudentsInSchool.filter((s) => (s.classId || s.ClassId) === selectedClassId)
+    : allStudentsInSchool
 
   const { data, isLoading, error } = useQuery(
     ['teacherSubmissions', page, filter, selectedClassId, selectedStudentId],
@@ -145,8 +152,6 @@ const TeacherSubmissions = () => {
   const submissions = data?.data?.items || data?.data?.Items || []
   const totalCount = data?.data?.totalCount || data?.data?.TotalCount || 0
   const totalPages = data?.data?.totalPages || data?.data?.TotalPages || 0
-  const classes = classesData?.data || []
-  const students = studentsData?.data || []
 
   const getStatusBadge = (status) => {
     const statusLower = (status || '').toLowerCase()

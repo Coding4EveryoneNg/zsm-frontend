@@ -37,16 +37,18 @@ const FeeStructures = () => {
   const editingFs = feeStructures?.find((f) => (f.id || f.Id) === editingId)
   const editingSchoolId = editingFs?.schoolId || editingFs?.SchoolId || schoolIdForClasses
   const effectiveSchoolIdForClasses = editingId ? editingSchoolId : schoolIdForClasses
+  // Classes dropdown: refetches when school or editing fee changes
   const { data: classesData } = useQuery(
-    ['classes-dropdown', effectiveSchoolIdForClasses],
+    ['classes-dropdown', effectiveSchoolIdForClasses, formData.schoolId, editingId],
     () => commonService.getClassesDropdown({ schoolId: effectiveSchoolIdForClasses }),
     { enabled: !!effectiveSchoolIdForClasses }
   )
   const classes = classesData?.data ?? classesData?.Data ?? []
   const schoolIdForTerms = formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null
   const effectiveSchoolIdForTerms = schoolIdForTerms || editingSchoolId || (formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null)
+  // Terms dropdown: used in add form and edit form for School Fees; refetches when school or editing fee changes
   const { data: termsData } = useQuery(
-    ['terms-dropdown', effectiveSchoolIdForTerms],
+    ['terms-dropdown', effectiveSchoolIdForTerms, editingId],
     () => commonService.getTermsDropdown(effectiveSchoolIdForTerms ? { schoolId: effectiveSchoolIdForTerms } : {}),
     { enabled: !!(formData.feeCategory === 'SchoolFees' && effectiveSchoolIdForTerms) || !!(editingId && editingSchoolId) }
   )
