@@ -16,7 +16,7 @@ const FeeStructures = () => {
   const [editForm, setEditForm] = useState({ name: '', description: '', amount: '', feeType: 'Yearly', classId: '', termId: '', feeCategory: 'Other' })
   const [formData, setFormData] = useState({ schoolId: '', classId: '', termId: '', feeCategory: 'Other', name: '', description: '', amount: '', feeType: 'Yearly' })
 
-  const { data: feeData, isLoading } = useQuery(
+  const { data: feeData, isLoading, error: feeError } = useQuery(
     ['fee-structures'],
     () => feeStructuresService.getFeeStructures()
   )
@@ -24,12 +24,16 @@ const FeeStructures = () => {
     'schools-dropdown',
     () => commonService.getSchoolsDropdown()
   )
-  const schoolIdForClasses = formData.schoolId || (schoolsData?.data ?? [])?.[0]?.id || (schoolsData?.data ?? [])?.[0]?.Id || ''
+  const schoolIdForClasses = formData.schoolId || (schoolsData?.data ?? schoolsData?.Data ?? [])?.[0]?.id || (schoolsData?.data ?? schoolsData?.Data ?? [])?.[0]?.Id || ''
   const { data: classesData } = useQuery(
     ['classes-dropdown', schoolIdForClasses],
     () => commonService.getClassesDropdown(schoolIdForClasses ? { schoolId: schoolIdForClasses } : {}),
     { enabled: true }
   )
+
+  const feeStructures = feeData?.data ?? feeData?.Data ?? []
+  const schools = schoolsData?.data ?? schoolsData?.Data ?? []
+  const classes = classesData?.data ?? classesData?.Data ?? []
   const schoolIdForTerms = formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null
   const editingFs = feeStructures?.find((f) => (f.id || f.Id) === editingId)
   const editingSchoolId = editingFs?.schoolId || editingFs?.SchoolId || schoolIdForClasses
@@ -68,10 +72,7 @@ const FeeStructures = () => {
     }
   )
 
-  const feeStructures = feeData?.data ?? []
-  const schools = schoolsData?.data ?? []
-  const classes = classesData?.data ?? []
-  const terms = termsData?.data ?? []
+  const terms = termsData?.data ?? termsData?.Data ?? []
   const defaultSchoolId = schools?.[0]?.id || schools?.[0]?.Id || ''
   const isPrincipal = user?.role?.toLowerCase() === 'principal'
 
@@ -145,6 +146,19 @@ const FeeStructures = () => {
   }
 
   if (isLoading) return <Loading />
+  if (feeError) {
+    const errMsg = feeError?.response?.data?.errors?.[0] || feeError?.response?.data?.message || feeError?.errors?.[0] || feeError?.message || 'Failed to load fee structures.'
+    return (
+      <div className="page-container">
+        <div className="card">
+          <p style={{ color: 'var(--danger)' }}>{errMsg}</p>
+          <button className="btn btn-secondary" onClick={() => navigate('/settings')} style={{ marginTop: '1rem' }}>
+            Back to Settings
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
