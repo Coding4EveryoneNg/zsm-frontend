@@ -41,11 +41,11 @@ const CreatePayment = () => {
   const schoolIdForFees = selectedStudent?.schoolId || selectedStudent?.SchoolId
   const classIdForFees = selectedStudent?.classId || selectedStudent?.ClassId
 
-  // Terms dropdown - when School Fees selected (filter by school when student selected)
-  const { data: termsData } = useQuery(
+  // Terms dropdown - only after student is selected AND School Fees is chosen (use selected student's school)
+  const { data: termsData, isLoading: termsLoading } = useQuery(
     ['terms-dropdown', schoolIdForFees, paymentCategory],
-    () => commonService.getTermsDropdown(schoolIdForFees ? { schoolId: schoolIdForFees } : {}),
-    { enabled: paymentCategory === PAYMENT_CATEGORY_SCHOOL_FEES }
+    () => commonService.getTermsDropdown({ schoolId: schoolIdForFees }),
+    { enabled: paymentCategory === PAYMENT_CATEGORY_SCHOOL_FEES && !!schoolIdForFees }
   )
   const terms = termsData?.data ?? termsData?.Data ?? []
 
@@ -190,9 +190,11 @@ const CreatePayment = () => {
               <select
                 {...register('studentId', { required: 'Student is required' })}
                 className="form-input"
-                onChange={() => {
+                onChange={(e) => {
+                  const newStudentId = e.target.value
                   setValue('termId', '')
                   setValue('feeStructureId', '')
+                  if (!newStudentId) setValue('paymentCategory', PAYMENT_CATEGORY_OTHER)
                 }}
               >
                 <option value="">Select Student</option>
@@ -215,6 +217,7 @@ const CreatePayment = () => {
               <select
                 {...register('paymentCategory', { required: true })}
                 className="form-input"
+                disabled={!selectedStudentId}
                 onChange={(e) => {
                   setValue('paymentCategory', e.target.value)
                   setValue('termId', '')
@@ -224,6 +227,11 @@ const CreatePayment = () => {
                 <option value={PAYMENT_CATEGORY_SCHOOL_FEES}>School Fees</option>
                 <option value={PAYMENT_CATEGORY_OTHER}>Books / Other</option>
               </select>
+              {!selectedStudentId && (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginTop: '0.25rem' }}>
+                  Select a student first.
+                </p>
+              )}
             </div>
           </div>
 
@@ -232,7 +240,7 @@ const CreatePayment = () => {
               <label className="form-label">Term <span style={{ color: '#ef4444' }}>*</span></label>
               {!schoolIdForFees && (
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '0.5rem' }}>
-                  Select a student first to load terms for their school.
+                  Select a student first, then choose School Fees to load terms for their school.
                 </p>
               )}
               <select
@@ -240,9 +248,10 @@ const CreatePayment = () => {
                   required: paymentCategory === PAYMENT_CATEGORY_SCHOOL_FEES ? 'Select term for school fees' : false,
                 })}
                 className="form-input"
+                disabled={!schoolIdForFees || termsLoading}
                 onChange={(e) => setValue('termId', e.target.value)}
               >
-                <option value="">Select term</option>
+                <option value="">{termsLoading ? 'Loading terms...' : 'Select term'}</option>
                 {Array.isArray(terms) && terms.map((t) => (
                   <option key={t.id || t.Id} value={t.id || t.Id}>
                     {t.name || t.Name} {t.sessionName ? `(${t.sessionName})` : ''}
