@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from 'react-query'
 import { useForm } from 'react-hook-form'
-import { studentsService, userManagementService } from '../../services/apiServices'
+import { studentsService, userManagementService, commonService, dashboardService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
 import { ArrowLeft, Save, Plus, X } from 'lucide-react'
@@ -29,9 +29,22 @@ const CreateStudent = () => {
 
   const selectedParentId = watch('parentId')
   const selectedClassId = watch('classId')
+  const selectedSchoolId = watch('schoolId')
 
-  // Get school ID from user context
-  const schoolId = user?.schoolId || user?.SchoolId
+  const isAdmin = (user?.role || user?.Role || '').toString().toLowerCase() === 'admin'
+  const { data: schoolsData } = useQuery(
+    'schools-dropdown',
+    () => commonService.getSchoolsDropdown(),
+    { enabled: isAdmin }
+  )
+  const { data: schoolSwitchingData } = useQuery(
+    ['dashboard', 'school-switching'],
+    () => dashboardService.getSchoolSwitchingData(),
+    { enabled: !isAdmin }
+  )
+  const schools = schoolsData?.data ?? schoolsData?.Data ?? []
+  const principalSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId
+  const schoolId = isAdmin ? (selectedSchoolId || schools?.[0]?.id || schools?.[0]?.Id || '') : (user?.schoolId || user?.SchoolId || principalSchoolId || '')
 
   // Fetch classes for the school
   const { data: classesData, isLoading: classesLoading } = useQuery(
@@ -77,6 +90,14 @@ const CreateStudent = () => {
     }
   }, [selectedParentId, setValue])
 
+  // Set default school for Admin when schools load
+  useEffect(() => {
+    if (isAdmin && schools?.length > 0 && !selectedSchoolId) {
+      const firstId = schools[0]?.id || schools[0]?.Id
+      if (firstId) setValue('schoolId', firstId)
+    }
+  }, [isAdmin, schools, selectedSchoolId, setValue])
+
   // Create parent mutation
   const createParentMutation = useMutation(
     (data) => userManagementService.createParent(data),
@@ -120,6 +141,7 @@ const CreateStudent = () => {
         tenantId: user?.tenantId,
         schoolId: schoolId,
       }
+      if (isAdmin && schoolId) parentData.schoolId = schoolId
 
       await createParentMutation.mutateAsync(parentData)
 
@@ -159,6 +181,7 @@ const CreateStudent = () => {
         relationship: data.relationship || null,
         password: data.password || DEFAULT_PASSWORD,
       }
+      if (isAdmin && schoolId) requestData.schoolId = schoolId
 
       const response = await studentsService.createStudent(requestData)
 
@@ -248,6 +271,23 @@ const CreateStudent = () => {
 
       <div className="card">
         <form onSubmit={handleSubmit(onSubmit)}>
+          {isAdmin && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label">School <span style={{ color: '#ef4444' }}>*</span></label>
+              <select
+                {...register('schoolId', { required: isAdmin ? 'Please select a school' : false })}
+                className="form-input"
+              >
+                <option value="">Select school</option>
+                {Array.isArray(schools) && schools.map((s) => (
+                  <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name}</option>
+                ))}
+              </select>
+              {errors.schoolId && (
+                <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>{errors.schoolId.message}</span>
+              )}
+            </div>
+          )}
           {/* Personal Information */}
           <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
             Personal Information

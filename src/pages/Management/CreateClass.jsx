@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { classesService } from '../../services/apiServices'
+import { useQuery } from 'react-query'
+import { classesService, commonService, dashboardService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import { ArrowLeft, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -13,10 +14,25 @@ const CreateClass = () => {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm()
 
-  const schoolId = user?.schoolId || user?.SchoolId
+  const isAdmin = (user?.role || user?.Role || '').toString().toLowerCase() === 'admin'
+  const selectedSchoolId = watch('schoolId')
+  const { data: schoolsData } = useQuery('schools-dropdown', () => commonService.getSchoolsDropdown(), { enabled: isAdmin })
+  const { data: schoolSwitchingData } = useQuery(['dashboard', 'school-switching'], () => dashboardService.getSchoolSwitchingData(), { enabled: !isAdmin })
+  const schools = schoolsData?.data ?? schoolsData?.Data ?? []
+  const principalSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId
+  const schoolId = isAdmin ? (selectedSchoolId || schools?.[0]?.id || schools?.[0]?.Id || '') : (user?.schoolId || user?.SchoolId || principalSchoolId || '')
+
+  useEffect(() => {
+    if (isAdmin && schools?.length > 0 && !selectedSchoolId) {
+      const firstId = schools[0]?.id || schools[0]?.Id
+      if (firstId) setValue('schoolId', firstId)
+    }
+  }, [isAdmin, schools, selectedSchoolId, setValue])
 
   const onSubmit = async (data) => {
     if (!schoolId) {
@@ -114,6 +130,18 @@ const CreateClass = () => {
 
       <div className="card">
         <form onSubmit={handleSubmit(onSubmit)}>
+          {isAdmin && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label">School <span style={{ color: '#ef4444' }}>*</span></label>
+              <select {...register('schoolId', { required: isAdmin ? 'Please select a school' : false })} className="form-input">
+                <option value="">Select school</option>
+                {Array.isArray(schools) && schools.map((s) => (
+                  <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name}</option>
+                ))}
+              </select>
+              {errors.schoolId && <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>{errors.schoolId.message}</span>}
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
             <div>
               <label className="form-label">
