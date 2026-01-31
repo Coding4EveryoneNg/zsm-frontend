@@ -63,16 +63,15 @@ const CreateStudent = () => {
     }
   )
 
-  // Fetch parents for the school
+  // Fetch parents dropdown (common endpoint) — scoped to this school's tenant; parents for this school listed first
   const { data: parentsData, isLoading: parentsLoading, refetch: refetchParents } = useQuery(
-    ['parents-by-school', schoolId],
-    () => userManagementService.getParentsBySchool(schoolId),
+    ['parents-dropdown', schoolId],
+    () => commonService.getParentsDropdown({ schoolId }),
     {
       enabled: !!schoolId,
       retry: false,
       onError: (error) => {
         console.error('Error fetching parents:', error)
-        // Don't show toast on initial load if schoolId is missing
         if (schoolId) {
           toast.error('Failed to load parents')
         }
@@ -80,8 +79,8 @@ const CreateStudent = () => {
     }
   )
 
-  const classes = classesData?.data || []
-  const parents = parentsData?.data || []
+  const classes = classesData?.data ?? classesData?.Data ?? []
+  const parents = parentsData?.data ?? parentsData?.Data ?? []
 
   // Handle parent selection change
   useEffect(() => {
