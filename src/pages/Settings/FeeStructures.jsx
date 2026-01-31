@@ -13,8 +13,8 @@ const FeeStructures = () => {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [editForm, setEditForm] = useState({ name: '', description: '', amount: '', feeType: 'Yearly', classId: '' })
-  const [formData, setFormData] = useState({ schoolId: '', classId: '', name: '', description: '', amount: '', feeType: 'Yearly' })
+  const [editForm, setEditForm] = useState({ name: '', description: '', amount: '', feeType: 'Yearly', classId: '', termId: '', feeCategory: 'Other' })
+  const [formData, setFormData] = useState({ schoolId: '', classId: '', termId: '', feeCategory: 'Other', name: '', description: '', amount: '', feeType: 'Yearly' })
 
   const { data: feeData, isLoading } = useQuery(
     ['fee-structures'],
@@ -30,6 +30,14 @@ const FeeStructures = () => {
     () => commonService.getClassesDropdown(schoolIdForClasses ? { schoolId: schoolIdForClasses } : {}),
     { enabled: true }
   )
+  const schoolIdForTerms = formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null
+  const editingFs = feeStructures?.find((f) => (f.id || f.Id) === editingId)
+  const editingSchoolId = editingFs?.schoolId || editingFs?.SchoolId || schoolIdForClasses
+  const { data: termsData } = useQuery(
+    ['terms-dropdown', schoolIdForTerms || editingSchoolId],
+    () => commonService.getTermsDropdown((schoolIdForTerms || editingSchoolId) ? { schoolId: schoolIdForTerms || editingSchoolId } : {}),
+    { enabled: !!(schoolIdForTerms || (editingId && editingSchoolId)) }
+  )
 
   const createMutation = useMutation(
     (data) => feeStructuresService.createFeeStructure(data),
@@ -38,7 +46,7 @@ const FeeStructures = () => {
         toast.success('Fee structure created successfully')
         queryClient.invalidateQueries(['fee-structures'])
         setShowForm(false)
-        setFormData({ schoolId: '', classId: '', name: '', description: '', amount: '', feeType: 'Yearly' })
+        setFormData({ schoolId: '', classId: '', termId: '', feeCategory: 'Other', name: '', description: '', amount: '', feeType: 'Yearly' })
       },
       onError: (err) => {
         toast.error(err.response?.data?.errors?.[0] || err.response?.data?.message || 'Failed to create')
@@ -63,6 +71,7 @@ const FeeStructures = () => {
   const feeStructures = feeData?.data ?? []
   const schools = schoolsData?.data ?? []
   const classes = classesData?.data ?? []
+  const terms = termsData?.data ?? []
   const defaultSchoolId = schools?.[0]?.id || schools?.[0]?.Id || ''
   const isPrincipal = user?.role?.toLowerCase() === 'principal'
 
@@ -82,14 +91,20 @@ const FeeStructures = () => {
       toast.error('Valid amount is required')
       return
     }
+    if (formData.feeCategory === 'SchoolFees' && !formData.termId) {
+      toast.error('Term is required for school fees')
+      return
+    }
     const payload = {
       schoolId: isPrincipal ? undefined : (schoolId || defaultSchoolId),
+      feeCategory: formData.feeCategory || 'Other',
       name: formData.name.trim(),
       description: formData.description?.trim() || null,
       amount,
       feeType: formData.feeType || 'Yearly',
     }
     if (formData.classId) payload.classId = formData.classId
+    if (formData.termId && formData.feeCategory === 'SchoolFees') payload.termId = formData.termId
     createMutation.mutate(payload)
   }
 
@@ -101,6 +116,8 @@ const FeeStructures = () => {
       amount: String(fs.amount ?? fs.Amount ?? 0),
       feeType: fs.feeType || fs.FeeType || 'Yearly',
       classId: fs.classId || fs.ClassId || '',
+      termId: fs.termId || fs.TermId || '',
+      feeCategory: fs.feeCategory || fs.FeeCategory || 'Other',
     })
   }
 
@@ -117,8 +134,10 @@ const FeeStructures = () => {
       amount,
       feeType: editForm.feeType || 'Yearly',
       isActive: true,
+      feeCategory: editForm.feeCategory || 'Other',
     }
     if (editForm.classId) updateData.classId = editForm.classId
+    if (editForm.termId && editForm.feeCategory === 'SchoolFees') updateData.termId = editForm.termId
     updateMutation.mutate({
       id: editingId,
       data: updateData,
@@ -152,6 +171,18 @@ const FeeStructures = () => {
           <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Set School Fees / Add Fee</h3>
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <label className="form-label">Fee Category</label>
+                <select
+                  className="form-input"
+                  value={formData.feeCategory || 'Other'}
+                  onChange={(e) => setFormData({ ...formData, feeCategory: e.target.value, termId: e.target.value === 'SchoolFees' ? formData.termId : '' })}
+                >
+                  <option value="SchoolFees">School Fees</option>
+                  <option value="Books">Books</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
               {!isPrincipal && (
               <div>
                 <label className="form-label">School</label>
@@ -163,6 +194,24 @@ const FeeStructures = () => {
                   <option value="">Select school</option>
                   {Array.isArray(schools) && schools.map((s) => (
                     <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name}</option>
+                  ))}
+                </select>
+              </div>
+              )}
+              {formData.feeCategory === 'SchoolFees' && (
+              <div>
+                <label className="form-label">Term <span style={{ color: '#ef4444' }}>*</span></label>
+                <select
+                  className="form-input"
+                  value={formData.termId || ''}
+                  onChange={(e) => setFormData({ ...formData, termId: e.target.value })}
+                  required={formData.feeCategory === 'SchoolFees'}
+                >
+                  <option value="">Select term</option>
+                  {Array.isArray(terms) && terms.map((t) => (
+                    <option key={t.id || t.Id} value={t.id || t.Id}>
+                      {t.name || t.Name} {t.sessionName ? `(${t.sessionName})` : ''}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -247,6 +296,8 @@ const FeeStructures = () => {
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Category</th>
+                <th>Term</th>
                 <th>Target</th>
                 <th>Amount</th>
                 <th>Fee Type</th>
@@ -260,8 +311,35 @@ const FeeStructures = () => {
                   <tr key={fs.id || fs.Id}>
                     {editingId === (fs.id || fs.Id) ? (
                       <>
-                        <td colSpan="6">
+                        <td colSpan="8">
                           <form onSubmit={handleUpdateSubmit} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                            <div>
+                              <label className="form-label">Fee Category</label>
+                              <select
+                                className="form-input"
+                                value={editForm.feeCategory || 'Other'}
+                                onChange={(e) => setEditForm({ ...editForm, feeCategory: e.target.value })}
+                              >
+                                <option value="SchoolFees">School Fees</option>
+                                <option value="Books">Books</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            </div>
+                            {editForm.feeCategory === 'SchoolFees' && (
+                            <div>
+                              <label className="form-label">Term</label>
+                              <select
+                                className="form-input"
+                                value={editForm.termId || ''}
+                                onChange={(e) => setEditForm({ ...editForm, termId: e.target.value })}
+                              >
+                                <option value="">Select term</option>
+                                {Array.isArray(terms) && terms.map((t) => (
+                                  <option key={t.id || t.Id} value={t.id || t.Id}>{t.name || t.Name}</option>
+                                ))}
+                              </select>
+                            </div>
+                            )}
                             <div>
                               <label className="form-label">Target Class</label>
                               <select
@@ -322,6 +400,8 @@ const FeeStructures = () => {
                     ) : (
                       <>
                         <td>{fs.name || fs.Name}</td>
+                        <td>{fs.feeCategory || fs.FeeCategory || 'Other'}</td>
+                        <td>{fs.termName || fs.TermName || '-'}</td>
                         <td>{fs.className || fs.ClassName || 'All classes'}</td>
                         <td>{(fs.amount ?? fs.Amount)?.toLocaleString?.() ?? fs.amount ?? fs.Amount}</td>
                         <td>{fs.feeType || fs.FeeType || 'Yearly'}</td>
@@ -347,7 +427,7 @@ const FeeStructures = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                     No fee structures yet. Click &quot;Add Fee Structure&quot; to set school fees, book prices, and other charges.
                   </td>
                 </tr>
