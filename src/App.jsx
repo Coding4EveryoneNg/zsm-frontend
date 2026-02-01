@@ -82,6 +82,8 @@ import SchoolApplications from './pages/Settings/SchoolApplications'
 import CreateSchoolApplication from './pages/Settings/CreateSchoolApplication'
 import SchoolDetails from './pages/Settings/SchoolDetails'
 import FeeStructures from './pages/Settings/FeeStructures'
+import SchoolSubscription from './pages/Settings/SchoolSubscription'
+import PendingSubscriptionPayments from './pages/Settings/PendingSubscriptionPayments'
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -577,6 +579,22 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
               <FeeStructures />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/subscription"
+          element={
+            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
+              <SchoolSubscription />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/subscription-payments"
+          element={
+            <ProtectedRoute allowedRoles={['SuperAdmin']}>
+              <PendingSubscriptionPayments />
             </ProtectedRoute>
           }
         />

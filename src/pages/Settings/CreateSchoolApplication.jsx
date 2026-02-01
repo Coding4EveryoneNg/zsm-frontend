@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { schoolApplicationsService } from '../../services/apiServices'
+import { useQuery } from 'react-query'
+import { schoolApplicationsService, subscriptionService } from '../../services/apiServices'
 import { ArrowLeft, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -9,6 +10,13 @@ const CreateSchoolApplication = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const { register, handleSubmit, formState: { errors } } = useForm()
+
+  const { data: plansResponse } = useQuery(
+    'subscription-plans',
+    () => subscriptionService.getPlans(),
+    { staleTime: 5 * 60 * 1000 }
+  )
+  const plans = plansResponse?.data ?? plansResponse?.Data ?? []
 
   const onSubmit = async (data) => {
     setLoading(true)
@@ -27,7 +35,8 @@ const CreateSchoolApplication = () => {
         customDomain: data.customDomain || null,
         schoolDescription: data.schoolDescription || null,
         schoolType: data.schoolType || null,
-        curriculum: data.curriculum || null
+        curriculum: data.curriculum || null,
+        subscriptionPlanId: data.subscriptionPlanId || undefined
       }
 
       const response = await schoolApplicationsService.createApplication(requestData)
@@ -124,6 +133,19 @@ const CreateSchoolApplication = () => {
               <input {...register('schoolType')} className="form-input" placeholder="e.g. Secondary" />
             </div>
           </div>
+          {plans.length > 0 && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label">Subscription Plan</label>
+              <select {...register('subscriptionPlanId')} className="form-input">
+                <option value="">Select a plan (optional)</option>
+                {plans.map((plan) => {
+                  const id = plan.id ?? plan.Id
+                  const name = plan.name ?? plan.Name ?? plan.code ?? plan.Code
+                  return <option key={id} value={id}>{name}</option>
+                })}
+              </select>
+            </div>
+          )}
           <div style={{ marginBottom: '1.5rem' }}>
             <label className="form-label">School Description</label>
             <textarea {...register('schoolDescription')} className="form-input" rows={3} placeholder="Brief description" />

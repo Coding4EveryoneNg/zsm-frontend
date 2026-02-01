@@ -1,20 +1,29 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { schoolApplicationsService } from '../../services/apiServices'
+import { useQuery } from 'react-query'
+import { schoolApplicationsService, subscriptionService } from '../../services/apiServices'
 import toast from 'react-hot-toast'
 import { useTheme } from '../../contexts/ThemeContext'
-import { Rocket, GraduationCap, BookOpen, BarChart3, ArrowLeft } from 'lucide-react'
+import { Rocket, GraduationCap, BookOpen, BarChart3, ArrowLeft, Check } from 'lucide-react'
 import logo from '../../assets/logo2.jpg'
 
 const SchoolOnboarding = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const [selectedPlanId, setSelectedPlanId] = useState(null)
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm()
+
+  const { data: plansResponse } = useQuery(
+    'subscription-plans',
+    () => subscriptionService.getPlans(),
+    { staleTime: 5 * 60 * 1000 }
+  )
+  const plans = plansResponse?.data ?? plansResponse?.Data ?? []
 
   // Safely get theme with fallback
   let theme, isDark
@@ -40,6 +49,10 @@ const SchoolOnboarding = () => {
   }, [isDark])
 
   const onSubmit = async (data) => {
+    if (plans.length > 0 && !selectedPlanId) {
+      toast.error('Please select a subscription plan')
+      return
+    }
     setLoading(true)
     try {
       // Transform form data to match API request structure
@@ -57,7 +70,8 @@ const SchoolOnboarding = () => {
         customDomain: data.customDomain || null,
         schoolDescription: data.schoolDescription || null,
         schoolType: data.schoolType || null,
-        curriculum: data.curriculum || null
+        curriculum: data.curriculum || null,
+        subscriptionPlanId: selectedPlanId || undefined
       }
 
       const response = await schoolApplicationsService.createApplication(requestData)
@@ -570,6 +584,73 @@ const SchoolOnboarding = () => {
                   </select>
                 </div>
               </div>
+
+              {plans.length > 0 && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 500, color: textColor }}>
+                    Subscription Plan <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <p style={{ color: textSecondary, fontSize: '0.875rem', marginBottom: '0.75rem' }}>
+                    Choose a plan for your school. You can change or upgrade later.
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.75rem' }}>
+                    {plans.map((plan) => {
+                      const id = plan.id ?? plan.Id
+                      const name = plan.name ?? plan.Name ?? plan.code ?? plan.Code
+                      const selected = selectedPlanId === id
+                      const pricePerUser = plan.pricePerUser ?? plan.PricePerUser
+                      const maxUsers = plan.maxUsers ?? plan.MaxUsers
+                      const minPerTerm = plan.minimumAmountPerTerm ?? plan.MinimumAmountPerTerm
+                      const fixedPerTerm = plan.fixedAmountPerTerm ?? plan.FixedAmountPerTerm
+                      const isUnlimited = plan.isUnlimitedUsers ?? plan.IsUnlimitedUsers
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => setSelectedPlanId(id)}
+                          style={{
+                            padding: '1rem',
+                            borderRadius: '0.75rem',
+                            border: `2px solid ${selected ? '#f0b90b' : borderColor}`,
+                            background: selected ? (isDark ? 'rgba(240, 185, 11, 0.15)' : 'rgba(240, 185, 11, 0.1)') : (isDark ? '#1e2026' : '#f9fafb'),
+                            color: textColor,
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            position: 'relative',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {selected && (
+                            <span style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', color: '#f0b90b' }}>
+                              <Check size={18} />
+                            </span>
+                          )}
+                          <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{name}</div>
+                          {fixedPerTerm != null && (
+                            <div style={{ fontSize: '0.8rem', color: textSecondary }}>
+                              {isUnlimited ? `${Number(fixedPerTerm).toLocaleString()} / term` : `${Number(fixedPerTerm).toLocaleString()} / term`}
+                            </div>
+                          )}
+                          {pricePerUser != null && !isUnlimited && (
+                            <div style={{ fontSize: '0.8rem', color: textSecondary }}>
+                              {Number(pricePerUser).toLocaleString()} / user
+                              {maxUsers != null && ` · max ${maxUsers} users`}
+                            </div>
+                          )}
+                          {minPerTerm != null && pricePerUser != null && (
+                            <div style={{ fontSize: '0.75rem', color: textSecondary }}>Min {Number(minPerTerm).toLocaleString()} / term</div>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {errors.subscriptionPlan && (
+                    <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
+                      {errors.subscriptionPlan.message}
+                    </span>
+                  )}
+                </div>
+              )}
 
               <button
                 type="submit"

@@ -117,7 +117,7 @@ const PaymentDetails = () => {
     )
   }
 
-  const canMakePayment = (payment.status === 'Pending' || payment.status === 'Overdue') && 
+  const canMakePayment = (payment.status === 'Pending' || payment.status === 'Overdue' || payment.status === 'PartiallyPaid') &&
                          (user?.role === 'Student' || user?.role === 'Parent')
   const canDownloadReceipt = payment.status === 'Paid'
 

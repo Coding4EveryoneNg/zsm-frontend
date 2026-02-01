@@ -343,3 +343,12 @@ export const userManagementService = {
   createParent: (data) => api.post('/userManagement/parents', data),
 }
 
+// Subscription Services (plans are public for onboarding; other endpoints require auth)
+export const subscriptionService = {
+  getPlans: () => api.get('/Subscription/plans'),
+  getSchoolSubscription: (schoolId) => api.get(`/Subscription/school/${schoolId}`),
+  initiatePayment: (data) => api.post('/Subscription/initiate-payment', data),
+  confirmPayment: (data) => api.post('/Subscription/confirm-payment', data),
+  getPendingPayments: () => api.get('/Subscription/pending-payments'),
+}
+
