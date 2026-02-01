@@ -32,6 +32,8 @@ export const dashboardService = {
   getSchoolSwitchingData: () => api.get('/dashboard/school-switching'),
   getSchoolDashboard: (schoolId) => api.get(`/dashboard/school/${schoolId}`),
   switchSchool: (schoolId) => api.post('/dashboard/switch-school', { schoolId }),
+  /** SuperAdmin only: list of schools with total user count per school */
+  getSchoolsWithUserCounts: () => api.get('/dashboard/superadmin/schools-user-counts'),
 }
 
 // Students Services

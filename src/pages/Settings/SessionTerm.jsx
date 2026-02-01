@@ -43,6 +43,13 @@ const SessionTerm = () => {
   const schoolsFromSwitching = schoolSwitchingData?.data?.data?.availableSchools ?? schoolSwitchingData?.data?.availableSchools ?? []
   const schools = schoolsFromCommon.length > 0 ? schoolsFromCommon : schoolsFromSwitching
 
+  // For Admin/Principal, set selectedSchoolId from user's assigned school so sessions load for correct school
+  React.useEffect(() => {
+    if (canManage && !isSuperAdmin && (user?.schoolId || user?.SchoolId) && !selectedSchoolId) {
+      setSelectedSchoolId((user?.schoolId || user?.SchoolId) ?? '')
+    }
+  }, [canManage, isSuperAdmin, user?.schoolId, user?.SchoolId, selectedSchoolId])
+
   const { data, isLoading, error } = useQuery(
     ['sessionterm', 'sessions', selectedSchoolId],
     () => sessionTermService.getSessions({ page: 1, pageSize: 50, schoolId: selectedSchoolId || undefined }),

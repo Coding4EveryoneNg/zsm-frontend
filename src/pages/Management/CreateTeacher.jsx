@@ -27,12 +27,16 @@ const CreateTeacher = () => {
   const principalSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId
   const schoolId = isAdmin ? (selectedSchoolId || schools?.[0]?.id || schools?.[0]?.Id || '') : (user?.schoolId || user?.SchoolId || principalSchoolId || '')
 
+  // Default school for Admin: prefer current user's assigned school (when tenant has multiple schools)
   useEffect(() => {
     if (isAdmin && schools?.length > 0 && !selectedSchoolId) {
-      const firstId = schools[0]?.id || schools[0]?.Id
-      if (firstId) setValue('schoolId', firstId)
+      const userSchoolId = user?.schoolId || user?.SchoolId
+      const preferredId = userSchoolId && schools.some((s) => (s.id || s.Id) === userSchoolId)
+        ? userSchoolId
+        : schools[0]?.id || schools[0]?.Id
+      if (preferredId) setValue('schoolId', preferredId)
     }
-  }, [isAdmin, schools, selectedSchoolId, setValue])
+  }, [isAdmin, schools, selectedSchoolId, setValue, user?.schoolId, user?.SchoolId])
 
   const onSubmit = async (data) => {
     setLoading(true)
