@@ -50,9 +50,10 @@ const Payments = () => {
     )
   }
 
-  const payments = data?.data?.payments || data?.payments || []
-  const totalCount = data?.data?.totalCount || data?.totalCount || 0
-  const totalPages = Math.ceil(totalCount / pageSize)
+  // API returns ApiResponse<PaginatedResponse<...>>: { data: { items, currentPage, pageSize, totalCount, totalPages } }; axios returns response.data so data is the wrapper
+  const payments = data?.data?.items ?? data?.items ?? data?.data?.payments ?? data?.payments ?? []
+  const totalCount = data?.data?.totalCount ?? data?.totalCount ?? 0
+  const totalPages = data?.data?.totalPages ?? data?.totalPages ?? (Math.ceil(totalCount / pageSize) || 1)
 
   const filteredPayments = filter === 'all' 
     ? payments 

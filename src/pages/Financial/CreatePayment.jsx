@@ -164,13 +164,12 @@ const CreatePayment = () => {
       }
 
       const response = await paymentsService.createPayment(requestData)
-      const body = response?.data
-
-      if (body?.success !== false && body?.data) {
-        toast.success(body?.message || 'Payment created successfully!')
+      // API returns ApiResponse wrapper: { success, data: { paymentId }, message, errors }; axios interceptor returns response.data so response is the wrapper
+      if (response?.success !== false && response?.data != null) {
+        toast.success(response?.message || 'Payment created successfully!')
         navigate('/payments')
       } else {
-        const errorMessage = body?.errors?.[0] || body?.message || 'Failed to create payment'
+        const errorMessage = response?.errors?.[0] || response?.message || 'Failed to create payment'
         toast.error(errorMessage)
       }
     } catch (error) {
