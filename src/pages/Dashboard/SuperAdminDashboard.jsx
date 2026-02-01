@@ -22,8 +22,10 @@ const SuperAdminDashboard = () => {
   const [topPerformingSchoolsPageSize] = useState(10)
   const [selectedSchoolId, setSelectedSchoolId] = useState(null)
   const [showSchoolDropdown, setShowSchoolDropdown] = useState(false)
+  const [showUserCountDropdown, setShowUserCountDropdown] = useState(false)
   const [schoolSearchTerm, setSchoolSearchTerm] = useState('')
   const dropdownRef = useRef(null)
+  const userCountDropdownRef = useRef(null)
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -31,16 +33,19 @@ const SuperAdminDashboard = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowSchoolDropdown(false)
       }
+      if (userCountDropdownRef.current && !userCountDropdownRef.current.contains(event.target)) {
+        setShowUserCountDropdown(false)
+      }
     }
 
-    if (showSchoolDropdown) {
+    if (showSchoolDropdown || showUserCountDropdown) {
       document.addEventListener('mousedown', handleClickOutside)
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [showSchoolDropdown])
+  }, [showSchoolDropdown, showUserCountDropdown])
 
   const { data: dashboardData, isLoading, error, refetch } = useQuery(
     ['superAdminDashboard', schoolsPage, schoolsPageSize],
@@ -98,8 +103,8 @@ const SuperAdminDashboard = () => {
   // Fetch schools for dropdown
   const { data: schoolsData, isLoading: schoolsLoading } = useQuery(
     ['schools', schoolsPage, schoolsPageSize, schoolSearchTerm],
-    () => schoolsService.getSchools({ 
-      page: schoolsPage, 
+    () => schoolsService.getSchools({
+      page: schoolsPage,
       pageSize: schoolsPageSize,
       search: schoolSearchTerm || undefined
     }),
@@ -110,6 +115,19 @@ const SuperAdminDashboard = () => {
       }
     }
   )
+
+  // SuperAdmin only: schools with total user count per school
+  const { data: schoolsUserCountsData } = useQuery(
+    'dashboard-schools-user-counts',
+    () => dashboardService.getSchoolsWithUserCounts(),
+    {
+      retry: 1,
+      onError: (err) => {
+        logger.error('Failed to fetch schools user counts:', err)
+      }
+    }
+  )
+  const schoolsWithUserCounts = schoolsUserCountsData?.data?.data ?? schoolsUserCountsData?.data ?? []
 
   // Fetch tenants for statistics
   const { data: tenantsData } = useQuery(
@@ -339,11 +357,76 @@ const SuperAdminDashboard = () => {
             </button>
           )}
           
+          {/* Total users by school dropdown (SuperAdmin only) */}
+          <div ref={userCountDropdownRef} style={{ position: 'relative' }}>
+            <button
+              className="btn btn-outline-primary"
+              onClick={() => { setShowUserCountDropdown(!showUserCountDropdown); setShowSchoolDropdown(false) }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: '200px', justifyContent: 'space-between' }}
+              title="View total users per school"
+            >
+              <Users size={18} />
+              <span>Total users by school</span>
+              <ChevronDown size={18} />
+            </button>
+            {showUserCountDropdown && (
+              <div className="card" style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                marginTop: '0.5rem',
+                minWidth: '320px',
+                maxHeight: '400px',
+                overflow: 'auto',
+                zIndex: 1000,
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+              }}>
+                <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)' }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                    Total users per school
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                    SuperAdmin only
+                  </div>
+                </div>
+                <div style={{ maxHeight: '320px', overflow: 'auto' }}>
+                  {schoolsWithUserCounts.length === 0 ? (
+                    <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>No schools</div>
+                  ) : (
+                    schoolsWithUserCounts.map((item) => {
+                      const schoolId = item.schoolId ?? item.SchoolId
+                      const schoolName = item.schoolName ?? item.SchoolName ?? 'Unknown'
+                      const totalUsers = item.totalUsers ?? item.TotalUsers ?? 0
+                      return (
+                        <div
+                          key={schoolId}
+                          style={{
+                            padding: '0.75rem 1rem',
+                            borderBottom: '1px solid var(--border-color)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '1rem'
+                          }}
+                        >
+                          <span style={{ fontWeight: '500', color: 'var(--text-primary)', flex: 1 }}>{schoolName}</span>
+                          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                            {totalUsers} user{totalUsers !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* School Dropdown */}
           <div ref={dropdownRef} style={{ position: 'relative' }}>
             <button
               className="btn btn-outline-primary"
-              onClick={() => setShowSchoolDropdown(!showSchoolDropdown)}
+              onClick={() => { setShowSchoolDropdown(!showSchoolDropdown); setShowUserCountDropdown(false) }}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: '200px', justifyContent: 'space-between' }}
             >
               <School size={18} />

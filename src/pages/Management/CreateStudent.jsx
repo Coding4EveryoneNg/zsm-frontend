@@ -89,13 +89,16 @@ const CreateStudent = () => {
     }
   }, [selectedParentId, setValue])
 
-  // Set default school for Admin when schools load
+  // Set default school for Admin: prefer current user's assigned school (when tenant has multiple schools)
   useEffect(() => {
     if (isAdmin && schools?.length > 0 && !selectedSchoolId) {
-      const firstId = schools[0]?.id || schools[0]?.Id
-      if (firstId) setValue('schoolId', firstId)
+      const userSchoolId = user?.schoolId || user?.SchoolId
+      const preferredId = userSchoolId && schools.some((s) => (s.id || s.Id) === userSchoolId)
+        ? userSchoolId
+        : schools[0]?.id || schools[0]?.Id
+      if (preferredId) setValue('schoolId', preferredId)
     }
-  }, [isAdmin, schools, selectedSchoolId, setValue])
+  }, [isAdmin, schools, selectedSchoolId, setValue, user?.schoolId, user?.SchoolId])
 
   // Create parent mutation
   const createParentMutation = useMutation(
