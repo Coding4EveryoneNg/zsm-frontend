@@ -85,7 +85,7 @@ const Classes = () => {
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                         <Users size={14} />
-                        <span>{cls.currentStudentCount || cls.CurrentStudentCount || 0}</span>
+                        <span>{cls.currentStudentCount ?? cls.CurrentStudentCount ?? cls.studentCount ?? cls.StudentCount ?? 0}</span>
                       </div>
                     </td>
                     <td>
