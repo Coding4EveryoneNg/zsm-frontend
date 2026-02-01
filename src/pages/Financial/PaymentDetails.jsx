@@ -118,12 +118,14 @@ const PaymentDetails = () => {
     )
   }
 
-  const canMakePayment = (payment.status === 'Pending' || payment.status === 'Overdue' || payment.status === 'PartiallyPaid') &&
+  const status = payment.status || payment.Status || ''
+  const canMakePayment = (status === 'Pending' || status === 'Overdue' || status === 'PartiallyPaid') &&
                          (user?.role === 'Student' || user?.role === 'Parent')
-  const canDownloadReceipt = payment.status === 'Paid'
+  // Receipt is generatable for all payments (hand-collected are Paid/PartiallyPaid; list has no Pending from Add Payment)
+  const canDownloadReceipt = true
 
   const getStatusBadge = () => {
-    switch (payment.status) {
+    switch (status) {
       case 'Paid':
         return (
           <span className="badge badge-success">
