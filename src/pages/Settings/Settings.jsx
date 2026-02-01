@@ -24,10 +24,10 @@ const Settings = () => {
     },
     {
       title: 'Manage Principals',
-      description: 'Add, view, edit, and manage principals for all schools in your tenant.',
+      description: 'View and manage principals. Admins see all schools in the tenant; Principals see their school only.',
       path: '/principals',
       icon: UserPlus,
-      roles: ['Admin'],
+      roles: ['Admin', 'Principal'],
     },
     {
       title: 'Exam Timetable',

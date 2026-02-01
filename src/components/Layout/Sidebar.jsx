@@ -144,7 +144,7 @@ const Sidebar = () => {
         { title: 'Session & Term', path: '/settings/session-term', roles: ['SuperAdmin', 'Admin', 'Principal'] },
         { title: 'School', path: '/settings/school', roles: ['Admin', 'SuperAdmin'] },
         { title: 'Subscription', path: '/settings/subscription', roles: ['Admin', 'Principal'] },
-        { title: 'Manage Principals', path: '/principals', roles: ['Admin'] },
+        { title: 'Manage Principals', path: '/principals', roles: ['Admin', 'Principal'] },
         { title: 'Exam Timetable', path: '/academic/examination-timetable', roles: ['Student', 'Teacher', 'Admin', 'Principal'] },
         { title: 'Tenants', path: '/settings/tenants', roles: ['SuperAdmin'] },
         { title: 'School Applications', path: '/settings/school-applications', roles: ['SuperAdmin', 'Admin'] },

@@ -3,13 +3,16 @@ import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
 import { principalsService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
+import { useAuth } from '../../contexts/AuthContext'
 import { Plus, Search } from 'lucide-react'
 
 const Principals = () => {
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [searchTerm, setSearchTerm] = useState('')
+  const isAdmin = user?.role === 'Admin'
 
   const { data, isLoading } = useQuery(
     ['principals', page, pageSize],
@@ -37,10 +40,12 @@ const Principals = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>Manage Principals</h1>
-        <button className="btn btn-primary" onClick={() => navigate('/principals/create')}>
-          <Plus size={18} />
-          Add Principal
-        </button>
+        {isAdmin && (
+          <button className="btn btn-primary" onClick={() => navigate('/principals/create')}>
+            <Plus size={18} />
+            Add Principal
+          </button>
+        )}
       </div>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
