@@ -265,7 +265,7 @@ function App() {
         <Route
           path="/principals"
           element={
-            <ProtectedRoute allowedRoles={['Admin']}>
+            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
               <Principals />
             </ProtectedRoute>
           }
@@ -281,7 +281,7 @@ function App() {
         <Route
           path="/principals/:id"
           element={
-            <ProtectedRoute allowedRoles={['Admin']}>
+            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
               <PrincipalDetails />
             </ProtectedRoute>
           }

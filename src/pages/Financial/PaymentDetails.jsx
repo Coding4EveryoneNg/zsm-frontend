@@ -86,12 +86,13 @@ const PaymentDetails = () => {
   if (isLoading) return <Loading />
 
   if (error) {
+    const isForbidden = error?.response?.status === 403
     return (
       <div className="page-container">
         <div className="card">
           <div className="empty-state">
-            <p className="empty-state-text">Error loading payment details</p>
-            <p className="empty-state-subtext">{error?.message || 'Please try again later'}</p>
+            <p className="empty-state-text">{isForbidden ? "You don't have access to this payment" : 'Error loading payment details'}</p>
+            <p className="empty-state-subtext">{isForbidden ? 'This payment belongs to another school.' : (error?.message || 'Please try again later')}</p>
             <button className="btn btn-primary" onClick={() => navigate('/payments')}>
               Back to Payments
             </button>
