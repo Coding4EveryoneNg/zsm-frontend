@@ -113,7 +113,8 @@ const CreateAssignment = () => {
         correctAnswer: q.correctAnswer || null,
         marks: parseFloat(q.marks) || 0,
         order: q.order || idx + 1,
-        isRequired: q.isRequired || false
+        isRequired: q.isRequired || false,
+        options: q.options && q.options.length > 0 ? q.options.filter(opt => opt && opt.trim()) : null
       })) : null
     }
 
