@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation } from 'react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
-import { reportsService, dashboardService, coursesService } from '../../services/apiServices'
+import { reportsService, dashboardService, coursesService, commonService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { BarChart3, Download, Filter, TrendingUp, ArrowLeft, FileText, FileSpreadsheet } from 'lucide-react'
 import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartConfig'
@@ -17,6 +17,52 @@ const Reports = () => {
   const { user } = useAuth()
   const [selectedTerm, setSelectedTerm] = useState('')
   const [selectedSession, setSelectedSession] = useState('')
+  const [selectedSchoolId, setSelectedSchoolId] = useState('')
+
+  const isAdmin = user?.role === 'Admin'
+  const isPrincipal = user?.role === 'Principal'
+  const isTeacher = user?.role === 'Teacher'
+  const showSchoolFilter = isAdmin
+  const showTermSessionFilters = isAdmin || isPrincipal || isTeacher
+
+  // School dropdown for Admin (data scoped by selected school)
+  const { data: schoolsData } = useQuery(
+    'schools-dropdown',
+    () => commonService.getSchoolsDropdown(),
+    { enabled: isAdmin }
+  )
+  const { data: schoolSwitchingData } = useQuery(
+    ['dashboard', 'school-switching'],
+    () => dashboardService.getSchoolSwitchingData(),
+    { enabled: isAdmin || isPrincipal || isTeacher }
+  )
+  const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
+  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
+  const defaultSchoolId = schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id ?? ''
+
+  useEffect(() => {
+    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
+      setSelectedSchoolId(principalOrAdminSchoolId || defaultSchoolId || '')
+    }
+  }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
+
+  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : principalOrAdminSchoolId
+
+  // Terms dropdown (requires schoolId – per school)
+  const { data: termsData } = useQuery(
+    ['terms-dropdown', effectiveSchoolId],
+    () => commonService.getTermsDropdown({ schoolId: effectiveSchoolId }),
+    { enabled: showTermSessionFilters && !!effectiveSchoolId }
+  )
+  // Sessions dropdown (tenant-wide)
+  const { data: sessionsData } = useQuery(
+    'sessions-dropdown',
+    () => commonService.getSessionsDropdown(),
+    { enabled: showTermSessionFilters }
+  )
+
+  const terms = Array.isArray(termsData) ? termsData : (termsData?.data ?? termsData?.Data ?? termsData?.items ?? termsData?.Items ?? [])
+  const sessions = Array.isArray(sessionsData) ? sessionsData : (sessionsData?.data ?? sessionsData?.Data ?? sessionsData?.items ?? sessionsData?.Items ?? [])
 
   // Get current student ID for result generation
   // For students, we need to get their student ID from the dashboard or user context
@@ -422,28 +468,57 @@ const Reports = () => {
           </h2>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-          <div className="form-group">
-            <label className="form-label">Term</label>
-            <select
-              className="form-select"
-              value={selectedTerm}
-              onChange={(e) => setSelectedTerm(e.target.value)}
-            >
-              <option value="">All Terms</option>
-              {/* Terms would come from API */}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Session</label>
-            <select
-              className="form-select"
-              value={selectedSession}
-              onChange={(e) => setSelectedSession(e.target.value)}
-            >
-              <option value="">All Sessions</option>
-              {/* Sessions would come from API */}
-            </select>
-          </div>
+          {showSchoolFilter && (
+            <div className="form-group">
+              <label className="form-label">School</label>
+              <select
+                className="form-select"
+                value={selectedSchoolId || effectiveSchoolId || ''}
+                onChange={(e) => setSelectedSchoolId(e.target.value)}
+              >
+                <option value="">Select school</option>
+                {Array.isArray(schoolsList) && schoolsList.map((s) => (
+                  <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {showTermSessionFilters && (
+            <>
+              <div className="form-group">
+                <label className="form-label">Term</label>
+                <select
+                  className="form-select"
+                  value={selectedTerm}
+                  onChange={(e) => setSelectedTerm(e.target.value)}
+                  disabled={!effectiveSchoolId && isAdmin}
+                >
+                  <option value="">All Terms</option>
+                  {Array.isArray(terms) && terms.map((t) => (
+                    <option key={t.id || t.Id} value={t.name || t.Name}>
+                      {t.name || t.Name}{t.sessionName ? ` (${t.sessionName})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {isAdmin && !effectiveSchoolId && (
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Select a school first</p>
+                )}
+              </div>
+              <div className="form-group">
+                <label className="form-label">Session</label>
+                <select
+                  className="form-select"
+                  value={selectedSession}
+                  onChange={(e) => setSelectedSession(e.target.value)}
+                >
+                  <option value="">All Sessions</option>
+                  {Array.isArray(sessions) && sessions.map((s) => (
+                    <option key={s.id || s.Id} value={s.name || s.Name}>{s.name || s.Name}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

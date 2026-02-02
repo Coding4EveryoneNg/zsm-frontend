@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { principalsService } from '../../services/apiServices'
+import { principalsService, commonService, dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { useAuth } from '../../contexts/AuthContext'
 import { Plus, Search } from 'lucide-react'
@@ -12,11 +12,39 @@ const Principals = () => {
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedSchoolId, setSelectedSchoolId] = useState('')
   const isAdmin = user?.role === 'Admin'
 
+  const { data: schoolsData } = useQuery(
+    'schools-dropdown',
+    () => commonService.getSchoolsDropdown(),
+    { enabled: isAdmin }
+  )
+  const { data: schoolSwitchingData } = useQuery(
+    ['dashboard', 'school-switching'],
+    () => dashboardService.getSchoolSwitchingData(),
+    { enabled: isAdmin }
+  )
+  const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
+  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
+  const defaultSchoolId = schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id ?? ''
+
+  useEffect(() => {
+    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
+      setSelectedSchoolId(principalOrAdminSchoolId || defaultSchoolId || '')
+    }
+  }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
+
+  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : null
+
   const { data, isLoading } = useQuery(
-    ['principals', page, pageSize],
-    () => principalsService.getPrincipals({ page, pageSize })
+    ['principals', page, pageSize, effectiveSchoolId],
+    () => {
+      const params = { page, pageSize }
+      if (isAdmin && effectiveSchoolId) params.schoolId = effectiveSchoolId
+      return principalsService.getPrincipals(params)
+    },
+    { enabled: !isAdmin || !!effectiveSchoolId }
   )
 
   if (isLoading) return <Loading />
@@ -49,8 +77,23 @@ const Principals = () => {
       </div>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {isAdmin && schoolsList?.length > 0 && (
+            <div style={{ minWidth: '200px' }}>
+              <label className="form-label" style={{ marginBottom: '0.25rem', display: 'block', fontSize: '0.875rem' }}>School</label>
+              <select
+                className="form-input"
+                value={selectedSchoolId || effectiveSchoolId || ''}
+                onChange={(e) => { setSelectedSchoolId(e.target.value); setPage(1) }}
+              >
+                <option value="">Select school</option>
+                {schoolsList.map((s) => (
+                  <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
             <Search size={20} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
