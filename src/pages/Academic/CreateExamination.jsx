@@ -18,11 +18,24 @@ const CreateExamination = () => {
     subjectId: '',
     classId: '',
     termId: '',
-    durationMinutes: '',
-    startDate: '',
-    endDate: '',
+    examDate: '',
+    startTime: '',
+    endTime: '',
     questions: []
   })
+
+  // Auto-calculate duration (minutes) from start and end time on exam date
+  const durationMinutes = (() => {
+    if (!formData.examDate || !formData.startTime || !formData.endTime) return ''
+    try {
+      const start = new Date(`${formData.examDate}T${formData.startTime}`)
+      const end = new Date(`${formData.examDate}T${formData.endTime}`)
+      if (end <= start) return ''
+      return Math.round((end - start) / (1000 * 60))
+    } catch {
+      return ''
+    }
+  })()
   const [questionText, setQuestionText] = useState('')
   const [questionType, setQuestionType] = useState('MultipleChoice')
   const [questionMarks, setQuestionMarks] = useState('')
@@ -60,21 +73,44 @@ const CreateExamination = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
+    if (formData.examDate) {
+      if (!formData.startTime || !formData.endTime) {
+        toast.error('Please select start time and end time')
+        return
+      }
+      if (durationMinutes === '' || durationMinutes <= 0) {
+        toast.error('End time must be after start time')
+        return
+      }
+    }
+
+    const startDate =
+      formData.examDate && formData.startTime
+        ? new Date(`${formData.examDate}T${formData.startTime}`).toISOString()
+        : null
+    const endDate =
+      formData.examDate && formData.endTime
+        ? new Date(`${formData.examDate}T${formData.endTime}`).toISOString()
+        : null
+    const duration = durationMinutes !== '' ? parseInt(durationMinutes, 10) : 60
+
     const payload = {
       title: formData.title,
       description: formData.description || null,
       subjectId: formData.subjectId,
       classId: formData.classId,
       termId: formData.termId,
-      durationMinutes: parseInt(formData.durationMinutes) || 60,
-      startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
-      endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
+      durationMinutes: duration,
+      startDate,
+      endDate,
       questions: formData.questions.length > 0 ? formData.questions.map((q, idx) => ({
         questionText: q.questionText,
         questionType: q.questionType,
+        section: q.questionType === 'MultipleChoice' || q.questionType === 'TrueFalse' ? 'Objective' : 'Theory',
         correctAnswer: q.correctAnswer || null,
         marks: parseFloat(q.marks) || 0,
         order: q.order || idx + 1,
+        isRequired: q.isRequired ?? true,
         options: q.options && q.options.length > 0 ? q.options.filter(opt => opt.trim()) : null
       })) : null
     }
@@ -209,35 +245,53 @@ const CreateExamination = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Duration (Minutes) *</label>
+                <label className="form-label">Exam Date *</label>
                 <input
-                  type="number"
+                  type="date"
                   className="form-control"
-                  value={formData.durationMinutes}
-                  onChange={(e) => setFormData({ ...formData, durationMinutes: e.target.value })}
+                  value={formData.examDate}
+                  onChange={(e) => setFormData({ ...formData, examDate: e.target.value })}
                   required
-                  min="1"
-                  max="1440"
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Start Date</label>
-                <input
-                  type="datetime-local"
-                  className="form-control"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                />
-              </div>
+              {formData.examDate && (
+                <>
+                  <div className="form-group">
+                    <label className="form-label">Start Time *</label>
+                    <input
+                      type="time"
+                      className="form-control"
+                      value={formData.startTime}
+                      onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">End Time *</label>
+                    <input
+                      type="time"
+                      className="form-control"
+                      value={formData.endTime}
+                      onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="form-group">
-                <label className="form-label">End Date</label>
+                <label className="form-label">Duration (Minutes)</label>
                 <input
-                  type="datetime-local"
+                  type="text"
                   className="form-control"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  value={
+                    durationMinutes !== ''
+                      ? `${durationMinutes} (auto)`
+                      : formData.startTime && formData.endTime
+                        ? 'Invalid (end must be after start)'
+                        : '—'
+                  }
+                  readOnly
+                  style={{ backgroundColor: 'var(--bg-secondary)', cursor: 'not-allowed' }}
                 />
               </div>
             </div>
@@ -278,9 +332,13 @@ const CreateExamination = () => {
                         className="form-control"
                         value={questionType}
                         onChange={(e) => {
-                          setQuestionType(e.target.value)
-                          if (e.target.value !== 'MultipleChoice') {
+                          const newType = e.target.value
+                          setQuestionType(newType)
+                          if (newType !== 'MultipleChoice') {
                             setOptions(['', '', '', ''])
+                          }
+                          if (newType !== 'TrueFalse' && newType !== 'MultipleChoice') {
+                            setCorrectAnswer('')
                           }
                         }}
                       >
@@ -311,16 +369,6 @@ const CreateExamination = () => {
                         min="1"
                       />
                     </div>
-                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                      <label className="form-label">Correct Answer</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={correctAnswer}
-                        onChange={(e) => setCorrectAnswer(e.target.value)}
-                        placeholder={questionType === 'TrueFalse' ? 'Enter "True" or "False"' : 'Enter correct answer'}
-                      />
-                    </div>
                     {questionType === 'MultipleChoice' && (
                       <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                         <label className="form-label">Options</label>
@@ -335,6 +383,45 @@ const CreateExamination = () => {
                             placeholder={`Option ${idx + 1}`}
                           />
                         ))}
+                      </div>
+                    )}
+                    {(questionType === 'MultipleChoice' || questionType === 'TrueFalse') && (
+                      <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Correct Answer (optional, for reference)</label>
+                        {questionType === 'TrueFalse' ? (
+                          <select
+                            className="form-control"
+                            value={correctAnswer}
+                            onChange={(e) => setCorrectAnswer(e.target.value)}
+                          >
+                            <option value="">Select correct answer</option>
+                            <option value="True">True</option>
+                            <option value="False">False</option>
+                          </select>
+                        ) : (
+                          <select
+                            className="form-control"
+                            value={correctAnswer}
+                            onChange={(e) => setCorrectAnswer(e.target.value)}
+                          >
+                            <option value="">Select correct answer (add options above first)</option>
+                            {options.filter(opt => opt.trim()).map((opt, idx) => (
+                              <option key={idx} value={opt.trim()}>{opt.trim()}</option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    )}
+                    {(questionType === 'Essay' || questionType === 'ShortAnswer') && (
+                      <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Correct Answer (optional, for reference)</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={correctAnswer}
+                          onChange={(e) => setCorrectAnswer(e.target.value)}
+                          placeholder="Expected answer or marking guide"
+                        />
                       </div>
                     )}
                   </div>
