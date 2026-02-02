@@ -62,14 +62,14 @@ const FeeStructures = () => {
   )
   const classes = classesData?.data ?? classesData?.Data ?? []
   const schoolIdForTerms = formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null
-  // When editing School Fees, ensure we have a school for terms: use fee's school, then add-form school, then first school (fixes Admin when no current school set)
-  const schoolIdWhenEditingSchoolFees = editingId && (editForm.feeCategory === 'SchoolFees') ? (editingSchoolId || schoolIdForClasses || defaultSchoolId) : null
-  const effectiveSchoolIdForTerms = schoolIdForTerms || editingSchoolId || (formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null) || schoolIdWhenEditingSchoolFees
+  // When editing School Fees, use page school (list is filtered by it) so terms query always has a valid schoolId
+  const schoolIdWhenEditingSchoolFees = editingId && (editForm.feeCategory === 'SchoolFees') ? (editingSchoolId || currentSchoolIdForPage || schoolIdForClasses || defaultSchoolId) : null
+  const effectiveSchoolIdForTerms = schoolIdForTerms || schoolIdWhenEditingSchoolFees || editingSchoolId || (formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null)
   // Terms dropdown: used in add form and edit form for School Fees; refetches when school or editing fee changes
   const { data: termsData } = useQuery(
     ['terms-dropdown', effectiveSchoolIdForTerms, editingId],
     () => commonService.getTermsDropdown(effectiveSchoolIdForTerms ? { schoolId: effectiveSchoolIdForTerms } : {}),
-    { enabled: !!(formData.feeCategory === 'SchoolFees' && effectiveSchoolIdForTerms) || !!(editingId && editingSchoolId) || !!(editingId && editForm.feeCategory === 'SchoolFees' && effectiveSchoolIdForTerms) }
+    { enabled: !!(formData.feeCategory === 'SchoolFees' && effectiveSchoolIdForTerms) || !!(editingId && editForm.feeCategory === 'SchoolFees' && effectiveSchoolIdForTerms) }
   )
 
   const createMutation = useMutation(
@@ -101,7 +101,8 @@ const FeeStructures = () => {
     }
   )
 
-  const terms = termsData?.data ?? termsData?.Data ?? []
+  // Handle API response: list may be in .data/.Data or at top level (array)
+  const terms = Array.isArray(termsData) ? termsData : (termsData?.data ?? termsData?.Data ?? termsData?.data?.data ?? termsData?.Data?.Data ?? [])
 
   const handleSubmit = (e) => {
     e.preventDefault()
