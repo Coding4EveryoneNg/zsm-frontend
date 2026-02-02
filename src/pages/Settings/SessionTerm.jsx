@@ -26,34 +26,37 @@ const SessionTerm = () => {
   const role = (user?.role || user?.Role || '').toString()
   const canManage = ['Admin', 'Principal', 'SuperAdmin'].some((r) => role.toLowerCase() === r.toLowerCase())
   const isSuperAdmin = role.toLowerCase() === 'superadmin'
+  const isAdmin = role.toLowerCase() === 'admin'
   const canEditDelete = ['Admin', 'SuperAdmin'].some((r) => role.toLowerCase() === r.toLowerCase())
   const canDelete = isSuperAdmin
+  const showSchoolDropdown = isSuperAdmin || isAdmin
 
   const { data: schoolsData } = useQuery(
     ['common', 'schools'],
     () => commonService.getSchoolsDropdown(),
-    { enabled: isSuperAdmin }
+    { enabled: showSchoolDropdown }
   )
   const { data: schoolSwitchingData } = useQuery(
     ['dashboard', 'school-switching'],
     () => dashboardService.getSchoolSwitchingData(),
-    { enabled: isSuperAdmin }
+    { enabled: showSchoolDropdown }
   )
   const schoolsFromCommon = schoolsData?.data?.data ?? schoolsData?.data ?? []
   const schoolsFromSwitching = schoolSwitchingData?.data?.data?.availableSchools ?? schoolSwitchingData?.data?.availableSchools ?? []
   const schools = schoolsFromCommon.length > 0 ? schoolsFromCommon : schoolsFromSwitching
+  const currentSchoolFromSwitching = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
 
-  // For Admin/Principal, set selectedSchoolId from user's assigned school so sessions load for correct school
+  // For Admin/Principal: default selectedSchoolId so sessions load for correct school (Admin can change via dropdown)
   React.useEffect(() => {
-    if (canManage && !isSuperAdmin && (user?.schoolId || user?.SchoolId) && !selectedSchoolId) {
-      setSelectedSchoolId((user?.schoolId || user?.SchoolId) ?? '')
+    if (canManage && !isSuperAdmin && schools?.length > 0 && !selectedSchoolId) {
+      setSelectedSchoolId(currentSchoolFromSwitching || (user?.schoolId || user?.SchoolId) || schools?.[0]?.id || schools?.[0]?.Id || '')
     }
-  }, [canManage, isSuperAdmin, user?.schoolId, user?.SchoolId, selectedSchoolId])
+  }, [canManage, isSuperAdmin, schools, currentSchoolFromSwitching, user?.schoolId, user?.SchoolId, selectedSchoolId])
 
   const { data, isLoading, error } = useQuery(
     ['sessionterm', 'sessions', selectedSchoolId],
     () => sessionTermService.getSessions({ page: 1, pageSize: 50, schoolId: selectedSchoolId || undefined }),
-    { enabled: canManage && (!isSuperAdmin || !!selectedSchoolId) }
+    { enabled: canManage && (!showSchoolDropdown || !!selectedSchoolId) }
   )
 
   const createSessionMutation = useMutation(
@@ -105,7 +108,7 @@ const SessionTerm = () => {
   )
 
   const updateSessionMutation = useMutation(
-    ({ id, data: d }) => sessionTermService.updateSession(id, d, isSuperAdmin && selectedSchoolId ? { params: { schoolId: selectedSchoolId } } : {}),
+    ({ id, data: d }) => sessionTermService.updateSession(id, d, showSchoolDropdown && selectedSchoolId ? { params: { schoolId: selectedSchoolId } } : {}),
     {
       onSuccess: () => {
         toast.success('Session updated successfully.')
@@ -117,7 +120,7 @@ const SessionTerm = () => {
   )
 
   const deleteSessionMutation = useMutation(
-    (id) => sessionTermService.deleteSession(id, isSuperAdmin && selectedSchoolId ? { params: { schoolId: selectedSchoolId } } : {}),
+    (id) => sessionTermService.deleteSession(id, showSchoolDropdown && selectedSchoolId ? { params: { schoolId: selectedSchoolId } } : {}),
     {
       onSuccess: () => {
         toast.success('Session deleted successfully.')
@@ -162,7 +165,7 @@ const SessionTerm = () => {
       toast.error('Session name must be in format YYYY/YYYY (e.g. 2025/2026). Second year must be first year + 1.')
       return
     }
-    if (isSuperAdmin && !selectedSchoolId) {
+    if (showSchoolDropdown && !selectedSchoolId) {
       toast.error('Please select a school')
       return
     }
@@ -171,7 +174,7 @@ const SessionTerm = () => {
       startDate: sessionForm.startDate,
       endDate: sessionForm.endDate,
       isCurrent: sessionForm.isCurrent,
-      ...(isSuperAdmin && selectedSchoolId ? { schoolId: selectedSchoolId } : {})
+      ...(showSchoolDropdown && selectedSchoolId ? { schoolId: selectedSchoolId } : {})
     })
   }
 
@@ -202,7 +205,7 @@ const SessionTerm = () => {
 
   const setTermFormatMutation = useMutation(
     ({ termFormat: fmt }) => {
-      const config = isSuperAdmin && selectedSchoolId ? { params: { schoolId: selectedSchoolId } } : {}
+      const config = showSchoolDropdown && selectedSchoolId ? { params: { schoolId: selectedSchoolId } } : {}
       return sessionTermService.setTermFormat({ termFormat: fmt }, config)
     },
     {
@@ -256,7 +259,7 @@ const SessionTerm = () => {
           Session & Term
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          {isSuperAdmin && (
+          {showSchoolDropdown && (
             <div>
               <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>School</label>
               <select
@@ -272,9 +275,10 @@ const SessionTerm = () => {
                   </option>
                 ))}
               </select>
+              <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Data below is for the selected school</small>
             </div>
           )}
-          {(!isSuperAdmin || selectedSchoolId) && (
+          {(!showSchoolDropdown || selectedSchoolId) && (
             <div>
               <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>Term format</label>
               <select
@@ -293,7 +297,7 @@ const SessionTerm = () => {
             type="button"
             className="btn btn-primary"
             onClick={() => setShowSessionForm(true)}
-            disabled={isSuperAdmin && !selectedSchoolId}
+            disabled={showSchoolDropdown && !selectedSchoolId}
           >
             <Plus size={18} style={{ marginRight: '0.5rem' }} />
             Create session
@@ -304,7 +308,7 @@ const SessionTerm = () => {
       {showSessionForm && (
         <div className="card" style={{ marginBottom: '2rem' }}>
           <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>New academic session</h3>
-          {isSuperAdmin && !selectedSchoolId && (
+          {showSchoolDropdown && !selectedSchoolId && (
             <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Select a school above first.</p>
           )}
           <form onSubmit={handleCreateSession} style={{ display: 'grid', gap: '1rem', maxWidth: '400px' }}>
@@ -350,7 +354,7 @@ const SessionTerm = () => {
             </label>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button type="button" className="btn btn-outline" onClick={() => setShowSessionForm(false)}>Cancel</button>
-              <button type="submit" className="btn btn-primary" disabled={createSessionMutation.isLoading || (isSuperAdmin && !selectedSchoolId)}>
+              <button type="submit" className="btn btn-primary" disabled={createSessionMutation.isLoading || (showSchoolDropdown && !selectedSchoolId)}>
                 {createSessionMutation.isLoading ? 'Creating…' : 'Create session'}
               </button>
             </div>
@@ -358,7 +362,7 @@ const SessionTerm = () => {
         </div>
       )}
 
-      {isSuperAdmin && !selectedSchoolId && !showSessionForm ? (
+      {showSchoolDropdown && !selectedSchoolId && !showSessionForm ? (
         <div className="card">
           <div className="empty-state">
             <Calendar size={48} color="var(--text-muted)" style={{ marginBottom: '1rem' }} />

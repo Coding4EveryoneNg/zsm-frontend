@@ -15,11 +15,11 @@ const FeeStructures = () => {
   const [editingId, setEditingId] = useState(null)
   const [editForm, setEditForm] = useState({ name: '', description: '', amount: '', feeType: 'Yearly', classId: '', termId: '', feeCategory: 'Other' })
   const [formData, setFormData] = useState({ schoolId: '', classId: '', termId: '', feeCategory: 'Other', name: '', description: '', amount: '', feeType: 'Yearly' })
+  const [selectedSchoolId, setSelectedSchoolId] = useState('') // Page-level school for Admin: data shown is for this school
 
-  const { data: feeData, isLoading, error: feeError } = useQuery(
-    ['fee-structures'],
-    () => feeStructuresService.getFeeStructures()
-  )
+  const isPrincipal = user?.role?.toLowerCase() === 'principal'
+  const isAdmin = user?.role?.toLowerCase() === 'admin'
+
   const { data: schoolsData } = useQuery(
     'schools-dropdown',
     () => commonService.getSchoolsDropdown()
@@ -27,11 +27,28 @@ const FeeStructures = () => {
   const { data: schoolSwitchingData } = useQuery(
     ['dashboard', 'school-switching'],
     () => dashboardService.getSchoolSwitchingData(),
-    { enabled: user?.role?.toLowerCase() === 'principal' || user?.role?.toLowerCase() === 'admin' }
+    { enabled: isPrincipal || isAdmin }
   )
   const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
   const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
-  const schoolIdForClasses = formData.schoolId || principalOrAdminSchoolId || schoolsList?.[0]?.id || schoolsList?.[0]?.Id || ''
+  const defaultSchoolId = schoolsList?.[0]?.id || schoolsList?.[0]?.Id || ''
+
+  // Admin: default page school from switching or first school so list and dropdowns are scoped
+  React.useEffect(() => {
+    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
+      setSelectedSchoolId(principalOrAdminSchoolId || defaultSchoolId || '')
+    }
+  }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
+
+  // Current school for page: Admin uses selected dropdown; Principal uses their school
+  const currentSchoolIdForPage = isPrincipal ? (principalOrAdminSchoolId || defaultSchoolId) : (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId)
+  const schoolIdForClasses = formData.schoolId || currentSchoolIdForPage || ''
+
+  const { data: feeData, isLoading, error: feeError } = useQuery(
+    ['fee-structures', isAdmin ? currentSchoolIdForPage : null],
+    () => feeStructuresService.getFeeStructures(isAdmin && currentSchoolIdForPage ? { schoolId: currentSchoolIdForPage } : undefined),
+    { enabled: !isAdmin || !!currentSchoolIdForPage }
+  )
   const feeStructures = feeData?.data ?? feeData?.Data ?? []
   const schools = schoolsList
   const editingFs = feeStructures?.find((f) => (f.id || f.Id) === editingId)
@@ -45,12 +62,14 @@ const FeeStructures = () => {
   )
   const classes = classesData?.data ?? classesData?.Data ?? []
   const schoolIdForTerms = formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null
-  const effectiveSchoolIdForTerms = schoolIdForTerms || editingSchoolId || (formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null)
+  // When editing School Fees, ensure we have a school for terms: use fee's school, then add-form school, then first school (fixes Admin when no current school set)
+  const schoolIdWhenEditingSchoolFees = editingId && (editForm.feeCategory === 'SchoolFees') ? (editingSchoolId || schoolIdForClasses || defaultSchoolId) : null
+  const effectiveSchoolIdForTerms = schoolIdForTerms || editingSchoolId || (formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null) || schoolIdWhenEditingSchoolFees
   // Terms dropdown: used in add form and edit form for School Fees; refetches when school or editing fee changes
   const { data: termsData } = useQuery(
     ['terms-dropdown', effectiveSchoolIdForTerms, editingId],
     () => commonService.getTermsDropdown(effectiveSchoolIdForTerms ? { schoolId: effectiveSchoolIdForTerms } : {}),
-    { enabled: !!(formData.feeCategory === 'SchoolFees' && effectiveSchoolIdForTerms) || !!(editingId && editingSchoolId) }
+    { enabled: !!(formData.feeCategory === 'SchoolFees' && effectiveSchoolIdForTerms) || !!(editingId && editingSchoolId) || !!(editingId && editForm.feeCategory === 'SchoolFees' && effectiveSchoolIdForTerms) }
   )
 
   const createMutation = useMutation(
@@ -83,8 +102,6 @@ const FeeStructures = () => {
   )
 
   const terms = termsData?.data ?? termsData?.Data ?? []
-  const defaultSchoolId = schools?.[0]?.id || schools?.[0]?.Id || ''
-  const isPrincipal = user?.role?.toLowerCase() === 'principal'
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -173,11 +190,30 @@ const FeeStructures = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <button className="btn btn-secondary" onClick={() => navigate('/settings')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ArrowLeft size={18} />
-          Back to Settings
-        </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" onClick={() => navigate('/settings')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ArrowLeft size={18} />
+            Back to Settings
+          </button>
+          {isAdmin && schoolsList?.length > 0 && (
+            <div>
+              <label className="form-label" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>School</label>
+              <select
+                className="form-input"
+                value={selectedSchoolId || ''}
+                onChange={(e) => setSelectedSchoolId(e.target.value)}
+                style={{ minWidth: '200px' }}
+              >
+                <option value="">Select school</option>
+                {schoolsList.map((s) => (
+                  <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name}</option>
+                ))}
+              </select>
+              <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Data below is for the selected school</small>
+            </div>
+          )}
+        </div>
         <button className="btn btn-primary" onClick={() => setShowForm(!showForm)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Plus size={18} />
           Set School Fees / Add Fee
@@ -213,7 +249,7 @@ const FeeStructures = () => {
                 <label className="form-label">School</label>
                 <select
                   className="form-input"
-                  value={formData.schoolId || defaultSchoolId}
+                  value={formData.schoolId || currentSchoolIdForPage || defaultSchoolId}
                   onChange={(e) => setFormData({ ...formData, schoolId: e.target.value })}
                 >
                   <option value="">Select school</option>
