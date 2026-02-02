@@ -83,13 +83,15 @@ const StudentDashboard = () => {
   // Extract data from StudentDashboardData structure
   // API returns StudentDashboardData with properties: TotalAssignments, PendingAssignments, CompletedAssignments, AverageGrade, RecentAssignments, RecentGrades, etc.
   // Handle both camelCase (default JSON serialization) and PascalCase (if configured differently)
+  const rawAverage = safeDashboard.averageGrade ?? safeDashboard.AverageGrade ?? 0
   const stats = {
-    activeAssignments: safeDashboard.pendingAssignments || safeDashboard.PendingAssignments || 0,
-    upcomingExams: (safeDashboard.upcomingEvents || safeDashboard.UpcomingEvents || [])
-      .filter(e => (e?.type || e?.Type) === 'Examination')?.length || 0,
-    completedCourses: safeDashboard.completedAssignments || safeDashboard.CompletedAssignments || 0,
-    averageScore: safeDashboard.averageGrade || safeDashboard.AverageGrade || 0,
-    totalAssignments: safeDashboard.totalAssignments || safeDashboard.TotalAssignments || 0,
+    activeAssignments: safeDashboard.pendingAssignments ?? safeDashboard.PendingAssignments ?? 0,
+    upcomingExams: Array.isArray(safeDashboard.upcomingEvents ?? safeDashboard.UpcomingEvents)
+      ? (safeDashboard.upcomingEvents || safeDashboard.UpcomingEvents || []).filter(e => (e?.type || e?.Type) === 'Examination').length
+      : 0,
+    completedCourses: safeDashboard.completedAssignments ?? safeDashboard.CompletedAssignments ?? 0,
+    averageScore: typeof rawAverage === 'number' && !Number.isNaN(rawAverage) ? rawAverage : Number(rawAverage) || 0,
+    totalAssignments: safeDashboard.totalAssignments ?? safeDashboard.TotalAssignments ?? 0,
   }
   
   const recentAssignments = safeDashboard.recentAssignments || safeDashboard.RecentAssignments || []
@@ -185,10 +187,10 @@ const StudentDashboard = () => {
         <div className="card" style={{ marginBottom: '1.5rem', backgroundColor: 'var(--danger-light)', border: '1px solid var(--danger)' }}>
           <div style={{ padding: '1rem' }}>
             <p style={{ color: 'var(--danger)', fontWeight: 'bold', marginBottom: '0.5rem' }}>Error loading dashboard data</p>
-            {dashboardData?.errors && dashboardData.errors.length > 0 && (
+            {Array.isArray(dashboardData?.errors) && dashboardData.errors.length > 0 && (
               <ul style={{ margin: 0, paddingLeft: '1.5rem', color: 'var(--danger)' }}>
                 {dashboardData.errors.map((err, idx) => (
-                  <li key={idx} style={{ fontSize: '0.875rem' }}>{err}</li>
+                  <li key={idx} style={{ fontSize: '0.875rem' }}>{typeof err === 'string' ? err : String(err)}</li>
                 ))}
               </ul>
             )}

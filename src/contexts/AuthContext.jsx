@@ -29,21 +29,26 @@ export const AuthProvider = ({ children }) => {
           setUser(userData)
           setIsAuthenticated(true)
           
-          // Verify token is still valid
+          // Verify token and optionally refresh user from API (don't overwrite with bad data)
           try {
             const currentUser = await authService.getCurrentUser()
-            if (currentUser.success || currentUser.data) {
-              const userData = currentUser.data || currentUser
-              setUser(userData)
-              localStorage.setItem('user', JSON.stringify(userData))
+            const userFromApi = currentUser?.data ?? currentUser
+            const isValidUser = userFromApi && (userFromApi.id || userFromApi.role)
+            if (isValidUser) {
+              setUser(userFromApi)
+              localStorage.setItem('user', JSON.stringify(userFromApi))
             }
           } catch (error) {
-            // Token might be invalid, clear auth
-            localStorage.removeItem('token')
-            localStorage.removeItem('user')
-            localStorage.removeItem('tokenExpiry')
-            setUser(null)
-            setIsAuthenticated(false)
+            // Interceptor already clears auth and redirects on 401; don't clear on other errors so stored user stays valid
+            const status = error?.response?.status ?? error?.status
+            if (status === 401) {
+              localStorage.removeItem('token')
+              localStorage.removeItem('user')
+              localStorage.removeItem('tokenExpiry')
+              setUser(null)
+              setIsAuthenticated(false)
+            }
+            // On network/404/etc. we keep the stored user so student can still reach dashboard
           }
         } catch (error) {
           logger.error('Auth initialization error:', error)
