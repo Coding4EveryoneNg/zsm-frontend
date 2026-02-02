@@ -1,49 +1,98 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { subjectsService } from '../../services/apiServices'
+import { subjectsService, commonService, dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
+import { useAuth } from '../../contexts/AuthContext'
 import { Plus, Search, BookOpen } from 'lucide-react'
 
 const Subjects = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedSchoolId, setSelectedSchoolId] = useState('')
+
+  const isAdmin = user?.role === 'Admin'
+
+  const { data: schoolsData } = useQuery(
+    'schools-dropdown',
+    () => commonService.getSchoolsDropdown(),
+    { enabled: isAdmin }
+  )
+  const { data: schoolSwitchingData } = useQuery(
+    ['dashboard', 'school-switching'],
+    () => dashboardService.getSchoolSwitchingData(),
+    { enabled: isAdmin }
+  )
+  const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
+  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
+  const defaultSchoolId = schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id ?? ''
+
+  useEffect(() => {
+    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
+      setSelectedSchoolId(principalOrAdminSchoolId || defaultSchoolId || '')
+    }
+  }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
+
+  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : null
 
   const { data, isLoading } = useQuery(
-    ['subjects', page, pageSize],
-    () => subjectsService.getSubjects({ page, pageSize })
+    ['subjects', page, pageSize, effectiveSchoolId],
+    () => {
+      const params = { page, pageSize }
+      if (isAdmin && effectiveSchoolId) params.schoolId = effectiveSchoolId
+      return subjectsService.getSubjects(params)
+    },
+    { enabled: !isAdmin || !!effectiveSchoolId }
   )
 
   if (isLoading) return <Loading />
 
-  const subjects = data?.data?.subjects || data?.data || []
-  const pagination = data?.data?.pagination || {}
+  const subjects = data?.data?.subjects ?? data?.data ?? []
+  const totalPages = data?.data?.totalPages ?? data?.data?.TotalPages ?? 1
 
   // Filter subjects based on search term
-  const filteredSubjects = subjects.filter((subject) => {
+  const filteredSubjects = Array.isArray(subjects) ? subjects.filter((subject) => {
     if (!searchTerm) return true
     const search = searchTerm.toLowerCase()
     return (
       (subject.name || subject.Name || '').toLowerCase().includes(search) ||
       (subject.code || subject.Code || '').toLowerCase().includes(search)
     )
-  })
+  }) : []
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>Subjects</h1>
-        <button className="btn btn-primary" onClick={() => navigate('/subjects/create')}>
-          <Plus size={18} />
-          Add Subject
-        </button>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          {isAdmin && schoolsList?.length > 0 && (
+            <div style={{ minWidth: '200px' }}>
+              <label className="form-label" style={{ marginBottom: '0.25rem', display: 'block', fontSize: '0.875rem' }}>School</label>
+              <select
+                className="form-input"
+                value={selectedSchoolId || effectiveSchoolId || ''}
+                onChange={(e) => { setSelectedSchoolId(e.target.value); setPage(1) }}
+              >
+                <option value="">Select school</option>
+                {schoolsList.map((s) => (
+                  <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <button className="btn btn-primary" onClick={() => navigate('/subjects/create')}>
+            <Plus size={18} />
+            Add Subject
+          </button>
+        </div>
       </div>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
             <Search size={20} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
@@ -116,7 +165,7 @@ const Subjects = () => {
           </table>
         </div>
 
-        {pagination.totalPages > 1 && (
+        {totalPages > 1 && (
           <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
             <button
               className="btn btn-secondary"
@@ -126,11 +175,11 @@ const Subjects = () => {
               Previous
             </button>
             <span style={{ display: 'flex', alignItems: 'center', padding: '0 1rem', color: 'var(--text-secondary)' }}>
-              Page {page} of {pagination.totalPages}
+              Page {page} of {totalPages}
             </span>
             <button
               className="btn btn-secondary"
-              disabled={page >= pagination.totalPages}
+              disabled={page >= totalPages}
               onClick={() => setPage(page + 1)}
             >
               Next

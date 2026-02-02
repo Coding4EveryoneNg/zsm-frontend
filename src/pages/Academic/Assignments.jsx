@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { assignmentsService } from '../../services/apiServices'
+import { assignmentsService, commonService, dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { useAuth } from '../../contexts/AuthContext'
 import { FileText, Clock, CheckCircle, XCircle, Calendar, User, BookOpen } from 'lucide-react'
@@ -11,26 +11,49 @@ const Assignments = () => {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState('all') // all, pending, submitted
+  const [selectedSchoolId, setSelectedSchoolId] = useState('')
   const pageSize = 20
+
+  const isAdmin = user?.role === 'Admin'
+
+  const { data: schoolsData } = useQuery(
+    'schools-dropdown',
+    () => commonService.getSchoolsDropdown(),
+    { enabled: isAdmin }
+  )
+  const { data: schoolSwitchingData } = useQuery(
+    ['dashboard', 'school-switching'],
+    () => dashboardService.getSchoolSwitchingData(),
+    { enabled: isAdmin }
+  )
+  const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
+  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
+  const defaultSchoolId = schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id ?? ''
+
+  useEffect(() => {
+    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
+      setSelectedSchoolId(principalOrAdminSchoolId || defaultSchoolId || '')
+    }
+  }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
+
+  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : null
 
   // Get studentId from URL params for parent view
   const urlParams = new URLSearchParams(window.location.search)
   const studentId = urlParams.get('studentId')
 
   const { data, isLoading, error } = useQuery(
-    ['assignments', page, user?.role, studentId],
+    ['assignments', page, user?.role, studentId, effectiveSchoolId],
     () => {
       const params = { page, pageSize }
       if (user?.role === 'Parent') {
-        // Use parent-specific endpoint
-        if (studentId) {
-          params.studentId = studentId
-        }
+        if (studentId) params.studentId = studentId
         return assignmentsService.getParentAssignments(params)
       }
+      if (isAdmin && effectiveSchoolId) params.schoolId = effectiveSchoolId
       return assignmentsService.getAssignments(params)
     },
-    { keepPreviousData: true }
+    { keepPreviousData: true, enabled: user?.role === 'Parent' ? true : !isAdmin || !!effectiveSchoolId }
   )
 
   if (isLoading) return <Loading />
@@ -55,9 +78,6 @@ const Assignments = () => {
   const assignments = paginatedData?.items || paginatedData?.assignments || (Array.isArray(data?.data) ? data.data : [])
   const totalCount = paginatedData?.totalCount || paginatedData?.totalCount || assignments.length
   const totalPages = paginatedData?.totalPages || Math.ceil(totalCount / pageSize)
-
-  // Debug: Log the response to see structure
-  console.log('Assignments data:', { data, paginatedData, assignments, assignmentsLength: assignments.length })
 
   const filteredAssignments = filter === 'all' 
     ? assignments 
@@ -95,7 +115,7 @@ const Assignments = () => {
 
   return (
     <div className="page-container">
-      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
             Assignments
@@ -106,14 +126,31 @@ const Assignments = () => {
             </p>
           )}
         </div>
-        {user?.role === 'Teacher' && (
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          {isAdmin && schoolsList?.length > 0 && (
+            <div style={{ minWidth: '200px' }}>
+              <label className="form-label" style={{ marginBottom: '0.25rem', display: 'block', fontSize: '0.875rem' }}>School</label>
+              <select
+                className="form-input"
+                value={selectedSchoolId || effectiveSchoolId || ''}
+                onChange={(e) => { setSelectedSchoolId(e.target.value); setPage(1) }}
+              >
+                <option value="">Select school</option>
+                {schoolsList.map((s) => (
+                  <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {user?.role === 'Teacher' && (
           <button
             className="btn btn-primary"
             onClick={() => navigate('/assignments/create')}
           >
             Create Assignment
           </button>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Filter Tabs */}

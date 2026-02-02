@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { booksService, commonService } from '../../services/apiServices'
+import { booksService, commonService, dashboardService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
 import { BookOpen, User, Calendar, Plus, BookMarked, X } from 'lucide-react'
@@ -13,37 +13,60 @@ const Books = () => {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedSchoolId, setSelectedSchoolId] = useState('')
   const [assignModal, setAssignModal] = useState({ open: false, book: null })
   const [assignClassId, setAssignClassId] = useState('')
   const pageSize = 20
+
+  const isAdmin = user?.role === 'Admin'
+
+  const { data: schoolsData } = useQuery(
+    'schools-dropdown',
+    () => commonService.getSchoolsDropdown(),
+    { enabled: isAdmin }
+  )
+  const { data: schoolSwitchingData } = useQuery(
+    ['dashboard', 'school-switching'],
+    () => dashboardService.getSchoolSwitchingData(),
+    { enabled: isAdmin || user?.role === 'Principal' }
+  )
+  const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
+  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
+  const defaultSchoolId = schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id ?? ''
+
+  useEffect(() => {
+    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
+      setSelectedSchoolId(principalOrAdminSchoolId || defaultSchoolId || '')
+    }
+  }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
+
+  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : (user?.role === 'Principal' ? principalOrAdminSchoolId : null)
 
   // Get studentId from URL params for parent view
   const urlParams = new URLSearchParams(window.location.search)
   const studentId = urlParams.get('studentId')
 
   const { data, isLoading, error } = useQuery(
-    ['books', page, searchTerm, user?.role, studentId],
+    ['books', page, searchTerm, user?.role, studentId, effectiveSchoolId],
     () => {
       const params = { page, pageSize, search: searchTerm }
-      // Use student endpoint for students
       if (user?.role === 'Student') {
         return booksService.getStudentBooks(params)
-      } else if (user?.role === 'Parent') {
-        // Use parent-specific endpoint
-        if (studentId) {
-          params.studentId = studentId
-        }
+      }
+      if (user?.role === 'Parent') {
+        if (studentId) params.studentId = studentId
         return booksService.getParentBooks(params)
       }
+      if (isAdmin && effectiveSchoolId) params.schoolId = effectiveSchoolId
       return booksService.getBooks(params)
     },
-    { keepPreviousData: true }
+    { keepPreviousData: true, enabled: !isAdmin || !!effectiveSchoolId }
   )
 
   const { data: classesData } = useQuery(
-    ['classes-dropdown'],
-    () => commonService.getClassesDropdown(),
-    { enabled: (user?.role === 'Admin' || user?.role === 'Principal') && assignModal.open }
+    ['classes-dropdown', effectiveSchoolId],
+    () => commonService.getClassesDropdown({ schoolId: effectiveSchoolId }),
+    { enabled: (user?.role === 'Admin' || user?.role === 'Principal') && assignModal.open && !!effectiveSchoolId }
   )
 
   const bookIdForClasses = assignModal.book?.id || assignModal.book?.Id
@@ -131,7 +154,7 @@ const Books = () => {
 
   return (
     <div className="page-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '1rem' }}>
             Books
@@ -142,12 +165,29 @@ const Books = () => {
             </p>
           )}
         </div>
-        {(user?.role === 'Admin' || user?.role === 'Principal') && (
-          <button className="btn btn-primary" onClick={() => navigate('/books/create')}>
-            <Plus size={18} />
-            Add Book
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          {isAdmin && schoolsList?.length > 0 && (
+            <div style={{ minWidth: '200px' }}>
+              <label className="form-label" style={{ marginBottom: '0.25rem', display: 'block', fontSize: '0.875rem' }}>School</label>
+              <select
+                className="form-input"
+                value={selectedSchoolId || effectiveSchoolId || ''}
+                onChange={(e) => { setSelectedSchoolId(e.target.value); setPage(1) }}
+              >
+                <option value="">Select school</option>
+                {schoolsList.map((s) => (
+                  <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {(user?.role === 'Admin' || user?.role === 'Principal') && (
+            <button className="btn btn-primary" onClick={() => navigate('/books/create')}>
+              <Plus size={18} />
+              Add Book
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search Bar */}
