@@ -34,6 +34,8 @@ const CreateAssignment = () => {
   const [questionMarks, setQuestionMarks] = useState('')
   const [questionOrder, setQuestionOrder] = useState(1)
   const [isRequired, setIsRequired] = useState(false)
+  const [correctAnswer, setCorrectAnswer] = useState('')
+  const [options, setOptions] = useState(['', '', '', ''])
 
   // Fetch dropdown data
   const { data: classesData } = useQuery('classes-dropdown', () => commonService.getClassesDropdown())
@@ -68,6 +70,11 @@ const CreateAssignment = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
+    if (!formData.title?.trim()) {
+      toast.error('Title is required')
+      return
+    }
+
     // Get teacher ID from user if teacher
     let teacherId = formData.teacherId
     if (user?.role === 'Teacher' && !teacherId) {
@@ -81,9 +88,13 @@ const CreateAssignment = () => {
       return
     }
 
+    // Send session and term names (backend uses names for lookup when TermId not provided)
+    const sessionName = selectedSession ? (selectedSession.name ?? selectedSession.Name ?? '') : ''
+    const termName = formData.term || ''
+
     const payload = {
-      title: formData.title,
-      description: formData.description || null,
+      title: formData.title?.trim() || '',
+      description: formData.description?.trim() || null,
       subjectId: formData.subjectId,
       classId: formData.classId,
       teacherId: teacherId,
@@ -92,8 +103,8 @@ const CreateAssignment = () => {
       maxScore: parseFloat(formData.maxScore) || parseFloat(formData.maxMarks) || 0,
       weight: parseFloat(formData.weight) || 0,
       termId: formData.termId || null,
-      term: formData.term || '',
-      session: formData.session || '',
+      term: termName,
+      session: sessionName,
       assignmentType: formData.assignmentType,
       type: formData.type,
       questions: formData.questions.length > 0 ? formData.questions.map((q, idx) => ({
@@ -115,13 +126,18 @@ const CreateAssignment = () => {
       return
     }
 
+    const resolvedCorrectAnswer = (questionType === 'TrueFalse' || questionType === 'MultipleChoice')
+      ? (correctAnswer?.trim() || null)
+      : (correctAnswer?.trim() || null)
+
     const newQuestion = {
       questionText,
       questionType,
-      correctAnswer: questionType === 'TrueFalse' || questionType === 'MultipleChoice' ? '' : null,
+      correctAnswer: resolvedCorrectAnswer,
       marks: parseFloat(questionMarks) || 0,
       order: questionOrder,
-      isRequired
+      isRequired,
+      options: questionType === 'MultipleChoice' ? options.filter(opt => opt.trim()) : null
     }
 
     setFormData({
@@ -135,6 +151,14 @@ const CreateAssignment = () => {
     setQuestionMarks('')
     setQuestionOrder(formData.questions.length + 2)
     setIsRequired(false)
+    setCorrectAnswer('')
+    setOptions(['', '', '', ''])
+  }
+
+  const updateOption = (index, value) => {
+    const newOptions = [...options]
+    newOptions[index] = value
+    setOptions(newOptions)
   }
 
   const removeQuestion = (index) => {
@@ -390,7 +414,16 @@ const CreateAssignment = () => {
                       <select
                         className="form-control"
                         value={questionType}
-                        onChange={(e) => setQuestionType(e.target.value)}
+                        onChange={(e) => {
+                          const newType = e.target.value
+                          setQuestionType(newType)
+                          if (newType !== 'MultipleChoice') {
+                            setOptions(['', '', '', ''])
+                          }
+                          if (newType !== 'TrueFalse' && newType !== 'MultipleChoice') {
+                            setCorrectAnswer('')
+                          }
+                        }}
                       >
                         <option value="Essay">Essay</option>
                         <option value="MultipleChoice">Multiple Choice</option>
@@ -398,6 +431,61 @@ const CreateAssignment = () => {
                         <option value="ShortAnswer">Short Answer</option>
                       </select>
                     </div>
+                    {(questionType === 'MultipleChoice' || questionType === 'TrueFalse') && (
+                      <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Correct Answer</label>
+                        {questionType === 'TrueFalse' ? (
+                          <select
+                            className="form-control"
+                            value={correctAnswer}
+                            onChange={(e) => setCorrectAnswer(e.target.value)}
+                          >
+                            <option value="">Select correct answer</option>
+                            <option value="True">True</option>
+                            <option value="False">False</option>
+                          </select>
+                        ) : (
+                          <select
+                            className="form-control"
+                            value={correctAnswer}
+                            onChange={(e) => setCorrectAnswer(e.target.value)}
+                          >
+                            <option value="">Select correct answer (add options below first)</option>
+                            {options.filter(opt => opt.trim()).map((opt, idx) => (
+                              <option key={idx} value={opt.trim()}>{opt.trim()}</option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    )}
+                    {(questionType === 'Essay' || questionType === 'ShortAnswer') && (
+                      <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Correct Answer (optional, for reference)</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={correctAnswer}
+                          onChange={(e) => setCorrectAnswer(e.target.value)}
+                          placeholder="Expected answer or marking guide"
+                        />
+                      </div>
+                    )}
+                    {questionType === 'MultipleChoice' && (
+                      <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Options</label>
+                        {options.map((option, idx) => (
+                          <input
+                            key={idx}
+                            type="text"
+                            className="form-control"
+                            style={{ marginBottom: '0.5rem' }}
+                            value={option}
+                            onChange={(e) => updateOption(idx, e.target.value)}
+                            placeholder={`Option ${idx + 1}`}
+                          />
+                        ))}
+                      </div>
+                    )}
                     <div className="form-group">
                       <label className="form-label">Marks</label>
                       <input
@@ -457,7 +545,13 @@ const CreateAssignment = () => {
                           </div>
                           <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
                             Type: {q.questionType} | Marks: {q.marks} | Order: {q.order}
+                            {q.correctAnswer && ` | Correct: ${q.correctAnswer}`}
                           </div>
+                          {q.options && q.options.length > 0 && (
+                            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                              Options: {q.options.join(', ')}
+                            </div>
+                          )}
                         </div>
                         <button
                           type="button"
