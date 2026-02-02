@@ -62,8 +62,8 @@ const FeeStructures = () => {
   )
   const classes = classesData?.data ?? classesData?.Data ?? []
   const schoolIdForTerms = formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null
-  // When editing School Fees, use page school (list is filtered by it) so terms query always has a valid schoolId
-  const schoolIdWhenEditingSchoolFees = editingId && (editForm.feeCategory === 'SchoolFees') ? (editingSchoolId || currentSchoolIdForPage || schoolIdForClasses || defaultSchoolId) : null
+  // When editing School Fees, prefer currentSchoolIdForPage so terms query always has a valid schoolId (Admin's selected school)
+  const schoolIdWhenEditingSchoolFees = editingId && (editForm.feeCategory === 'SchoolFees') ? (currentSchoolIdForPage || editingSchoolId || schoolIdForClasses || defaultSchoolId) : null
   const effectiveSchoolIdForTerms = schoolIdForTerms || schoolIdWhenEditingSchoolFees || editingSchoolId || (formData.feeCategory === 'SchoolFees' ? schoolIdForClasses : null)
   // Terms dropdown: used in add form and edit form for School Fees; refetches when school or editing fee changes
   const { data: termsData } = useQuery(
@@ -101,8 +101,10 @@ const FeeStructures = () => {
     }
   )
 
-  // Handle API response: list may be in .data/.Data or at top level (array)
-  const terms = Array.isArray(termsData) ? termsData : (termsData?.data ?? termsData?.Data ?? termsData?.data?.data ?? termsData?.Data?.Data ?? [])
+  // Handle API response: list may be in .data/.Data, .items/.Items, or top level (array). Axios returns response.data so termsData is the API body.
+  const terms = Array.isArray(termsData)
+    ? termsData
+    : (termsData?.data ?? termsData?.Data ?? termsData?.items ?? termsData?.Items ?? termsData?.data?.data ?? termsData?.Data?.Data ?? [])
 
   const handleSubmit = (e) => {
     e.preventDefault()
