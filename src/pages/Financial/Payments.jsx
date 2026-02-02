@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { paymentsService } from '../../services/apiServices'
+import { paymentsService, commonService, dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { useAuth } from '../../contexts/AuthContext'
 import { CreditCard, CheckCircle, Clock, XCircle, Calendar, DollarSign, Plus } from 'lucide-react'
@@ -11,28 +11,51 @@ const Payments = () => {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState('all') // all, pending, paid
+  const [selectedSchoolId, setSelectedSchoolId] = useState('')
   const pageSize = 20
 
+  const isAdmin = user?.role === 'Admin'
+
+  const { data: schoolsData } = useQuery(
+    'schools-dropdown',
+    () => commonService.getSchoolsDropdown(),
+    { enabled: isAdmin }
+  )
+  const { data: schoolSwitchingData } = useQuery(
+    ['dashboard', 'school-switching'],
+    () => dashboardService.getSchoolSwitchingData(),
+    { enabled: isAdmin }
+  )
+  const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
+  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
+  const defaultSchoolId = schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id ?? ''
+
+  useEffect(() => {
+    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
+      setSelectedSchoolId(principalOrAdminSchoolId || defaultSchoolId || '')
+    }
+  }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
+
+  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : null
+
   const { data, isLoading, error } = useQuery(
-    ['payments', page, filter],
+    ['payments', page, filter, effectiveSchoolId],
     () => {
       const params = { page, pageSize }
-      // Check if there's a studentId in URL params for parent view
       const urlParams = new URLSearchParams(window.location.search)
       const studentId = urlParams.get('studentId')
-      
+
       if (user?.role === 'Parent') {
-        // Use parent-payments endpoint for parents
-        if (studentId) {
-          return paymentsService.getParentPayments({ ...params, studentId })
-        }
+        if (studentId) return paymentsService.getParentPayments({ ...params, studentId })
         return paymentsService.getParentPayments(params)
-      } else if (user?.role === 'Student') {
+      }
+      if (user?.role === 'Student') {
         return paymentsService.getMyPayments(params)
       }
+      if (isAdmin && effectiveSchoolId) params.schoolId = effectiveSchoolId
       return paymentsService.getPayments(params)
     },
-    { keepPreviousData: true }
+    { keepPreviousData: true, enabled: !isAdmin || !!effectiveSchoolId }
   )
 
   if (isLoading) return <Loading />
@@ -99,16 +122,33 @@ const Payments = () => {
 
   return (
     <div className="page-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
           Payments
         </h1>
-        {(user?.role === 'Admin' || user?.role === 'Principal') && (
-          <button className="btn btn-primary" onClick={() => navigate('/payments/create')}>
-            <Plus size={18} />
-            Add Payment
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          {isAdmin && schoolsList?.length > 0 && (
+            <div style={{ minWidth: '200px' }}>
+              <label className="form-label" style={{ marginBottom: '0.25rem', display: 'block', fontSize: '0.875rem' }}>School</label>
+              <select
+                className="form-input"
+                value={selectedSchoolId || effectiveSchoolId || ''}
+                onChange={(e) => { setSelectedSchoolId(e.target.value); setPage(1) }}
+              >
+                <option value="">Select school</option>
+                {schoolsList.map((s) => (
+                  <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {(user?.role === 'Admin' || user?.role === 'Principal') && (
+            <button className="btn btn-primary" onClick={() => navigate('/payments/create')}>
+              <Plus size={18} />
+              Add Payment
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Summary Cards for Students/Parents */}

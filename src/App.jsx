@@ -16,6 +16,7 @@ import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
 import ForgotPassword from './pages/Auth/ForgotPassword'
 import ResetPassword from './pages/Auth/ResetPassword'
+import Unauthorized from './pages/Auth/Unauthorized'
 
 // Dashboard Pages
 import StudentDashboard from './pages/Dashboard/StudentDashboard'
@@ -97,7 +98,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/login" replace />
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
+  if (allowedRoles.length > 0 && !allowedRoles.some((r) => String(r).toLowerCase() === String(user?.role ?? '').toLowerCase())) {
     return <Navigate to="/unauthorized" replace />
   }
 
@@ -113,7 +114,7 @@ const PublicRoute = ({ children }) => {
   }
 
   if (isAuthenticated) {
-    // Redirect based on role
+    // Redirect based on role (case-insensitive)
     const roleRoutes = {
       Student: '/dashboard/student',
       Teacher: '/dashboard/teacher',
@@ -122,7 +123,8 @@ const PublicRoute = ({ children }) => {
       SuperAdmin: '/dashboard/superadmin',
       Parent: '/dashboard/parent',
     }
-    const redirectTo = roleRoutes[user?.role] || '/dashboard'
+    const roleKey = Object.keys(roleRoutes).find((k) => k.toLowerCase() === String(user?.role ?? '').toLowerCase())
+    const redirectTo = roleKey ? roleRoutes[roleKey] : '/dashboard'
     return <Navigate to={redirectTo} replace />
   }
 
@@ -160,6 +162,7 @@ function App() {
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
       <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+      <Route path="/unauthorized" element={<Unauthorized />} />
 
       {/* Protected Routes with Layout */}
       <Route element={<Layout />}>
