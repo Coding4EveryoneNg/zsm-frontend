@@ -42,8 +42,8 @@ const Login = () => {
     SuperAdmin: '/dashboard/superadmin',
     Parent: '/dashboard/parent',
   };
-
-  navigate(roleRoutes[user.role] || '/dashboard');
+  const roleKey = Object.keys(roleRoutes).find((k) => k.toLowerCase() === String(user.role ?? '').toLowerCase());
+  navigate(roleKey ? roleRoutes[roleKey] : '/dashboard');
   setLoading(false);
 };
 
