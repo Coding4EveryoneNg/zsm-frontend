@@ -11,6 +11,7 @@ const TakeExamination = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [answers, setAnswers] = useState({})
+  const [fileUploads, setFileUploads] = useState({}) // { [questionId]: File[] }
   const [remainingTime, setRemainingTime] = useState(0)
   const [timeWarning, setTimeWarning] = useState(false)
 
@@ -145,10 +146,16 @@ const TakeExamination = () => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: {
+        ...prev[questionId],
         text: questionType === 'MultipleChoice' || questionType === 'TrueFalse' ? value : prev[questionId]?.text || '',
         data: questionType === 'MultipleChoice' || questionType === 'TrueFalse' ? value : value
       }
     }))
+  }
+
+  const handleFileChange = (questionId, event) => {
+    const files = event.target.files ? Array.from(event.target.files) : []
+    setFileUploads(prev => ({ ...prev, [questionId]: files }))
   }
 
   const handleSubmit = useCallback(async (autoSubmit = false) => {
@@ -170,12 +177,27 @@ const TakeExamination = () => {
       }
     })
 
-    submitMutation.mutate({
-      submissionId: submissionId,
-      answers: submitAnswers,
-      autoSubmit
-    })
-  }, [data, answers, submitMutation])
+    const hasFiles = Object.values(fileUploads).some(arr => arr && arr.length > 0)
+    if (hasFiles) {
+      const formData = new FormData()
+      formData.append('submissionId', submissionId)
+      formData.append('answers', JSON.stringify(submitAnswers))
+      exam.questions.forEach(q => {
+        const qId = q.id || q.Id
+        const files = fileUploads[qId]
+        if (files && files.length > 0) {
+          files.forEach(file => formData.append(`file_${qId}`, file))
+        }
+      })
+      submitMutation.mutate(formData)
+    } else {
+      submitMutation.mutate({
+        submissionId: submissionId,
+        answers: submitAnswers,
+        autoSubmit
+      })
+    }
+  }, [data, answers, fileUploads, submitMutation])
 
   const handleSubmitRef = useRef(handleSubmit)
   useEffect(() => {
@@ -429,14 +451,36 @@ const TakeExamination = () => {
                     ))}
                   </div>
                 ) : (
-                  <textarea
-                    className="form-control"
-                    rows={questionType === 'ShortAnswer' ? 3 : 8}
-                    value={currentAnswer}
-                    onChange={(e) => handleAnswerChange(questionId, e.target.value, questionType)}
-                    placeholder="Type your answer here..."
-                    style={{ minHeight: questionType === 'ShortAnswer' ? '80px' : '200px' }}
-                  />
+                  <>
+                    <textarea
+                      className="form-control"
+                      rows={questionType === 'ShortAnswer' ? 3 : 8}
+                      value={currentAnswer}
+                      onChange={(e) => handleAnswerChange(questionId, e.target.value, questionType)}
+                      placeholder="Type your answer here..."
+                      style={{ minHeight: questionType === 'ShortAnswer' ? '80px' : '200px', marginBottom: '1rem' }}
+                    />
+                    {(question.section === 'Theory' || question.Section === 'Theory') && (
+                      <div className="form-group" style={{ marginTop: '1rem' }}>
+                        <label className="form-label" style={{ display: 'block', marginBottom: '0.5rem' }}>
+                          Upload documents (PDF, Word, or images) — optional
+                        </label>
+                        <input
+                          type="file"
+                          multiple
+                          accept=".pdf,.doc,.docx,image/jpeg,image/png,image/gif,image/webp,image/bmp"
+                          onChange={(e) => handleFileChange(questionId, e)}
+                          className="form-control"
+                          style={{ padding: '0.5rem' }}
+                        />
+                        {fileUploads[questionId]?.length > 0 && (
+                          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                            {fileUploads[questionId].length} file(s) selected: {fileUploads[questionId].map(f => f.name).join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
