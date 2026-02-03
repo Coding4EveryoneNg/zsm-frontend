@@ -5,7 +5,7 @@ import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
 import { dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
-import { Users, FileText, ClipboardList, TrendingUp, Zap, Plus, Eye, Clock, CheckCircle } from 'lucide-react'
+import { Users, FileText, ClipboardList, TrendingUp, Zap, Plus, Eye, Clock, CheckCircle, BookOpen } from 'lucide-react'
 import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartConfig'
 import logger from '../../utils/logger'
 
@@ -35,6 +35,7 @@ const TeacherDashboard = () => {
   const stats = dashboard.stats || dashboard.Stats || {}
   const recentAssignments = dashboard.recentAssignments || dashboard.RecentAssignments || []
   const pendingSubmissions = dashboard.pendingSubmissions || dashboard.PendingSubmissions || []
+  const assignedCourses = dashboard.assignedCourses || dashboard.AssignedCourses || []
   const charts = dashboard.charts || dashboard.Charts || []
   const classPerformance = dashboard.classPerformance || dashboard.ClassPerformance || []
   const recentActivities = dashboard.recentActivities || dashboard.RecentActivities || []
@@ -146,6 +147,58 @@ const TeacherDashboard = () => {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Assigned Courses */}
+      <div className="card" style={{ marginBottom: '2rem' }}>
+        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 className="card-title">
+            <BookOpen size={20} style={{ marginRight: '0.5rem', display: 'inline-block', verticalAlign: 'middle' }} />
+            My Assigned Courses
+          </h2>
+          <button
+            className="btn btn-sm btn-outline-primary"
+            onClick={() => navigate('/courses')}
+          >
+            View All Courses
+          </button>
+        </div>
+        {assignedCourses.length > 0 ? (
+          <div>
+            {assignedCourses.slice(0, 10).map((course, idx) => {
+              const courseId = course.id || course.Id
+              const title = course.title || course.Title || 'Untitled'
+              const subjectName = course.subjectName || course.SubjectName || ''
+              const courseCode = course.courseCode || course.CourseCode || ''
+              const status = course.status || course.Status || ''
+              return (
+                <div
+                  key={courseId || idx}
+                  style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}
+                  onClick={() => courseId && navigate(`/courses/${courseId}`)}
+                >
+                  <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{title}</h4>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                    {subjectName && <span>{subjectName}</span>}
+                    {courseCode && <span>{subjectName ? ' • ' : ''}{courseCode}</span>}
+                    {status && <span> • {status}</span>}
+                  </p>
+                </div>
+              )
+            })}
+            {assignedCourses.length > 10 && (
+              <p style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                And {assignedCourses.length - 10} more. <button type="button" className="btn btn-link btn-sm" onClick={() => navigate('/courses')}>View all</button>
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <BookOpen size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+            <p className="empty-state-text">No courses assigned yet</p>
+            <p className="empty-state-subtext">Courses assigned to you by admin will appear here</p>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>

@@ -27,6 +27,19 @@ const CreateSubject = () => {
   const principalSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId
   const schoolId = isAdmin ? (selectedSchoolId || schools?.[0]?.id || schools?.[0]?.Id || '') : (user?.schoolId || user?.SchoolId || principalSchoolId || '')
 
+  const { data: teachersData } = useQuery(
+    ['teachers-dropdown', schoolId],
+    () => commonService.getTeachersDropdown({ schoolId }),
+    { enabled: !!schoolId }
+  )
+  const { data: classesData } = useQuery(
+    ['classes-dropdown', schoolId],
+    () => commonService.getClassesDropdown({ schoolId }),
+    { enabled: !!schoolId }
+  )
+  const teachers = teachersData?.data ?? teachersData?.Data ?? []
+  const classes = classesData?.data ?? classesData?.Data ?? []
+
   useEffect(() => {
     if (isAdmin && schools?.length > 0 && !selectedSchoolId) {
       const firstId = schools[0]?.id || schools[0]?.Id
@@ -47,6 +60,8 @@ const CreateSubject = () => {
         code: data.code || null,
         schoolId: schoolId,
         description: data.description || null,
+        teacherId: data.teacherId || null,
+        classId: data.classId || null,
       }
 
       const response = await subjectsService.createSubject(requestData)
@@ -187,6 +202,27 @@ const CreateSubject = () => {
                 {errors.description.message}
               </span>
             )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div>
+              <label className="form-label">Assign to teacher (optional)</label>
+              <select {...register('teacherId')} className="form-input">
+                <option value="">No teacher</option>
+                {Array.isArray(teachers) && teachers.map((t) => (
+                  <option key={t.id || t.Id} value={t.id || t.Id}>{t.name || t.Name || `${t.firstName || t.FirstName || ''} ${t.lastName || t.LastName || ''}`.trim()}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="form-label">Class (optional, use with teacher)</label>
+              <select {...register('classId')} className="form-input">
+                <option value="">No class</option>
+                {Array.isArray(classes) && classes.map((c) => (
+                  <option key={c.id || c.Id} value={c.id || c.Id}>{c.name || c.Name}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>

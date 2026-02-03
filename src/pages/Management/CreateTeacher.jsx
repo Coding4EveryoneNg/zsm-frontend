@@ -19,6 +19,7 @@ const CreateTeacher = () => {
     formState: { errors },
   } = useForm()
 
+  const [subjectAssignments, setSubjectAssignments] = useState([])
   const isAdmin = (user?.role || user?.Role || '').toString().toLowerCase() === 'admin'
   const selectedSchoolId = watch('schoolId')
   const { data: schoolsData } = useQuery('schools-dropdown', () => commonService.getSchoolsDropdown(), { enabled: isAdmin })
@@ -26,6 +27,19 @@ const CreateTeacher = () => {
   const schools = schoolsData?.data ?? schoolsData?.Data ?? []
   const principalSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId
   const schoolId = isAdmin ? (selectedSchoolId || schools?.[0]?.id || schools?.[0]?.Id || '') : (user?.schoolId || user?.SchoolId || principalSchoolId || '')
+
+  const { data: subjectsData } = useQuery(
+    ['subjects-dropdown', schoolId],
+    () => commonService.getSubjectsDropdown({ schoolId }),
+    { enabled: !!schoolId }
+  )
+  const { data: classesData } = useQuery(
+    ['classes-dropdown', schoolId],
+    () => commonService.getClassesDropdown({ schoolId }),
+    { enabled: !!schoolId }
+  )
+  const subjects = subjectsData?.data ?? subjectsData?.Data ?? []
+  const classes = classesData?.data ?? classesData?.Data ?? []
 
   // Default school for Admin: prefer current user's assigned school (when tenant has multiple schools)
   useEffect(() => {
@@ -51,6 +65,7 @@ const CreateTeacher = () => {
         employeeId: data.employeeId || null,
         hireDate: data.hireDate || null,
         experience: data.experience ? parseInt(data.experience) : null,
+        subjectAssignments: subjectAssignments.length > 0 ? subjectAssignments.map((a) => ({ subjectId: a.subjectId, classId: a.classId })) : undefined,
       }
       if (isAdmin && schoolId) requestData.schoolId = schoolId
 
@@ -241,6 +256,70 @@ const CreateTeacher = () => {
               <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
                 {errors.experience.message}
               </span>
+            )}
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label className="form-label">Assign subjects to this teacher (optional)</label>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <select
+                id="newSubjectId"
+                className="form-input"
+                style={{ minWidth: '140px' }}
+              >
+                <option value="">Subject</option>
+                {Array.isArray(subjects) && subjects.map((s) => (
+                  <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name}</option>
+                ))}
+              </select>
+              <select
+                id="newClassId"
+                className="form-input"
+                style={{ minWidth: '140px' }}
+              >
+                <option value="">Class</option>
+                {Array.isArray(classes) && classes.map((c) => (
+                  <option key={c.id || c.Id} value={c.id || c.Id}>{c.name || c.Name}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="btn btn-outline-primary btn-sm"
+                onClick={() => {
+                  const subSel = document.getElementById('newSubjectId')
+                  const classSel = document.getElementById('newClassId')
+                  const subjectId = subSel?.value
+                  const classId = classSel?.value
+                  if (subjectId && classId) {
+                    setSubjectAssignments((prev) => [...prev, { subjectId, classId }])
+                    if (subSel) subSel.value = ''
+                    if (classSel) classSel.value = ''
+                  }
+                }}
+              >
+                Add
+              </button>
+            </div>
+            {subjectAssignments.length > 0 && (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {subjectAssignments.map((a, idx) => {
+                  const sub = subjects.find((s) => (s.id || s.Id) === a.subjectId)
+                  const cls = classes.find((c) => (c.id || c.Id) === a.classId)
+                  return (
+                    <li key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                      <span style={{ color: 'var(--text-primary)' }}>{sub?.name || sub?.Name || a.subjectId} – {cls?.name || cls?.Name || a.classId}</span>
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        style={{ padding: '0.15rem 0.5rem', fontSize: '0.75rem' }}
+                        onClick={() => setSubjectAssignments((prev) => prev.filter((_, i) => i !== idx))}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
             )}
           </div>
 
