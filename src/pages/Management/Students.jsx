@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { studentsService, commonService, dashboardService } from '../../services/apiServices'
+import { studentsService, commonService, dashboardService, teachersService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { useAuth } from '../../contexts/AuthContext'
 import { Plus, Search, Download } from 'lucide-react'
@@ -14,8 +14,10 @@ const Students = () => {
   const [pageSize] = useState(20)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSchoolId, setSelectedSchoolId] = useState('')
+  const [selectedClassId, setSelectedClassId] = useState('')
 
   const isAdmin = user?.role === 'Admin'
+  const isTeacher = user?.role === 'Teacher'
 
   const { data: schoolsData } = useQuery(
     'schools-dropdown',
@@ -25,11 +27,26 @@ const Students = () => {
   const { data: schoolSwitchingData } = useQuery(
     ['dashboard', 'school-switching'],
     () => dashboardService.getSchoolSwitchingData(),
-    { enabled: isAdmin }
+    { enabled: isAdmin || isTeacher }
   )
   const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
   const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
   const defaultSchoolId = schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id ?? ''
+
+  const schoolIdForClasses = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : principalOrAdminSchoolId
+  const { data: classesData } = useQuery(
+    ['classes-dropdown', schoolIdForClasses],
+    () => commonService.getClassesDropdown({ schoolId: schoolIdForClasses }),
+    { enabled: !!schoolIdForClasses && isAdmin }
+  )
+  const { data: teacherClassesData } = useQuery(
+    'teacher-my-classes',
+    () => teachersService.getMyClasses(),
+    { enabled: isTeacher }
+  )
+  const classesList = isTeacher
+    ? (teacherClassesData?.data ?? teacherClassesData?.Data ?? [])
+    : (classesData?.data ?? classesData?.Data ?? [])
 
   useEffect(() => {
     if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
@@ -37,16 +54,17 @@ const Students = () => {
     }
   }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
 
-  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : null
+  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : (isTeacher ? principalOrAdminSchoolId : null)
 
   const { data, isLoading, refetch } = useQuery(
-    ['students', page, pageSize, effectiveSchoolId],
+    ['students', page, pageSize, effectiveSchoolId, isTeacher ? selectedClassId : null],
     () => {
       const params = { page, pageSize }
       if (isAdmin && effectiveSchoolId) params.schoolId = effectiveSchoolId
+      if (isTeacher && selectedClassId) params.classId = selectedClassId
       return studentsService.getStudents(params)
     },
-    { enabled: !isAdmin || !!effectiveSchoolId }
+    { keepPreviousData: true, enabled: isTeacher || (!isAdmin && !!principalOrAdminSchoolId) || (isAdmin && !!effectiveSchoolId) }
   )
 
   const handleExportExcel = async () => {
@@ -98,14 +116,18 @@ const Students = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>Students</h1>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          <button className="btn btn-secondary" onClick={handleExportExcel}>
-            <Download size={18} />
-            Export Excel
-          </button>
-          <button className="btn btn-primary" onClick={() => navigate('/students/create')}>
-            <Plus size={18} />
-            Add Student
-          </button>
+          {!isTeacher && (
+            <>
+              <button className="btn btn-secondary" onClick={handleExportExcel}>
+                <Download size={18} />
+                Export Excel
+              </button>
+              <button className="btn btn-primary" onClick={() => navigate('/students/create')}>
+                <Plus size={18} />
+                Add Student
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -122,6 +144,21 @@ const Students = () => {
                 <option value="">Select school</option>
                 {schoolsList.map((s) => (
                   <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {isTeacher && (
+            <div style={{ minWidth: '200px' }}>
+              <label className="form-label" style={{ marginBottom: '0.25rem', display: 'block', fontSize: '0.875rem' }}>Class</label>
+              <select
+                className="form-input"
+                value={selectedClassId}
+                onChange={(e) => { setSelectedClassId(e.target.value); setPage(1) }}
+              >
+                <option value="">All my classes</option>
+                {(classesList || []).map((c) => (
+                  <option key={c.id || c.Id} value={c.id || c.Id}>{c.name || c.Name}</option>
                 ))}
               </select>
             </div>

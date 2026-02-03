@@ -316,10 +316,12 @@ const AssignmentDetails = () => {
         </div>
       ) : canSubmit ? (
         <div className="card">
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: 'var(--text-primary)' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
             Submit Assignment
           </h2>
-          
+          <p style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            You have not completed this assignment yet. Enter your answer and/or attach files below, then submit.
+          </p>
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '1.5rem' }}>
               <label htmlFor="submissionText" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
