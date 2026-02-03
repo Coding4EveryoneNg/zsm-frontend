@@ -50,6 +50,7 @@ export const studentsService = {
 export const teachersService = {
   getTeachers: (params) => api.get('/teachers', { params }),
   getTeacher: (id) => api.get(`/teachers/${id}`),
+  getMyClasses: () => api.get('/teachers/me/classes'),
   createTeacher: (data) => api.post('/teachers', data),
   updateTeacher: (id, data) => api.put(`/teachers/${id}`, data),
   deleteTeacher: (id) => api.delete(`/teachers/${id}`),

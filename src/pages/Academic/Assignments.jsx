@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { assignmentsService, commonService, dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { useAuth } from '../../contexts/AuthContext'
-import { FileText, Clock, CheckCircle, XCircle, Calendar, User, BookOpen } from 'lucide-react'
+import { FileText, Clock, CheckCircle, XCircle, Calendar, User, BookOpen, PlayCircle } from 'lucide-react'
 
 const Assignments = () => {
   const { user } = useAuth()
@@ -203,7 +203,7 @@ const Assignments = () => {
                 e.currentTarget.style.boxShadow = 'none'
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                     <FileText size={20} color="var(--primary)" />
@@ -259,6 +259,20 @@ const Assignments = () => {
                     )}
                   </div>
                 </div>
+                {user?.role === 'Student' && !isSubmitted && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ flexShrink: 0 }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate(`/assignments/${assignmentId}`)
+                    }}
+                  >
+                    <PlayCircle size={18} style={{ marginRight: '0.5rem' }} />
+                    Start assignment
+                  </button>
+                )}
               </div>
             </div>
             )
