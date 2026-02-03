@@ -65,6 +65,7 @@ const CreateTeacher = () => {
         employeeId: data.employeeId || null,
         hireDate: data.hireDate || null,
         experience: data.experience ? parseInt(data.experience) : null,
+        salary: data.salary != null && data.salary !== '' ? parseFloat(data.salary) : null,
         subjectAssignments: subjectAssignments.length > 0 ? subjectAssignments.map((a) => ({ subjectId: a.subjectId, classId: a.classId })) : undefined,
       }
       if (isAdmin && schoolId) requestData.schoolId = schoolId
@@ -239,24 +240,45 @@ const CreateTeacher = () => {
             </div>
           </div>
 
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label className="form-label">Years of Experience</label>
-            <input
-              type="number"
-              {...register('experience', { 
-                min: { value: 0, message: 'Experience cannot be negative' },
-                max: { value: 50, message: 'Experience cannot exceed 50 years' }
-              })}
-              className="form-input"
-              placeholder="0"
-              min="0"
-              max="50"
-            />
-            {errors.experience && (
-              <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
-                {errors.experience.message}
-              </span>
-            )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div>
+              <label className="form-label">Years of Experience</label>
+              <input
+                type="number"
+                {...register('experience', { 
+                  min: { value: 0, message: 'Experience cannot be negative' },
+                  max: { value: 50, message: 'Experience cannot exceed 50 years' }
+                })}
+                className="form-input"
+                placeholder="0"
+                min="0"
+                max="50"
+              />
+              {errors.experience && (
+                <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
+                  {errors.experience.message}
+                </span>
+              )}
+            </div>
+
+            <div>
+              <label className="form-label">Salary (optional)</label>
+              <input
+                type="number"
+                {...register('salary', { 
+                  min: { value: 0, message: 'Salary cannot be negative' }
+                })}
+                className="form-input"
+                placeholder="e.g. 50000"
+                min="0"
+                step="0.01"
+              />
+              {errors.salary && (
+                <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
+                  {errors.salary.message}
+                </span>
+              )}
+            </div>
           </div>
 
           <div style={{ marginBottom: '1.5rem' }}>
