@@ -19,6 +19,7 @@ const CreateBook = () => {
     formState: { errors },
   } = useForm()
 
+  const [selectedClassIds, setSelectedClassIds] = useState([])
   const isAdmin = (user?.role || user?.Role || '').toString().toLowerCase() === 'admin'
   const selectedSchoolId = watch('schoolId')
   const { data: schoolsData } = useQuery('schools-dropdown', () => commonService.getSchoolsDropdown(), { enabled: isAdmin })
@@ -26,6 +27,19 @@ const CreateBook = () => {
   const schools = schoolsData?.data ?? schoolsData?.Data ?? []
   const principalSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId
   const schoolId = isAdmin ? (selectedSchoolId || schools?.[0]?.id || schools?.[0]?.Id || '') : (user?.schoolId || user?.SchoolId || principalSchoolId || '')
+
+  const { data: subjectsData } = useQuery(
+    ['subjects-dropdown', schoolId],
+    () => commonService.getSubjectsDropdown({ schoolId }),
+    { enabled: !!schoolId }
+  )
+  const { data: classesData } = useQuery(
+    ['classes-dropdown', schoolId],
+    () => commonService.getClassesDropdown({ schoolId }),
+    { enabled: !!schoolId }
+  )
+  const subjects = subjectsData?.data ?? subjectsData?.Data ?? []
+  const classes = classesData?.data ?? classesData?.Data ?? []
 
   useEffect(() => {
     if (isAdmin && schools?.length > 0 && !selectedSchoolId) {
@@ -50,6 +64,8 @@ const CreateBook = () => {
         publicationYear: data.publicationYear ? parseInt(data.publicationYear) : null,
         description: data.description || null,
         totalCopies: data.totalCopies ? parseInt(data.totalCopies) : 1,
+        subjectId: data.subjectId || null,
+        classIds: selectedClassIds.length > 0 ? selectedClassIds : null,
       }
 
       const response = await booksService.createBook(requestData)
@@ -200,6 +216,40 @@ const CreateBook = () => {
                   {errors.publicationYear.message}
                 </span>
               )}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label className="form-label">Subject (optional)</label>
+            <select {...register('subjectId')} className="form-input">
+              <option value="">No subject</option>
+              {Array.isArray(subjects) && subjects.map((s) => (
+                <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label className="form-label">Assign to classes (optional – a book can be assigned to many classes)</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              {Array.isArray(classes) && classes.map((c) => {
+                const id = c.id || c.Id
+                const checked = selectedClassIds.includes(id)
+                return (
+                  <label key={id} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        setSelectedClassIds((prev) =>
+                          checked ? prev.filter((x) => x !== id) : [...prev, id]
+                        )
+                      }}
+                    />
+                    <span>{c.name || c.Name}</span>
+                  </label>
+                )
+              })}
             </div>
           </div>
 
