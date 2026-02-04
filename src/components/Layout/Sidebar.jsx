@@ -37,7 +37,7 @@ const Sidebar = () => {
     {
       title: 'Dashboard',
       icon: LayoutDashboard,
-      path: `/dashboard/${user?.role?.toLowerCase()}`,
+      path: `/dashboard/${String(user?.role ?? '').toLowerCase()}`,
       roles: ['Student', 'Teacher', 'Admin', 'Principal', 'SuperAdmin', 'Parent'],
     },
     {

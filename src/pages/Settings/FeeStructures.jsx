@@ -17,8 +17,8 @@ const FeeStructures = () => {
   const [formData, setFormData] = useState({ schoolId: '', classId: '', termId: '', feeCategory: 'Other', name: '', description: '', amount: '', feeType: 'Yearly' })
   const [selectedSchoolId, setSelectedSchoolId] = useState('') // Page-level school for Admin: data shown is for this school
 
-  const isPrincipal = user?.role?.toLowerCase() === 'principal'
-  const isAdmin = user?.role?.toLowerCase() === 'admin'
+  const isPrincipal = String(user?.role ?? '').toLowerCase() === 'principal'
+  const isAdmin = String(user?.role ?? '').toLowerCase() === 'admin'
 
   const { data: schoolsData } = useQuery(
     'schools-dropdown',
