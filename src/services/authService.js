@@ -24,12 +24,13 @@ export const authService = {
       data
     };
   } catch (error) {
+    const data = error.response?.data ?? error
+    const message = data?.message ?? (Array.isArray(data?.errors) && data.errors[0]) ?? 'Invalid email or password'
     return {
       success: false,
-      message:
-        error.response?.data?.message ||
-        'Invalid email or password'
-    };
+      message: typeof message === 'string' ? message : 'Invalid email or password',
+      errors: Array.isArray(data?.errors) ? data.errors : (data?.message ? [data.message] : [])
+    }
   }
 },
 

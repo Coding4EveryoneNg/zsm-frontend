@@ -1,13 +1,23 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useForm } from 'react-hook-form'
+import toast from 'react-hot-toast'
 import { LogIn, Mail, Lock } from 'lucide-react'
 
 const Login = () => {
   const { login } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('session_expired') === 'true') {
+        sessionStorage.removeItem('session_expired')
+        toast.error('Your session has expired. Please log in again.')
+      }
+    } catch (_) {}
+  }, [])
   const {
     register,
     handleSubmit,
@@ -24,9 +34,9 @@ const Login = () => {
   );
 
   if (!result.success) {
-    alert(result.message); // or toast
-    setLoading(false);
-    return;
+    toast.error(result.message || result.errors?.[0] || 'Login failed')
+    setLoading(false)
+    return
   }
 
   const userStr = localStorage.getItem('user');
