@@ -5,6 +5,7 @@ import { dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { BookOpen, ClipboardList, FileText, Award, Calendar, TrendingUp } from 'lucide-react'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
+import ErrorBoundary from '../../components/Common/ErrorBoundary'
 import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartConfig'
 import { getErrorMessage } from '../../utils/errorHandler'
 import logger from '../../utils/logger'
@@ -51,36 +52,32 @@ const StudentDashboard = () => {
     )
   }
 
-  // Handle different response structures
+  // Handle different response structures (wrap in try so any unexpected shape doesn't crash the page)
+  try {
   // API returns: { success: true, data: StudentDashboardData }
-  // After axios interceptor: { success: true, data: StudentDashboardData }
-  // If success is false, data will be null
-  const dashboard = dashboardData?.success === false 
-    ? null 
-    : (dashboardData?.data || dashboardData || {})
-  
-  // Debug: Log the response to see structure
-  logger.debug('Dashboard raw data:', dashboardData)
-  logger.debug('Dashboard processed data:', dashboard)
-  logger.debug('Dashboard data structure:', {
-    hasData: !!dashboardData,
-    success: dashboardData?.success,
-    hasDataProperty: !!dashboardData?.data,
-    dashboardKeys: dashboard ? Object.keys(dashboard) : [],
-    dashboardType: typeof dashboard,
-    isArray: Array.isArray(dashboard)
-  })
-  
-  // Check if we have an error response
+  const dashboard = dashboardData?.success === false
+    ? null
+    : (dashboardData?.data ?? dashboardData ?? {})
+
+  try {
+    logger.debug('Dashboard raw data:', dashboardData)
+    logger.debug('Dashboard processed data:', dashboard)
+    logger.debug('Dashboard data structure:', {
+      hasData: !!dashboardData,
+      success: dashboardData?.success,
+      hasDataProperty: !!dashboardData?.data,
+      dashboardKeys: dashboard && typeof dashboard === 'object' ? Object.keys(dashboard) : [],
+      dashboardType: typeof dashboard,
+      isArray: Array.isArray(dashboard)
+    })
+  } catch (_) { /* never let logger throw */ }
+
   if (dashboardData?.success === false) {
-    logger.error('Dashboard API returned error:', dashboardData.errors || dashboardData.message)
+    try { logger.error('Dashboard API returned error:', dashboardData.errors || dashboardData.message) } catch (_) {}
   }
-  
-  // Always render the dashboard structure, even if data is empty
-  // This prevents blank screens
-  // Ensure dashboard is always an object - MUST BE DEFINED BEFORE USE
+
   const safeDashboard = dashboard && typeof dashboard === 'object' && !Array.isArray(dashboard) ? dashboard : {}
-  
+
   // Ensure value is an array (API may return string or object)
   const ensureArray = (val) => {
     if (Array.isArray(val)) return val
@@ -114,7 +111,8 @@ const StudentDashboard = () => {
   const recentResults = ensureArray(safeDashboard.recentGrades ?? safeDashboard.RecentGrades ?? safeDashboard.termResults ?? safeDashboard.TermResults)
   const charts = ensureArray(safeDashboard.charts ?? safeDashboard.Charts)
   const subjectPerformance = ensureArray(safeDashboard.subjectPerformance ?? safeDashboard.SubjectPerformance)
-  const currentSessionTerm = safeDashboard.currentSessionTerm || safeDashboard.CurrentSessionTerm
+  const rawSessionTerm = safeDashboard.currentSessionTerm ?? safeDashboard.CurrentSessionTerm
+  const currentSessionTerm = rawSessionTerm && typeof rawSessionTerm === 'object' && !Array.isArray(rawSessionTerm) ? rawSessionTerm : null
   const currentTermSubjects = ensureArray(safeDashboard.currentTermSubjects ?? safeDashboard.CurrentTermSubjects)
 
   // Convert ChartData to Chart.js format (charts already ensured as array above)
@@ -242,7 +240,9 @@ const StudentDashboard = () => {
           </p>
         )}
         </div>
-        <DashboardCalendar />
+        <ErrorBoundary fallback={() => <div className="card" style={{ padding: '1rem' }}><p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Calendar unavailable</p></div>}>
+          <DashboardCalendar />
+        </ErrorBoundary>
       </div>
 
       {/* Stats Cards */}
@@ -369,6 +369,19 @@ const StudentDashboard = () => {
       </div>
     </div>
   )
+  } catch (e) {
+    try { logger.error('Student dashboard render error', e) } catch (_) {}
+    return (
+      <div className="page-container" style={{ padding: '2rem' }}>
+        <div className="card" style={{ maxWidth: '500px', margin: '0 auto' }}>
+          <div className="card-header"><h2 className="card-title">Student Dashboard</h2></div>
+          <div className="card-body">
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>Something went wrong while loading the dashboard. Please try again.</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 }
 
 export default StudentDashboard
