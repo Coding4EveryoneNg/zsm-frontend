@@ -18,6 +18,8 @@ const AssignmentDetails = () => {
   const [answers, setAnswers] = useState({})
   const [files, setFiles] = useState([])
   const [fileErrors, setFileErrors] = useState([])
+  const [checkResults, setCheckResults] = useState({}) // { [questionId]: { isCorrect, score, message } }
+  const [checkingQuestionId, setCheckingQuestionId] = useState(null)
 
   const { data, isLoading, error } = useQuery(
     ['assignment', id],
@@ -95,6 +97,38 @@ const AssignmentDetails = () => {
 
   const removeFile = (index) => {
     setFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleCheckAnswer = async (questionId, answerText) => {
+    if (!questionId || (!answerText || !String(answerText).trim())) {
+      toast.error('Enter an answer first.')
+      return
+    }
+    setCheckingQuestionId(questionId)
+    setCheckResults((prev) => ({ ...prev, [questionId]: undefined }))
+    try {
+      const res = await assignmentsService.checkAssignmentAnswer(id, questionId, { answerText: String(answerText).trim() })
+      const payload = res?.data?.data || res?.data
+      setCheckResults((prev) => ({
+        ...prev,
+        [questionId]: {
+          isCorrect: payload?.isCorrect,
+          score: payload?.score,
+          message: payload?.message
+        }
+      }))
+      if (payload?.message && !payload?.isCorrect && payload?.score === undefined) {
+        toast(payload.message, { icon: 'ℹ️' })
+      } else if (payload?.isCorrect !== undefined) {
+        toast.success(payload.isCorrect ? `Correct! ${payload?.score != null ? `+${payload.score} marks` : ''}` : 'Incorrect. Try again.')
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.response?.data?.errors?.[0] || 'Could not check answer.'
+      toast.error(msg)
+      setCheckResults((prev) => ({ ...prev, [questionId]: { error: msg } }))
+    } finally {
+      setCheckingQuestionId(null)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -347,6 +381,33 @@ const AssignmentDetails = () => {
                               }
                               placeholder="Type your answer here..."
                             />
+                          </div>
+                        )}
+
+                        {/* Check answer (only when question has a UUID for API) */}
+                        {(q.id || q.Id) && answerValue.trim() && (
+                          <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              className="btn btn-outline"
+                              style={{ fontSize: '0.875rem' }}
+                              disabled={checkingQuestionId === (q.id || q.Id)}
+                              onClick={() => handleCheckAnswer(q.id || q.Id, answerValue)}
+                            >
+                              {checkingQuestionId === (q.id || q.Id) ? 'Checking...' : 'Check answer'}
+                            </button>
+                            {checkResults[q.id || q.Id] && !checkResults[q.id || q.Id].error && (
+                              <span style={{
+                                fontSize: '0.875rem',
+                                padding: '0.25rem 0.5rem',
+                                borderRadius: '4px',
+                                fontWeight: '500',
+                                backgroundColor: checkResults[q.id || q.Id].isCorrect === true ? 'var(--success-light)' : checkResults[q.id || q.Id].isCorrect === false ? 'var(--danger-light)' : 'var(--bg-secondary)',
+                                color: checkResults[q.id || q.Id].isCorrect === true ? 'var(--success)' : checkResults[q.id || q.Id].isCorrect === false ? 'var(--danger)' : 'var(--text-muted)'
+                              }}>
+                                {checkResults[q.id || q.Id].message || (checkResults[q.id || q.Id].isCorrect === true ? `Correct${checkResults[q.id || q.Id].score != null ? ` (+${checkResults[q.id || q.Id].score} marks)` : ''}` : 'Incorrect')}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
