@@ -14,6 +14,8 @@ const TakeExamination = () => {
   const [fileUploads, setFileUploads] = useState({}) // { [questionId]: File[] }
   const [remainingTime, setRemainingTime] = useState(0)
   const [timeWarning, setTimeWarning] = useState(false)
+  const [checkResults, setCheckResults] = useState({}) // { [questionId]: { isCorrect, score, message } }
+  const [checkingQuestionId, setCheckingQuestionId] = useState(null)
 
   // Start examination if not started
   const startMutation = useMutation(
@@ -147,10 +149,43 @@ const TakeExamination = () => {
       ...prev,
       [questionId]: {
         ...prev[questionId],
-        text: questionType === 'MultipleChoice' || questionType === 'TrueFalse' ? value : prev[questionId]?.text || '',
-        data: questionType === 'MultipleChoice' || questionType === 'TrueFalse' ? value : value
+        text: value,
+        data: value
       }
     }))
+  }
+
+  const handleCheckAnswer = async (questionId, answerText) => {
+    const text = (answerText || '').toString().trim()
+    if (!questionId || !text) {
+      toast.error('Enter an answer first.')
+      return
+    }
+    setCheckingQuestionId(questionId)
+    setCheckResults(prev => ({ ...prev, [questionId]: undefined }))
+    try {
+      const res = await examinationsService.checkExaminationAnswer(id, questionId, { answerText: text })
+      const payload = res?.data?.data || res?.data
+      setCheckResults(prev => ({
+        ...prev,
+        [questionId]: {
+          isCorrect: payload?.isCorrect,
+          score: payload?.score,
+          message: payload?.message
+        }
+      }))
+      if (payload?.message && payload?.isCorrect === undefined && payload?.score === undefined) {
+        toast(payload.message, { icon: 'ℹ️' })
+      } else if (payload?.isCorrect !== undefined) {
+        toast.success(payload.isCorrect ? `Correct! ${payload?.score != null ? `+${payload.score} marks` : ''}` : 'Incorrect. Try again.')
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.response?.data?.errors?.[0] || 'Could not check answer.'
+      toast.error(msg)
+      setCheckResults(prev => ({ ...prev, [questionId]: { error: msg } }))
+    } finally {
+      setCheckingQuestionId(null)
+    }
   }
 
   const handleFileChange = (questionId, event) => {
@@ -340,13 +375,14 @@ const TakeExamination = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
         {questions.map((question, index) => {
           const questionId = question.id || question.Id
-          const questionType = question.questionType || question.QuestionType
+          const questionType = question.questionType || question.QuestionType || ''
+          const questionTypeLower = questionType.toString().toLowerCase()
           const options = question.options || question.Options
           let parsedOptions = []
           
           try {
             if (options) {
-              parsedOptions = typeof options === 'string' ? JSON.parse(options) : options
+              parsedOptions = typeof options === 'string' ? JSON.parse(options) : (Array.isArray(options) ? options : [])
             }
           } catch (e) {
             console.error('Failed to parse options:', e)
@@ -392,10 +428,11 @@ const TakeExamination = () => {
                 ) : null}
               </div>
 
-              {/* Answer Input */}
+              {/* Answer Input: radio for MC/TrueFalse, textarea only for other types */}
               <div>
-                {questionType === 'MultipleChoice' && parsedOptions.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {questionTypeLower === 'multiplechoice' && parsedOptions.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Select one answer:</span>
                     {parsedOptions.map((option, optIndex) => (
                       <label
                         key={optIndex}
@@ -422,43 +459,49 @@ const TakeExamination = () => {
                       </label>
                     ))}
                   </div>
-                ) : questionType === 'TrueFalse' ? (
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    {['True', 'False'].map(option => (
-                      <label
-                        key={option}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          padding: '0.75rem 1.5rem',
-                          border: `2px solid ${currentAnswer === option ? 'var(--primary)' : 'var(--border-color)'}`,
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          backgroundColor: currentAnswer === option ? 'var(--primary-light)' : 'transparent',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        <input
-                          type="radio"
-                          name={`question-${questionId}`}
-                          value={option}
-                          checked={currentAnswer === option}
-                          onChange={(e) => handleAnswerChange(questionId, e.target.value, questionType)}
-                          style={{ marginRight: '0.5rem' }}
-                        />
-                        <span>{option}</span>
-                      </label>
-                    ))}
+                ) : questionTypeLower === 'truefalse' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Select one answer:</span>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                      {['True', 'False'].map(option => (
+                        <label
+                          key={option}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '0.75rem 1.5rem',
+                            border: `2px solid ${currentAnswer === option ? 'var(--primary)' : 'var(--border-color)'}`,
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            backgroundColor: currentAnswer === option ? 'var(--primary-light)' : 'transparent',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            name={`question-${questionId}`}
+                            value={option}
+                            checked={currentAnswer === option}
+                            onChange={(e) => handleAnswerChange(questionId, e.target.value, questionType)}
+                            style={{ marginRight: '0.5rem' }}
+                          />
+                          <span>{option}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <>
+                    <label className="form-label" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                      Your Answer
+                    </label>
                     <textarea
                       className="form-control"
-                      rows={questionType === 'ShortAnswer' ? 3 : 8}
+                      rows={questionTypeLower === 'shortanswer' ? 3 : 8}
                       value={currentAnswer}
                       onChange={(e) => handleAnswerChange(questionId, e.target.value, questionType)}
                       placeholder="Type your answer here..."
-                      style={{ minHeight: questionType === 'ShortAnswer' ? '80px' : '200px', marginBottom: '1rem' }}
+                      style={{ minHeight: questionTypeLower === 'shortanswer' ? '80px' : '200px', marginBottom: '1rem' }}
                     />
                     {(question.section === 'Theory' || question.Section === 'Theory') && (
                       <div className="form-group" style={{ marginTop: '1rem' }}>
@@ -481,6 +524,33 @@ const TakeExamination = () => {
                       </div>
                     )}
                   </>
+                )}
+
+                {/* Check answer */}
+                {questionId && currentAnswer.trim() && (
+                  <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      style={{ fontSize: '0.875rem' }}
+                      disabled={checkingQuestionId === questionId}
+                      onClick={() => handleCheckAnswer(questionId, currentAnswer)}
+                    >
+                      {checkingQuestionId === questionId ? 'Checking...' : 'Check answer'}
+                    </button>
+                    {checkResults[questionId] && !checkResults[questionId].error && (
+                      <span style={{
+                        fontSize: '0.875rem',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '4px',
+                        fontWeight: '500',
+                        backgroundColor: checkResults[questionId].isCorrect === true ? 'var(--success-light)' : checkResults[questionId].isCorrect === false ? 'var(--danger-light)' : 'var(--bg-secondary)',
+                        color: checkResults[questionId].isCorrect === true ? 'var(--success)' : checkResults[questionId].isCorrect === false ? 'var(--danger)' : 'var(--text-muted)'
+                      }}>
+                        {checkResults[questionId].message || (checkResults[questionId].isCorrect === true ? `Correct${checkResults[questionId].score != null ? ` (+${checkResults[questionId].score} marks)` : ''}` : 'Incorrect')}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

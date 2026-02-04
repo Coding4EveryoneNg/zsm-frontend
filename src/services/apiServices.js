@@ -85,6 +85,8 @@ export const assignmentsService = {
   updateAssignment: (id, data) => api.put(`/assignments/${id}`, data),
   deleteAssignment: (id) => api.delete(`/assignments/${id}`),
   submitAssignment: (id, data) => api.post(`/assignments/${id}/submit`, data),
+  checkAssignmentAnswer: (assignmentId, questionId, data) =>
+    api.post(`/assignments/${assignmentId}/questions/${questionId}/check-answer`, data),
   gradeAssignment: (submissionId, data) => api.post(`/assignments/submissions/${submissionId}/grade`, data),
   getTeacherSubmissions: (params) => api.get('/assignments/teacher/submissions', { params }),
   exportAssignments: (format, params) => api.get(`/assignments/export/${format}`, { params, responseType: 'blob' }),
@@ -108,6 +110,8 @@ export const examinationsService = {
   rejectExamination: (id, reason) => api.post(`/examinations/${id}/reject`, { reason }),
   startExamination: (id) => api.post(`/examinations/${id}/start`),
   submitExamination: (id, data) => api.post(`/examinations/${id}/submit`, data),
+  checkExaminationAnswer: (examinationId, questionId, data) =>
+    api.post(`/examinations/${examinationId}/questions/${questionId}/check-answer`, data),
   getAvailableExaminations: () => api.get('/examinations/student/available'),
   getExaminationForStudent: (id) => api.get(`/examinations/${id}/student`),
   // Stats endpoints
