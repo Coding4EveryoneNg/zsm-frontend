@@ -8,6 +8,7 @@ import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import ErrorBoundary from '../../components/Common/ErrorBoundary'
 import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartConfig'
 import { getErrorMessage } from '../../utils/errorHandler'
+import { ensureArray, safeFormatDate, safeStrLower } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 
 const StudentDashboard = () => {
@@ -29,7 +30,7 @@ const StudentDashboard = () => {
   if (isLoading) return <Loading />
 
   if (error) {
-    logger.error('Dashboard error details:', error)
+    try { logger.error('Dashboard error details:', error) } catch (_) {}
     return (
       <div className="page-container">
         <div style={{ marginBottom: '2rem' }}>
@@ -46,6 +47,19 @@ const StudentDashboard = () => {
             <div style={{ marginTop: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
               <p>Please check the browser console (F12) for more details.</p>
             </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (dashboardData == null) {
+    return (
+      <div className="page-container" style={{ padding: '2rem' }}>
+        <div className="card" style={{ maxWidth: '500px', margin: '0 auto' }}>
+          <div className="card-header"><h2 className="card-title">Student Dashboard</h2></div>
+          <div className="card-body">
+            <p style={{ color: 'var(--text-secondary)' }}>Loading dashboard data...</p>
           </div>
         </div>
       </div>
@@ -77,21 +91,6 @@ const StudentDashboard = () => {
   }
 
   const safeDashboard = dashboard && typeof dashboard === 'object' && !Array.isArray(dashboard) ? dashboard : {}
-
-  // Ensure value is an array (API may return string or object)
-  const ensureArray = (val) => {
-    if (Array.isArray(val)) return val
-    if (val == null) return []
-    if (typeof val === 'string') {
-      try {
-        const parsed = JSON.parse(val)
-        return Array.isArray(parsed) ? parsed : []
-      } catch {
-        return []
-      }
-    }
-    return []
-  }
 
   // Extract data from StudentDashboardData structure
   // API returns StudentDashboardData with properties: TotalAssignments, PendingAssignments, CompletedAssignments, AverageGrade, RecentAssignments, RecentGrades, etc.
@@ -166,7 +165,7 @@ const StudentDashboard = () => {
   // Render chart based on chart data from API (guard so Chart.js never throws)
   const renderChart = (chart) => {
     if (!chart || !Array.isArray(chart.labels) || !Array.isArray(chart.datasets)) return null
-    const chartType = (chart.type && typeof chart.type === 'string') ? chart.type.toLowerCase() : 'bar'
+    const chartType = safeStrLower(chart.type, 'bar') || 'bar'
     const chartOptions = {
       ...defaultChartOptions,
       plugins: {
@@ -224,149 +223,164 @@ const StudentDashboard = () => {
         </div>
       )}
 
-      <div className="dashboard-with-calendar" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '1.5rem', marginBottom: '2rem', alignItems: 'start' }}>
-        <div>
-        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-          Student Dashboard
-        </h1>
-        {(safeDashboard.schoolName || safeDashboard.SchoolName) && (
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            {safeDashboard.schoolName || safeDashboard.SchoolName} {(safeDashboard.className || safeDashboard.ClassName) && `• ${safeDashboard.className || safeDashboard.ClassName}`}
-          </p>
-        )}
-        {currentSessionTerm && (
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            {currentSessionTerm.sessionName || currentSessionTerm.SessionName} • {currentSessionTerm.termName || currentSessionTerm.TermName}
-          </p>
-        )}
+      <ErrorBoundary fallback={() => <div className="card" style={{ padding: '1rem' }}><p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Header section unavailable</p></div>}>
+        <div className="dashboard-with-calendar" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '1.5rem', marginBottom: '2rem', alignItems: 'start' }}>
+          <div>
+            <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+              Student Dashboard
+            </h1>
+            {(safeDashboard.schoolName || safeDashboard.SchoolName) && (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                {safeDashboard.schoolName || safeDashboard.SchoolName} {(safeDashboard.className || safeDashboard.ClassName) && ` • ${safeDashboard.className || safeDashboard.ClassName}`}
+              </p>
+            )}
+            {currentSessionTerm && (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                {currentSessionTerm.sessionName || currentSessionTerm.SessionName} • {currentSessionTerm.termName || currentSessionTerm.TermName}
+              </p>
+            )}
+          </div>
+          <ErrorBoundary fallback={() => <div className="card" style={{ padding: '1rem' }}><p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Calendar unavailable</p></div>}>
+            <DashboardCalendar />
+          </ErrorBoundary>
         </div>
-        <ErrorBoundary fallback={() => <div className="card" style={{ padding: '1rem' }}><p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Calendar unavailable</p></div>}>
-          <DashboardCalendar />
-        </ErrorBoundary>
-      </div>
+      </ErrorBoundary>
 
       {/* Stats Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        {safeStatCards.map((stat, index) => {
-          const Icon = stat.icon
-          return (
-            <div key={index} className="card" style={{ textAlign: 'center' }}>
-              <Icon size={32} color={stat.color} style={{ marginBottom: '1rem' }} />
-              <h3 style={{ fontSize: '2rem', fontWeight: 'bold', color: stat.color, marginBottom: '0.5rem' }}>
-                {stat.value}
-              </h3>
-              <p style={{ color: 'var(--text-secondary)' }}>{stat.title}</p>
-            </div>
-          )
-        })}
-      </div>
+      <ErrorBoundary fallback={() => <div className="card"><p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Stats unavailable</p></div>}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+          {safeStatCards.map((stat, index) => {
+            const Icon = stat?.icon
+            if (!Icon || typeof Icon !== 'function') return null
+            return (
+              <div key={index} className="card" style={{ textAlign: 'center' }}>
+                <Icon size={32} color={stat.color} style={{ marginBottom: '1rem' }} />
+                <h3 style={{ fontSize: '2rem', fontWeight: 'bold', color: stat.color, marginBottom: '0.5rem' }}>
+                  {stat.value}
+                </h3>
+                <p style={{ color: 'var(--text-secondary)' }}>{stat.title}</p>
+              </div>
+            )
+          })}
+        </div>
+      </ErrorBoundary>
 
       {/* Charts Section */}
-      {(convertedCharts.length > 0 || performanceChartData) && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-          {convertedCharts.map((chart, index) => (
-            <div key={chart.id || index} className="card" style={{ minHeight: '400px' }}>
-              <div style={{ height: '350px' }}>
-                {renderChart(chart)}
+      <ErrorBoundary fallback={() => <div className="card"><p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Charts unavailable</p></div>}>
+        {(convertedCharts.length > 0 || performanceChartData) && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+            {convertedCharts.map((chart, index) => (
+              <div key={chart.id || index} className="card" style={{ minHeight: '400px' }}>
+                <div style={{ height: '350px' }}>
+                  {renderChart(chart)}
+                </div>
               </div>
-            </div>
-          ))}
-          {performanceChartData?.labels && Array.isArray(performanceChartData.datasets) && (
-            <div className="card" style={{ minHeight: '400px' }}>
-              <div className="card-header">
-                <h2 className="card-title">Subject Performance</h2>
-              </div>
-              <div style={{ height: '350px', padding: '1rem' }}>
-                <Bar 
-                  data={performanceChartData} 
-                  options={{
-                    ...defaultChartOptions,
-                    plugins: {
-                      ...defaultChartOptions.plugins,
-                      title: {
-                        display: false
+            ))}
+            {performanceChartData?.labels && Array.isArray(performanceChartData.datasets) && (
+              <div className="card" style={{ minHeight: '400px' }}>
+                <div className="card-header">
+                  <h2 className="card-title">Subject Performance</h2>
+                </div>
+                <div style={{ height: '350px', padding: '1rem' }}>
+                  <Bar 
+                    data={performanceChartData} 
+                    options={{
+                      ...defaultChartOptions,
+                      plugins: {
+                        ...defaultChartOptions.plugins,
+                        title: {
+                          display: false
+                        }
                       }
-                    }
-                  }} 
-                />
+                    }} 
+                  />
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
-        {/* Recent Assignments */}
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Recent Assignments</h2>
+            )}
           </div>
-          {safeRecentAssignments.length > 0 ? (
-            <div>
-              {safeRecentAssignments.slice(0, 5).map((assignment, idx) => (
-                <div
-                  key={assignment?.id || assignment?.Id || idx}
-                  style={{
-                    padding: '1rem',
-                    borderBottom: '1px solid var(--border-color)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
-                >
-                  <div>
-                    <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                      {assignment.title || assignment.assignmentTitle || 'Untitled Assignment'}
-                    </h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                      {assignment.dueDate ? `Due: ${new Date(assignment.dueDate).toLocaleDateString()}` : assignment.subject || 'No due date'}
-                    </p>
-                  </div>
-                  <span className={`badge ${assignment.status === 'Submitted' ? 'badge-success' : 'badge-warning'}`}>
-                    {assignment.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <p className="empty-state-text">No assignments</p>
-            </div>
-          )}
-        </div>
+        )}
+      </ErrorBoundary>
 
-        {/* Upcoming Examinations */}
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Upcoming Examinations</h2>
+      <ErrorBoundary fallback={() => <div className="card"><p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Assignments and exams list unavailable</p></div>}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
+          {/* Recent Assignments */}
+          <div className="card">
+            <div className="card-header">
+              <h2 className="card-title">Recent Assignments</h2>
+            </div>
+            {safeRecentAssignments.length > 0 ? (
+              <div>
+                {safeRecentAssignments.slice(0, 5).map((assignment, idx) => {
+                  const dueStr = safeFormatDate(assignment?.dueDate, 'short', '') ? `Due: ${safeFormatDate(assignment?.dueDate, 'short')}` : 'No due date'
+                  return (
+                    <div
+                      key={assignment?.id ?? assignment?.Id ?? idx}
+                      style={{
+                        padding: '1rem',
+                        borderBottom: '1px solid var(--border-color)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div>
+                        <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                          {assignment?.title ?? assignment?.assignmentTitle ?? 'Untitled Assignment'}
+                        </h4>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                          {dueStr}
+                        </p>
+                      </div>
+                      <span className={`badge ${(assignment?.status ?? '') === 'Submitted' ? 'badge-success' : 'badge-warning'}`}>
+                        {assignment?.status ?? '—'}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <p className="empty-state-text">No assignments</p>
+              </div>
+            )}
           </div>
-          {safeUpcomingExaminations.length > 0 ? (
-            <div>
-              {safeUpcomingExaminations.slice(0, 5).map((exam, idx) => (
-                <div
-                  key={exam?.id || exam?.Id || idx}
-                  style={{
-                    padding: '1rem',
-                    borderBottom: '1px solid var(--border-color)',
-                  }}
-                >
-                  <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                    {exam.title || exam.examinationTitle || 'Untitled Examination'}
-                  </h4>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                    <Calendar size={14} style={{ display: 'inline', marginRight: '0.25rem' }} />
-                    {exam.examDate ? new Date(exam.examDate).toLocaleDateString() : exam.startDate ? new Date(exam.startDate).toLocaleDateString() : 'Date TBD'}
-                  </p>
-                </div>
-              ))}
+
+          {/* Upcoming Examinations */}
+          <div className="card">
+            <div className="card-header">
+              <h2 className="card-title">Upcoming Examinations</h2>
             </div>
-          ) : (
-            <div className="empty-state">
-              <p className="empty-state-text">No upcoming examinations</p>
-            </div>
-          )}
+            {safeUpcomingExaminations.length > 0 ? (
+              <div>
+                {safeUpcomingExaminations.slice(0, 5).map((exam, idx) => {
+                  const dateStr = safeFormatDate(exam?.examDate ?? exam?.startDate, 'short', 'Date TBD')
+                  return (
+                    <div
+                      key={exam?.id ?? exam?.Id ?? idx}
+                      style={{
+                        padding: '1rem',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                        {exam?.title ?? exam?.examinationTitle ?? 'Untitled Examination'}
+                      </h4>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                        <Calendar size={14} style={{ display: 'inline', marginRight: '0.25rem' }} />
+                        {dateStr}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <p className="empty-state-text">No upcoming examinations</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </ErrorBoundary>
     </div>
   )
   } catch (e) {

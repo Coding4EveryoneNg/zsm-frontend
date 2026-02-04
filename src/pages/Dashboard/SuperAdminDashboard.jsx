@@ -11,6 +11,7 @@ import {
   ClipboardList, BarChart3, RefreshCw, Globe, ChevronDown, Search, Bell
 } from 'lucide-react'
 import { defaultChartOptions } from '../../utils/chartConfig'
+import { safeStrLower } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 import toast from 'react-hot-toast'
 
@@ -274,7 +275,8 @@ const SuperAdminDashboard = () => {
       }
     }
 
-    switch (chart.type?.toLowerCase()) {
+    const chartType = safeStrLower(chart.type)
+    switch (chartType) {
       case 'bar':
         return <Bar data={chart} options={chartOptions} />
       case 'line':

@@ -1,11 +1,17 @@
 import React, { useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTheme } from '../../contexts/ThemeContext'
-import { Users, BookOpen, CreditCard, BarChart3, Shield, Rocket, CheckCircle, ArrowRight, School, UserCheck, Award, TrendingUp, Clock, Globe, Sun, Moon, GraduationCap } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
+import { useQuery } from 'react-query'
+import { notificationsService } from '../../services/apiServices'
+import { Users, BookOpen, CreditCard, BarChart3, Shield, Rocket, CheckCircle, ArrowRight, School, UserCheck, Award, TrendingUp, Clock, Globe, Sun, Moon, GraduationCap, Bell, LogOut } from 'lucide-react'
 import './Landing.css'
 import logo from '../../assets/logo2.jpg'
 
 const Landing = () => {
+  const { user, isAuthenticated, logout } = useAuth()
+  const navigate = useNavigate()
+
   // Safely get theme with fallback
   let theme, toggleTheme, isDark
   try {
@@ -21,6 +27,19 @@ const Landing = () => {
     toggleTheme = () => {
       console.warn('Theme toggle not available')
     }
+  }
+
+  // Unread notifications count (only when logged in)
+  const { data: unreadData } = useQuery({
+    queryKey: ['unreadNotificationsCount'],
+    queryFn: () => notificationsService.getUnreadCount(),
+    enabled: !!isAuthenticated,
+  })
+  const unreadCount = unreadData?.data?.unreadCount ?? 0
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
   }
 
   useEffect(() => {
@@ -101,23 +120,83 @@ const Landing = () => {
               >
                 {isDark ? <Sun size={20} /> : <Moon size={20} />}
               </button>
-              <Link
-                to="/login"
-                style={{ color: safeTextSecondary, padding: '0.5rem 1rem', borderRadius: '0.5rem', textDecoration: 'none', transition: 'all 0.2s' }}
-                onMouseEnter={(e) => { e.target.style.color = '#f0b90b'; e.target.style.backgroundColor = isDark ? '#1e2026' : '#f5f5f5' }}
-                onMouseLeave={(e) => { e.target.style.color = safeTextSecondary; e.target.style.backgroundColor = 'transparent' }}
-              >
-                Sign In
-              </Link>
-              <Link
-                to="/school-onboarding"
-                style={{ background: '#f0b90b', color: '#0b0e11', padding: '0.5rem 1.5rem', borderRadius: '0.5rem', textDecoration: 'none', fontWeight: 600, transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-                onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 10px 15px -3px rgba(240, 185, 11, 0.3)'; e.target.style.background = '#f5c842' }}
-                onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = 'none'; e.target.style.background = '#f0b90b' }}
-              >
-                <Rocket size={16} />
-                Get Started
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <Link
+                    to="/notifications"
+                    style={{ position: 'relative', color: safeTextSecondary, padding: '0.5rem', borderRadius: '0.5rem', textDecoration: 'none', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#f0b90b'; e.currentTarget.style.backgroundColor = isDark ? '#1e2026' : '#f5f5f5' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = safeTextSecondary; e.currentTarget.style.backgroundColor = 'transparent' }}
+                    title="Notifications"
+                  >
+                    <Bell size={20} />
+                    {unreadCount > 0 && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: '-2px',
+                          right: '-2px',
+                          minWidth: '18px',
+                          height: '18px',
+                          padding: '0 4px',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          background: '#ef4444',
+                          color: 'white',
+                          borderRadius: '9999px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    style={{
+                      background: 'none',
+                      border: `1px solid ${navBorder}`,
+                      color: safeTextSecondary,
+                      padding: '0.5rem 1rem',
+                      borderRadius: '0.5rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      font: 'inherit',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#f0b90b'; e.currentTarget.style.borderColor = '#f0b90b'; e.currentTarget.style.backgroundColor = isDark ? '#1e2026' : '#f5f5f5' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = safeTextSecondary; e.currentTarget.style.borderColor = navBorder; e.currentTarget.style.backgroundColor = 'transparent' }}
+                  >
+                    <LogOut size={18} />
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    style={{ color: safeTextSecondary, padding: '0.5rem 1rem', borderRadius: '0.5rem', textDecoration: 'none', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => { e.target.style.color = '#f0b90b'; e.target.style.backgroundColor = isDark ? '#1e2026' : '#f5f5f5' }}
+                    onMouseLeave={(e) => { e.target.style.color = safeTextSecondary; e.target.style.backgroundColor = 'transparent' }}
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/school-onboarding"
+                    style={{ background: '#f0b90b', color: '#0b0e11', padding: '0.5rem 1.5rem', borderRadius: '0.5rem', textDecoration: 'none', fontWeight: 600, transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                    onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 10px 15px -3px rgba(240, 185, 11, 0.3)'; e.target.style.background = '#f5c842' }}
+                    onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = 'none'; e.target.style.background = '#f0b90b' }}
+                  >
+                    <Rocket size={16} />
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

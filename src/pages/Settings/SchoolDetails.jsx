@@ -9,6 +9,7 @@ import {
   BarChart3, DollarSign, Building2, UserCheck, RefreshCw
 } from 'lucide-react'
 import { defaultChartOptions } from '../../utils/chartConfig'
+import { safeStrLower } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 import toast from 'react-hot-toast'
 
@@ -101,7 +102,8 @@ const SchoolDetails = () => {
       }
     }
 
-    switch (chart.type?.toLowerCase()) {
+    const chartType = safeStrLower(chart.type)
+    switch (chartType) {
       case 'bar':
         return <Bar data={chart} options={chartOptions} />
       case 'line':

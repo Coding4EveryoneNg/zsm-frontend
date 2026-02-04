@@ -1,6 +1,8 @@
 import React from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
+import { useQuery } from 'react-query'
+import { notificationsService } from '../../services/apiServices'
 import { Bell, LogOut, User, Sun, Moon } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -10,6 +12,12 @@ const Header = () => {
   const { user, logout } = useAuth()
   const { theme, toggleTheme, isDark } = useTheme()
   const navigate = useNavigate()
+
+  const { data: unreadData } = useQuery({
+    queryKey: ['unreadNotificationsCount'],
+    queryFn: () => notificationsService.getUnreadCount(),
+  })
+  const unreadCount = unreadData?.data?.unreadCount ?? 0
 
   const handleLogout = async () => {
     await logout()
@@ -80,7 +88,9 @@ const Header = () => {
         </button>
         <button
           onClick={() => navigate('/notifications')}
+          title="Notifications"
           style={{
+            position: 'relative',
             background: 'none',
             border: 'none',
             color: 'var(--text-secondary)',
@@ -92,15 +102,37 @@ const Header = () => {
             gap: '0.5rem',
           }}
           onMouseEnter={(e) => {
-            e.target.style.backgroundColor = 'var(--bg-tertiary)'
-            e.target.style.color = 'var(--primary-yellow)'
+            e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'
+            e.currentTarget.style.color = 'var(--primary-yellow)'
           }}
           onMouseLeave={(e) => {
-            e.target.style.backgroundColor = 'transparent'
-            e.target.style.color = 'var(--text-secondary)'
+            e.currentTarget.style.backgroundColor = 'transparent'
+            e.currentTarget.style.color = 'var(--text-secondary)'
           }}
         >
           <Bell size={20} />
+          {unreadCount > 0 && (
+            <span
+              style={{
+                position: 'absolute',
+                top: '2px',
+                right: '2px',
+                minWidth: '18px',
+                height: '18px',
+                padding: '0 4px',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                background: 'var(--error, #ef4444)',
+                color: 'white',
+                borderRadius: '9999px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </button>
         <div
           style={{

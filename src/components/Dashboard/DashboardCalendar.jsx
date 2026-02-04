@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { useQuery } from 'react-query'
 import { schoolCalendarService, dashboardService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
+import { safeStrLower } from '../../utils/safeUtils'
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 
 const EVENT_TYPE_COLORS = {
@@ -19,15 +20,15 @@ const DashboardCalendar = () => {
   const [currentMonth, setCurrentMonth] = useState(now.getMonth())
   const [currentYear, setCurrentYear] = useState(now.getFullYear())
 
+  const roleLower = safeStrLower(user?.role)
   const { data: schoolSwitchData } = useQuery(
     ['dashboard', 'school-switching'],
     () => dashboardService.getSchoolSwitchingData(),
-    { enabled: ['Admin', 'SuperAdmin'].includes(user?.role || '') }
+    { enabled: ['admin', 'superadmin'].includes(roleLower) }
   )
 
   const schoolId = useMemo(() => {
-    const role = (user?.role || '').toString()
-    if (role === 'SuperAdmin' || role === 'Admin') {
+    if (roleLower === 'superadmin' || roleLower === 'admin') {
       const data = schoolSwitchData?.data?.data ?? schoolSwitchData?.data
       const current = data?.currentSchoolId ?? data?.currentSchool?.id ?? data?.currentSchool?.Id
       const schools = data?.availableSchools ?? []
@@ -35,7 +36,7 @@ const DashboardCalendar = () => {
       return schools?.[0]?.id ?? schools?.[0]?.Id ?? null
     }
     return null
-  }, [user?.role, schoolSwitchData])
+  }, [roleLower, schoolSwitchData])
 
   const monthStart = useMemo(() => new Date(currentYear, currentMonth, 1), [currentYear, currentMonth])
   const monthEnd = useMemo(() => new Date(currentYear, currentMonth + 1, 0), [currentYear, currentMonth])
@@ -44,9 +45,9 @@ const DashboardCalendar = () => {
 
   const params = useMemo(() => {
     const p = { page: 1, pageSize: 100, from, to }
-    if (schoolId && ['Admin', 'SuperAdmin'].includes(user?.role || '')) p.schoolId = schoolId
+    if (schoolId && ['admin', 'superadmin'].includes(roleLower)) p.schoolId = schoolId
     return p
-  }, [from, to, schoolId, user?.role])
+  }, [from, to, schoolId, roleLower])
 
   const { data, isLoading } = useQuery(
     ['schoolcalendar', 'events', from, to, schoolId],

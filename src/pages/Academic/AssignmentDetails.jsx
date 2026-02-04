@@ -8,21 +8,8 @@ import { ArrowLeft, FileText, Calendar, User, BookOpen, CheckCircle, Upload, X }
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
+import { ensureArray } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
-
-const ensureArray = (val) => {
-  if (Array.isArray(val)) return val
-  if (val == null) return []
-  if (typeof val === 'string') {
-    try {
-      const parsed = JSON.parse(val)
-      return Array.isArray(parsed) ? parsed : []
-    } catch {
-      return []
-    }
-  }
-  return []
-}
 
 const safeFormatDate = (dateVal, fmt = 'MMM dd, yyyy HH:mm') => {
   if (dateVal == null || dateVal === '') return ''
