@@ -10,6 +10,31 @@ import toast from 'react-hot-toast'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
 import logger from '../../utils/logger'
 
+const ensureArray = (val) => {
+  if (Array.isArray(val)) return val
+  if (val == null) return []
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+const safeFormatDate = (dateVal, fmt = 'MMM dd, yyyy HH:mm') => {
+  if (dateVal == null || dateVal === '') return ''
+  try {
+    const d = new Date(dateVal)
+    if (Number.isNaN(d.getTime())) return String(dateVal)
+    return format(d, fmt)
+  } catch {
+    return String(dateVal)
+  }
+}
+
 const AssignmentDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -73,7 +98,7 @@ const AssignmentDetails = () => {
   const submission = assignment.submission || assignment.Submission
   const isStudent = String(user?.role ?? '').toLowerCase() === 'student'
   const canSubmit = isStudent && !isSubmitted
-  const questions = Array.isArray(assignment.questions) ? assignment.questions : (Array.isArray(assignment.Questions) ? assignment.Questions : [])
+  const questions = ensureArray(assignment.questions ?? assignment.Questions)
 
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files)
@@ -244,7 +269,7 @@ const AssignmentDetails = () => {
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Due Date</div>
                 <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                  {format(new Date(assignment.dueDate || assignment.DueDate), 'MMM dd, yyyy HH:mm')}
+                  {safeFormatDate(assignment.dueDate ?? assignment.DueDate)}
                 </div>
               </div>
             </div>
@@ -273,8 +298,7 @@ const AssignmentDetails = () => {
                 const key = q?.id ?? q?.Id ?? index
                 const questionType = (q?.questionType ?? q?.QuestionType ?? '').toString()
                 const questionTypeLower = questionType.toLowerCase()
-                const rawOptions = q?.options ?? q?.Options
-                const options = Array.isArray(rawOptions) ? rawOptions : []
+                const options = ensureArray(q?.options ?? q?.Options)
                 const answerValue = (answers[key]?.text || '').toString()
 
                 return (
@@ -431,7 +455,7 @@ const AssignmentDetails = () => {
           {(submission.submittedAt || submission.SubmittedAt) && (
             <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
               <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                Submitted on: {format(new Date(submission.submittedAt || submission.SubmittedAt), 'MMM dd, yyyy HH:mm')}
+                Submitted on: {safeFormatDate(submission.submittedAt ?? submission.SubmittedAt)}
               </span>
             </div>
           )}
@@ -495,9 +519,9 @@ const AssignmentDetails = () => {
                     </div>
                   </div>
                 ) : null}
-                {submission.gradedAt || submission.GradedAt ? (
+                {(submission.gradedAt ?? submission.GradedAt) ? (
                   <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                    Graded on: {format(new Date(submission.gradedAt || submission.GradedAt), 'MMM dd, yyyy HH:mm')}
+                    Graded on: {safeFormatDate(submission.gradedAt ?? submission.GradedAt)}
                   </div>
                 ) : null}
               </div>
@@ -599,7 +623,11 @@ const AssignmentDetails = () => {
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={submitMutation.isLoading || (!submissionText.trim() && files.length === 0)}
+                disabled={submitMutation.isLoading || (files.length === 0 && !questions.some((q) => {
+                  const k = q?.id ?? q?.Id
+                  const t = answers[k]?.text
+                  return t != null && String(t).trim() !== ''
+                }))}
               >
                 {submitMutation.isLoading ? 'Submitting...' : 'Submit Assignment'}
               </button>
