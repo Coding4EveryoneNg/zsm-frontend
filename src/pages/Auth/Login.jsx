@@ -197,17 +197,6 @@ const Login = () => {
           </button>
         </form>
 
-        <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            Don't have an account?{' '}
-            <Link
-              to="/register"
-              style={{ color: 'var(--primary-orange)', textDecoration: 'none' }}
-            >
-              Register here
-            </Link>
-          </p>
-        </div>
       </div>
     </div>
   )

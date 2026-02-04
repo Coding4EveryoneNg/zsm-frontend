@@ -26,6 +26,9 @@ const Sidebar = () => {
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
+  const roleLower = String(user?.role ?? '').toLowerCase()
+  const hasRole = (roles) => Array.isArray(roles) && roles.some((r) => String(r).toLowerCase() === roleLower)
+
   const isActive = (path) => {
     if (path === '/dashboard') {
       return location.pathname.startsWith('/dashboard')
@@ -154,7 +157,7 @@ const Sidebar = () => {
   ]
 
   const filteredMenuItems = menuItems.filter((item) =>
-    item.roles.includes(user?.role)
+    hasRole(item.roles)
   )
 
   const handleNavigate = (path) => {
@@ -245,7 +248,7 @@ const Sidebar = () => {
             {item.submenu && active && (
               <div style={{ paddingLeft: '2rem', marginTop: '0.5rem' }}>
                 {item.submenu
-                  .filter((sub) => sub.roles.includes(user?.role))
+                  .filter((sub) => hasRole(sub.roles))
                   .map((sub) => (
                     <button
                       key={sub.path}

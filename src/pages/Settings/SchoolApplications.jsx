@@ -14,8 +14,9 @@ const SchoolApplications = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
   const queryClient = useQueryClient()
-  const isSuperAdmin = user?.role === 'SuperAdmin'
-  const isAdmin = user?.role === 'Admin'
+  const roleLower = String(user?.role ?? '').toLowerCase()
+  const isSuperAdmin = roleLower === 'superadmin'
+  const isAdmin = roleLower === 'admin'
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [searchTerm, setSearchTerm] = useState('')

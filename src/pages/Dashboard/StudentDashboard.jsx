@@ -12,17 +12,17 @@ import { ensureArray, safeFormatDate, safeStrLower } from '../../utils/safeUtils
 import logger from '../../utils/logger'
 
 const StudentDashboard = () => {
-  const { data: dashboardData, isLoading, error } = useQuery(
+  const { data: dashboardData, isLoading, error, refetch } = useQuery(
     'studentDashboard',
     () => dashboardService.getStudentDashboard(),
     { 
       refetchInterval: 30000,
       retry: 1,
       onError: (err) => {
-        logger.error('Student dashboard error:', err)
+        try { logger.error('Student dashboard error:', err) } catch (_) {}
       },
       onSuccess: (data) => {
-        logger.debug('Student dashboard success:', data)
+        try { logger.debug('Student dashboard success:', data) } catch (_) {}
       }
     }
   )
@@ -30,7 +30,6 @@ const StudentDashboard = () => {
   if (isLoading) return <Loading />
 
   if (error) {
-    try { logger.error('Dashboard error details:', error) } catch (_) {}
     return (
       <div className="page-container">
         <div style={{ marginBottom: '2rem' }}>
@@ -44,9 +43,9 @@ const StudentDashboard = () => {
             <p className="empty-state-subtext">
               {getErrorMessage(error) || 'Please try again later'}
             </p>
-            <div style={{ marginTop: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-              <p>Please check the browser console (F12) for more details.</p>
-            </div>
+            <button type="button" className="btn btn-primary" onClick={() => refetch()} style={{ marginTop: '1rem' }}>
+              Try again
+            </button>
           </div>
         </div>
       </div>
@@ -67,13 +66,18 @@ const StudentDashboard = () => {
   }
 
   // Handle different response structures (wrap in try so any unexpected shape doesn't crash the page)
+  let body = {}
+  let safeDashboard = {}
   try {
-  // Interceptor returns response.data. API body is either { success, data: StudentDashboardData } or just StudentDashboardData
-  const body = dashboardData && typeof dashboardData === 'object' ? dashboardData : {}
-  const isApiWrapper = body.success !== undefined && body.data !== undefined
-  const safeDashboard = (isApiWrapper && body.data && typeof body.data === 'object' && !Array.isArray(body.data))
-    ? body.data
-    : (body?.success === false ? {} : (body && typeof body === 'object' && !Array.isArray(body) ? body : {}))
+    body = dashboardData && typeof dashboardData === 'object' ? dashboardData : {}
+    const isApiWrapper = body.success !== undefined && body.data !== undefined
+    safeDashboard = (isApiWrapper && body.data && typeof body.data === 'object' && !Array.isArray(body.data))
+      ? body.data
+      : (body?.success === false ? {} : (body && typeof body === 'object' && !Array.isArray(body) ? body : {}))
+  } catch (_) {
+    safeDashboard = {}
+  }
+  try {
 
   try {
     logger.debug('Dashboard raw data:', dashboardData)
@@ -109,23 +113,31 @@ const StudentDashboard = () => {
   const safeCharts = charts
   const convertedCharts = safeCharts.map(chart => {
     if (!chart || typeof chart !== 'object') return null
-    const labels = Array.isArray(chart.labels ?? chart.Labels) ? (chart.labels ?? chart.Labels) : []
-    const rawDatasets = chart.datasets ?? chart.Datasets
-    const datasets = Array.isArray(rawDatasets) ? rawDatasets.map(ds => ({
-      label: ds?.label ?? ds?.Label ?? '',
-      data: Array.isArray(ds?.data ?? ds?.Data) ? (ds.data ?? ds.Data) : [],
-      backgroundColor: ds?.backgroundColor ?? ds?.BackgroundColor ?? chartColors.primary,
-      borderColor: ds?.borderColor ?? ds?.BorderColor ?? chartColors.primary,
-    })) : []
-    const type = safeStrLower(chart.type ?? chart.Type, 'bar') || 'bar'
-    return {
-      id: chart.id ?? chart.Id,
-      title: chart.title ?? chart.Title ?? '',
-      type,
-      labels,
-      datasets,
+    try {
+      const labels = Array.isArray(chart.labels ?? chart.Labels) ? (chart.labels ?? chart.Labels) : []
+      const rawDatasets = chart.datasets ?? chart.Datasets
+      const datasets = Array.isArray(rawDatasets) ? rawDatasets.map(ds => {
+        const rawData = ds?.data ?? ds?.Data
+        const dataArr = Array.isArray(rawData) ? rawData.map((v) => (typeof v === 'number' && !Number.isNaN(v) ? v : Number(v) || 0)) : []
+        return {
+          label: String(ds?.label ?? ds?.Label ?? ''),
+          data: dataArr,
+          backgroundColor: ds?.backgroundColor ?? ds?.BackgroundColor ?? chartColors.primary,
+          borderColor: ds?.borderColor ?? ds?.BorderColor ?? chartColors.primary,
+        }
+      }) : []
+      const type = safeStrLower(chart.type ?? chart.Type, 'bar') || 'bar'
+      return {
+        id: chart.id ?? chart.Id,
+        title: chart.title ?? chart.Title ?? '',
+        type,
+        labels,
+        datasets,
+      }
+    } catch (_) {
+      return null
     }
-  }).filter(chart => chart !== null && Array.isArray(chart.labels) && Array.isArray(chart.datasets))
+  }).filter(chart => chart !== null && Array.isArray(chart?.labels) && Array.isArray(chart?.datasets))
 
   const avgNum = typeof stats.averageScore === 'number' && !Number.isNaN(stats.averageScore) ? stats.averageScore : 0
   const statCards = [
@@ -383,6 +395,9 @@ const StudentDashboard = () => {
           <div className="card-header"><h2 className="card-title">Student Dashboard</h2></div>
           <div className="card-body">
             <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>Something went wrong while loading the dashboard. Please try again.</p>
+            <button type="button" className="btn btn-primary" onClick={() => typeof refetch === 'function' && refetch()}>
+              Try again
+            </button>
           </div>
         </div>
       </div>
