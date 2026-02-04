@@ -27,10 +27,8 @@ const TakeExamination = () => {
         refetch()
       },
       onError: (error) => {
-        const errorMessage = error?.response?.data?.message || 
-                           error?.response?.data?.errors?.[0] || 
-                           'Failed to start examination'
-        toast.error(errorMessage)
+        const msg = error?.response?.data?.message ?? error?.response?.data?.errors?.[0] ?? 'Failed to start examination'
+        toast.error(typeof msg === 'string' ? msg : 'Failed to start examination')
       }
     }
   )
@@ -44,10 +42,11 @@ const TakeExamination = () => {
       retry: false,
       onSuccess: (data) => {
         const exam = data?.data || data
-        if (exam?.questions) {
+        const qList = Array.isArray(exam?.questions) ? exam.questions : []
+        if (qList.length > 0) {
           // Initialize answers from existing student answers
           const initialAnswers = {}
-          exam.questions.forEach(q => {
+          qList.forEach(q => {
             const qId = q.id || q.Id
             if (q.studentAnswer || q.studentAnswerData) {
               initialAnswers[qId] = {
@@ -64,11 +63,8 @@ const TakeExamination = () => {
       },
       onError: (error) => {
         // Check if error is about needing to start the exam
-        const errorMessage = error?.response?.data?.message || 
-                           error?.response?.data?.errors?.[0] || 
-                           error?.message || ''
-        const needsStart = errorMessage.toLowerCase().includes('start') || 
-                          errorMessage.toLowerCase().includes('must start')
+        const errMsg = String(error?.response?.data?.message ?? error?.response?.data?.errors?.[0] ?? error?.message ?? '')
+        const needsStart = errMsg.toLowerCase().includes('start') || errMsg.toLowerCase().includes('must start')
         
         if (error?.response?.status === 400 && needsStart) {
           // Auto-start the examination
@@ -83,11 +79,8 @@ const TakeExamination = () => {
   // Auto-start when component mounts if exam hasn't been started
   useEffect(() => {
     if (id && error && error?.response?.status === 400) {
-      const errorMessage = error?.response?.data?.message || 
-                         error?.response?.data?.errors?.[0] || 
-                         error?.message || ''
-      const needsStart = errorMessage.toLowerCase().includes('start') || 
-                        errorMessage.toLowerCase().includes('must start')
+      const errMsg = String(error?.response?.data?.message ?? error?.response?.data?.errors?.[0] ?? error?.message ?? '')
+      const needsStart = errMsg.toLowerCase().includes('start') || errMsg.toLowerCase().includes('must start')
       
       if (needsStart && !startMutation.isLoading && !startMutation.isSuccess) {
         startMutation.mutate()
@@ -195,7 +188,8 @@ const TakeExamination = () => {
 
   const handleSubmit = useCallback(async (autoSubmit = false) => {
     const exam = data?.data || data
-    if (!exam?.questions) return
+    const qList = Array.isArray(exam?.questions) ? exam.questions : []
+    if (qList.length === 0) return
 
     const submissionId = exam.submissionId || exam.SubmissionId
     if (!submissionId) {
@@ -203,7 +197,7 @@ const TakeExamination = () => {
       return
     }
 
-    const submitAnswers = exam.questions.map(q => {
+    const submitAnswers = qList.map(q => {
       const qId = q.id || q.Id
       return {
         questionId: qId,
@@ -217,7 +211,7 @@ const TakeExamination = () => {
       const formData = new FormData()
       formData.append('submissionId', submissionId)
       formData.append('answers', JSON.stringify(submitAnswers))
-      exam.questions.forEach(q => {
+      qList.forEach(q => {
         const qId = q.id || q.Id
         const files = fileUploads[qId]
         if (files && files.length > 0) {
@@ -260,11 +254,8 @@ const TakeExamination = () => {
   }
 
   // Check if error is about needing to start (which we're handling)
-  const errorMessage = error?.response?.data?.message || 
-                      error?.response?.data?.errors?.[0] || 
-                      error?.message || ''
-  const needsStart = errorMessage.toLowerCase().includes('start') || 
-                    errorMessage.toLowerCase().includes('must start')
+  const errorMessage = String(error?.response?.data?.message ?? error?.response?.data?.errors?.[0] ?? error?.message ?? '')
+  const needsStart = errorMessage.toLowerCase().includes('start') || errorMessage.toLowerCase().includes('must start')
 
   // Only show error if it's not about needing to start (we handle that automatically)
   if (error && !needsStart && !startMutation.isLoading) {
@@ -291,8 +282,8 @@ const TakeExamination = () => {
     return <Loading />
   }
 
-  const questions = exam.questions || []
-  const unansweredCount = questions.filter(q => !answers[q.id]?.text && !answers[q.id]?.data).length
+  const questions = Array.isArray(exam.questions) ? exam.questions : []
+  const unansweredCount = questions.filter(q => !answers[q?.id ?? q?.Id]?.text && !answers[q?.id ?? q?.Id]?.data).length
 
   return (
     <div className="page-container">
@@ -374,19 +365,19 @@ const TakeExamination = () => {
       {/* Questions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
         {questions.map((question, index) => {
-          const questionId = question.id || question.Id
-          const questionType = question.questionType || question.QuestionType || ''
-          const questionTypeLower = questionType.toString().toLowerCase()
-          const options = question.options || question.Options
+          const questionId = question?.id ?? question?.Id
+          const questionType = question?.questionType ?? question?.QuestionType ?? ''
+          const questionTypeLower = String(questionType).toLowerCase()
+          const options = question?.options ?? question?.Options
           let parsedOptions = []
-          
           try {
-            if (options) {
+            if (options != null) {
               parsedOptions = typeof options === 'string' ? JSON.parse(options) : (Array.isArray(options) ? options : [])
             }
           } catch (e) {
             console.error('Failed to parse options:', e)
           }
+          if (!Array.isArray(parsedOptions)) parsedOptions = []
 
           const currentAnswer = answers[questionId]?.text || answers[questionId]?.data || ''
 
