@@ -211,15 +211,38 @@ const AssignmentDetails = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {assignment.questions.map((q, index) => (
                 <div key={q.id || q.Id || index} style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                      Question {index + 1} {q.isRequired || q.IsRequired ? '(Required)' : ''}
-                    </span>
-                    <span style={{ color: 'var(--text-muted)' }}>{q.marks || q.Marks} marks</span>
-                  </div>
-                  <p style={{ color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
-                    {q.questionText || q.QuestionText}
-                  </p>
+                  {(() => {
+                    const questionType = (q.questionType || q.QuestionType || '').toString()
+                    const options = q.options || q.Options || []
+                    return (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                          <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                            Question {index + 1} {q.isRequired || q.IsRequired ? '(Required)' : ''}
+                          </span>
+                          <span style={{ color: 'var(--text-muted)' }}>{q.marks || q.Marks} marks</span>
+                        </div>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                          Type: {questionType || 'N/A'}
+                        </div>
+                        <p style={{ color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', marginBottom: options && options.length > 0 ? '0.5rem' : 0 }}>
+                          {q.questionText || q.QuestionText}
+                        </p>
+                        {questionType === 'MultipleChoice' && Array.isArray(options) && options.length > 0 && (
+                          <ul style={{ paddingLeft: '1.25rem', margin: 0, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                            {options.map((opt, i) => (
+                              <li key={i}>{opt}</li>
+                            ))}
+                          </ul>
+                        )}
+                        {questionType === 'TrueFalse' && (
+                          <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                            Options: True / False
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
                 </div>
               ))}
             </div>
@@ -346,10 +369,24 @@ const AssignmentDetails = () => {
                 placeholder="Enter your answer here..."
               />
               <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                Or upload files below (or both)
+                Or upload files below (or both) for theory questions
               </div>
             </div>
 
+            {(() => {
+              const questions = assignment.questions || assignment.Questions || []
+              const hasTheoryQuestion =
+                questions.length === 0 ||
+                questions.some((q) => {
+                  const qt = (q.questionType || q.QuestionType || '').toString().toLowerCase()
+                  return qt === 'essay' || qt === 'shortanswer'
+                })
+
+              if (!hasTheoryQuestion) {
+                return null
+              }
+
+              return (
             <div style={{ marginBottom: '1.5rem' }}>
               <label htmlFor="files" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                 Attach Files (Optional)
@@ -404,6 +441,8 @@ const AssignmentDetails = () => {
                 </div>
               )}
             </div>
+              )
+            })()}
 
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
               <button
