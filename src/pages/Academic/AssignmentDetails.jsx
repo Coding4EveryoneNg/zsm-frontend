@@ -15,7 +15,7 @@ const AssignmentDetails = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
   const queryClient = useQueryClient()
-  const [submissionText, setSubmissionText] = useState('')
+  const [answers, setAnswers] = useState({})
   const [files, setFiles] = useState([])
   const [fileErrors, setFileErrors] = useState([])
 
@@ -71,6 +71,7 @@ const AssignmentDetails = () => {
   const submission = assignment.submission || assignment.Submission
   const isStudent = user?.role === 'Student'
   const canSubmit = isStudent && !isSubmitted
+  const questions = assignment.questions || assignment.Questions || []
 
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files)
@@ -99,14 +100,39 @@ const AssignmentDetails = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!submissionText.trim() && files.length === 0) {
-      toast.error('Please provide either submission text or upload at least one file.')
+    // Build submission text from per-question answers (MC/TF and theory)
+    const answerLines = []
+    let hasAnyAnswer = false
+
+    questions.forEach((q, index) => {
+      const key = q.id || q.Id || index
+      const questionType = (q.questionType || q.QuestionType || '').toString()
+      const isRequired = q.isRequired || q.IsRequired
+      const rawAnswer = (answers[key]?.text || '').toString().trim()
+
+      if (isRequired && !rawAnswer) {
+        hasAnyAnswer = false
+      }
+
+      if (rawAnswer) {
+        hasAnyAnswer = true
+      }
+
+      const label = `Q${index + 1}${questionType ? ` (${questionType})` : ''}`
+      const line = `${label}: ${rawAnswer || '[No answer]'}`.trim()
+      answerLines.push(line)
+    })
+
+    if (!hasAnyAnswer && files.length === 0) {
+      toast.error('Please answer at least one question or upload at least one file.')
       return
     }
 
+    const submissionTextComputed = answerLines.join('\n\n')
+
     const formData = new FormData()
-    if (submissionText.trim()) {
-      formData.append('SubmissionText', submissionText)
+    if (submissionTextComputed.trim()) {
+      formData.append('SubmissionText', submissionTextComputed)
     }
     files.forEach((file) => {
       formData.append('SubmissionFiles', file)
@@ -203,48 +229,131 @@ const AssignmentDetails = () => {
         </div>
 
         {/* Questions Section */}
-        {assignment.questions && assignment.questions.length > 0 && (
+        {questions && questions.length > 0 && (
           <div style={{ marginBottom: '1.5rem' }}>
             <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', marginBottom: '1rem', color: 'var(--text-primary)' }}>
               Questions
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {assignment.questions.map((q, index) => (
-                <div key={q.id || q.Id || index} style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                  {(() => {
-                    const questionType = (q.questionType || q.QuestionType || '').toString()
-                    const options = q.options || q.Options || []
-                    return (
-                      <>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                          <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                            Question {index + 1} {q.isRequired || q.IsRequired ? '(Required)' : ''}
-                          </span>
-                          <span style={{ color: 'var(--text-muted)' }}>{q.marks || q.Marks} marks</span>
-                        </div>
-                        <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                          Type: {questionType || 'N/A'}
-                        </div>
-                        <p style={{ color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', marginBottom: options && options.length > 0 ? '0.5rem' : 0 }}>
-                          {q.questionText || q.QuestionText}
-                        </p>
-                        {questionType === 'MultipleChoice' && Array.isArray(options) && options.length > 0 && (
-                          <ul style={{ paddingLeft: '1.25rem', margin: 0, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+              {questions.map((q, index) => {
+                const key = q.id || q.Id || index
+                const questionType = (q.questionType || q.QuestionType || '').toString()
+                const questionTypeLower = questionType.toLowerCase()
+                const options = q.options || q.Options || []
+                const answerValue = (answers[key]?.text || '').toString()
+
+                return (
+                  <div key={key} style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                        Question {index + 1} {q.isRequired || q.IsRequired ? '(Required)' : ''}
+                      </span>
+                      <span style={{ color: 'var(--text-muted)' }}>{q.marks || q.Marks} marks</span>
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                      Type: {questionType || 'N/A'}
+                    </div>
+                    <p style={{ color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', marginBottom: (questionTypeLower === 'multiplechoice' || questionTypeLower === 'truefalse' || (Array.isArray(options) && options.length > 0)) ? '0.5rem' : 0 }}>
+                      {q.questionText || q.QuestionText}
+                    </p>
+
+                    {/* Show options for MC/TF */}
+                    {questionTypeLower === 'multiplechoice' && Array.isArray(options) && options.length > 0 && (
+                      <div style={{ marginBottom: canSubmit ? '0.5rem' : 0 }}>
+                        <ul style={{ paddingLeft: '1.25rem', margin: 0, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                          {options.map((opt, i) => (
+                            <li key={i}>{opt}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {questionTypeLower === 'truefalse' && (
+                      <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: canSubmit ? '0.5rem' : 0 }}>
+                        Options: True / False
+                      </div>
+                    )}
+
+                    {/* Answer input for student submission */}
+                    {canSubmit && (
+                      <div style={{ marginTop: '0.5rem' }}>
+                        {questionTypeLower === 'multiplechoice' && Array.isArray(options) && options.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                             {options.map((opt, i) => (
-                              <li key={i}>{opt}</li>
+                              <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
+                                <input
+                                  type="radio"
+                                  name={`q-${key}`}
+                                  value={opt}
+                                  checked={answerValue === opt}
+                                  onChange={() =>
+                                    setAnswers((prev) => ({
+                                      ...prev,
+                                      [key]: { text: opt }
+                                    }))
+                                  }
+                                />
+                                <span>{opt}</span>
+                              </label>
                             ))}
-                          </ul>
-                        )}
-                        {questionType === 'TrueFalse' && (
-                          <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                            Options: True / False
                           </div>
                         )}
-                      </>
-                    )
-                  })()}
-                </div>
-              ))}
+
+                        {questionTypeLower === 'truefalse' && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            {['True', 'False'].map((opt) => (
+                              <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
+                                <input
+                                  type="radio"
+                                  name={`q-${key}`}
+                                  value={opt}
+                                  checked={answerValue === opt}
+                                  onChange={() =>
+                                    setAnswers((prev) => ({
+                                      ...prev,
+                                      [key]: { text: opt }
+                                    }))
+                                  }
+                                />
+                                <span>{opt}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+
+                        {(questionTypeLower !== 'multiplechoice' && questionTypeLower !== 'truefalse') && (
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                              Your Answer
+                            </label>
+                            <textarea
+                              rows={questionTypeLower === 'shortanswer' ? 3 : 6}
+                              style={{
+                                width: '100%',
+                                padding: '0.5rem',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '6px',
+                                fontSize: '0.95rem',
+                                fontFamily: 'inherit',
+                                resize: 'vertical',
+                                backgroundColor: 'var(--bg-primary)',
+                                color: 'var(--text-primary)'
+                              }}
+                              value={answerValue}
+                              onChange={(e) =>
+                                setAnswers((prev) => ({
+                                  ...prev,
+                                  [key]: { text: e.target.value }
+                                }))
+                              }
+                              placeholder="Type your answer here..."
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
@@ -343,38 +452,10 @@ const AssignmentDetails = () => {
             Submit Assignment
           </h2>
           <p style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-            You have not completed this assignment yet. Enter your answer and/or attach files below, then submit.
+            You have not completed this assignment yet. Answer the questions above and/or attach files for theory questions, then submit.
           </p>
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label htmlFor="submissionText" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                Your Answer <span style={{ color: 'var(--danger)' }}>*</span>
-              </label>
-              <textarea
-                id="submissionText"
-                value={submissionText}
-                onChange={(e) => setSubmissionText(e.target.value)}
-                rows={10}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '8px',
-                  fontSize: '1rem',
-                  fontFamily: 'inherit',
-                  resize: 'vertical',
-                  backgroundColor: 'var(--bg-primary)',
-                  color: 'var(--text-primary)'
-                }}
-                placeholder="Enter your answer here..."
-              />
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                Or upload files below (or both) for theory questions
-              </div>
-            </div>
-
             {(() => {
-              const questions = assignment.questions || assignment.Questions || []
               const hasTheoryQuestion =
                 questions.length === 0 ||
                 questions.some((q) => {
