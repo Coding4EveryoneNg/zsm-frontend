@@ -8,6 +8,7 @@ import { FileText, CheckCircle, Clock, User, BookOpen, Filter, X, Star } from 'l
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
+import { safeStrLower } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 
 const TeacherSubmissions = () => {
@@ -154,7 +155,7 @@ const TeacherSubmissions = () => {
   const totalPages = data?.data?.totalPages || data?.data?.TotalPages || 0
 
   const getStatusBadge = (status) => {
-    const statusLower = (status || '').toLowerCase()
+    const statusLower = safeStrLower(status)
     if (statusLower === 'graded') {
       return <span className="badge badge-success">Graded</span>
     } else if (statusLower === 'submitted') {
@@ -493,7 +494,7 @@ const TeacherSubmissions = () => {
                           if (e.target.checked) {
                             setSelectedSubmissions(submissions.filter(s => {
                               const status = s.status || s.Status || 'Pending'
-                              return status.toLowerCase() !== 'graded'
+                              return safeStrLower(status) !== 'graded'
                             }))
                           } else {
                             setSelectedSubmissions([])
@@ -518,7 +519,7 @@ const TeacherSubmissions = () => {
                     const submittedAt = submission.submittedAt || submission.SubmittedAt
                     const status = submission.status || submission.Status || 'Pending'
                     const score = submission.score || submission.Score
-                    const isGraded = status.toLowerCase() === 'graded'
+                    const isGraded = safeStrLower(status) === 'graded'
                     const isSelected = selectedSubmissions.some(s => 
                       (s.submissionId || s.SubmissionId) === submissionId
                     )

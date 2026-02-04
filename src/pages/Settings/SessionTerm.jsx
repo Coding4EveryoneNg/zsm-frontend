@@ -6,6 +6,7 @@ import Loading from '../../components/Common/Loading'
 import ConfirmDialog from '../../components/Common/ConfirmDialog'
 import { Calendar, Plus, BookMarked, Eye, Edit2, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { safeStrLower } from '../../utils/safeUtils'
 
 const SessionTerm = () => {
   const { user } = useAuth()
@@ -23,11 +24,11 @@ const SessionTerm = () => {
   const [editingTermForm, setEditingTermForm] = useState({ name: '', termNumber: 1, startDate: '', endDate: '', isCurrent: false })
   const [deletingTermId, setDeletingTermId] = useState(null)
 
-  const role = (user?.role || user?.Role || '').toString()
-  const canManage = ['Admin', 'Principal', 'SuperAdmin'].some((r) => role.toLowerCase() === r.toLowerCase())
-  const isSuperAdmin = role.toLowerCase() === 'superadmin'
-  const isAdmin = role.toLowerCase() === 'admin'
-  const canEditDelete = ['Admin', 'SuperAdmin'].some((r) => role.toLowerCase() === r.toLowerCase())
+  const roleLower = safeStrLower(user?.role ?? user?.Role)
+  const canManage = ['admin', 'principal', 'superadmin'].some((r) => roleLower === r)
+  const isSuperAdmin = roleLower === 'superadmin'
+  const isAdmin = roleLower === 'admin'
+  const canEditDelete = ['admin', 'superadmin'].some((r) => roleLower === r)
   const canDelete = isSuperAdmin
   const showSchoolDropdown = isSuperAdmin || isAdmin
 

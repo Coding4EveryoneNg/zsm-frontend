@@ -9,6 +9,7 @@ import { defaultChartOptions, chartColors, createBarChartData, createLineChartDa
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
+import { safeStrLower } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 
 const Reports = () => {
@@ -271,7 +272,8 @@ const Reports = () => {
       }
     }
 
-    switch (chart.type?.toLowerCase()) {
+    const chartType = safeStrLower(chart.type)
+    switch (chartType) {
       case 'bar':
         return <Bar data={chart} options={chartOptions} />
       case 'line':
@@ -634,7 +636,7 @@ const Reports = () => {
                       <td>{subject.classRank || subject.ClassRank || 'N/A'} / {subject.totalStudentsInClass || subject.TotalStudentsInClass || 'N/A'}</td>
                       <td>{subject.performanceLevel || subject.PerformanceLevel || 'N/A'}</td>
                       <td>
-                        <span className={`badge ${(subject.trend || subject.Trend || '').toLowerCase() === 'improving' ? 'badge-success' : (subject.trend || subject.Trend || '').toLowerCase() === 'declining' ? 'badge-danger' : 'badge-secondary'}`}>
+                        <span className={`badge ${safeStrLower(subject.trend ?? subject.Trend) === 'improving' ? 'badge-success' : safeStrLower(subject.trend ?? subject.Trend) === 'declining' ? 'badge-danger' : 'badge-secondary'}`}>
                           {subject.trend || subject.Trend || 'N/A'}
                         </span>
                       </td>

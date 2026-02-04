@@ -31,7 +31,8 @@ const Notifications = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('notifications')
-        queryClient.invalidateQueries('dashboard') // Refresh dashboard unread count
+        queryClient.invalidateQueries('dashboard')
+        queryClient.invalidateQueries('unreadNotificationsCount')
       }
     }
   )
@@ -42,6 +43,7 @@ const Notifications = () => {
       onSuccess: () => {
         queryClient.invalidateQueries('notifications')
         queryClient.invalidateQueries('dashboard')
+        queryClient.invalidateQueries('unreadNotificationsCount')
       }
     }
   )

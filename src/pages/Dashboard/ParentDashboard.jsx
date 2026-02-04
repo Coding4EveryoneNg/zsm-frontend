@@ -7,6 +7,7 @@ import Loading from '../../components/Common/Loading'
 import { Users, Award, CreditCard, FileText, Zap, BookOpen, TrendingUp, ClipboardList, Clock, CheckCircle } from 'lucide-react'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import { defaultChartOptions, chartColors, createPieChartData } from '../../utils/chartConfig'
+import { safeStrLower } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 
 const ParentDashboard = () => {
@@ -149,7 +150,8 @@ const ParentDashboard = () => {
       }
     }
 
-    switch (chart.type?.toLowerCase()) {
+    const chartType = safeStrLower(chart.type)
+    switch (chartType) {
       case 'bar':
         return <Bar data={chart} options={chartOptions} />
       case 'line':

@@ -7,6 +7,7 @@ import Loading from '../../components/Common/Loading'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import { Users, GraduationCap, School, BookOpen, Zap, Plus, Eye, CreditCard, FileText, Settings } from 'lucide-react'
 import { defaultChartOptions } from '../../utils/chartConfig'
+import { safeStrLower } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 
 const AdminDashboard = () => {
@@ -59,7 +60,8 @@ const AdminDashboard = () => {
       }
     }
 
-    switch (chart.type?.toLowerCase()) {
+    const chartType = safeStrLower(chart.type)
+    switch (chartType) {
       case 'bar':
         return <Bar data={chart} options={chartOptions} />
       case 'line':
