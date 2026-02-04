@@ -68,33 +68,24 @@ const StudentDashboard = () => {
 
   // Handle different response structures (wrap in try so any unexpected shape doesn't crash the page)
   try {
-  // API returns: { success: true, data: StudentDashboardData }
-  const dashboard = dashboardData?.success === false
-    ? null
-    : (dashboardData?.data ?? dashboardData ?? {})
+  // Interceptor returns response.data. API body is either { success, data: StudentDashboardData } or just StudentDashboardData
+  const body = dashboardData && typeof dashboardData === 'object' ? dashboardData : {}
+  const isApiWrapper = body.success !== undefined && body.data !== undefined
+  const safeDashboard = (isApiWrapper && body.data && typeof body.data === 'object' && !Array.isArray(body.data))
+    ? body.data
+    : (body?.success === false ? {} : (body && typeof body === 'object' && !Array.isArray(body) ? body : {}))
 
   try {
     logger.debug('Dashboard raw data:', dashboardData)
-    logger.debug('Dashboard processed data:', dashboard)
-    logger.debug('Dashboard data structure:', {
-      hasData: !!dashboardData,
-      success: dashboardData?.success,
-      hasDataProperty: !!dashboardData?.data,
-      dashboardKeys: dashboard && typeof dashboard === 'object' ? Object.keys(dashboard) : [],
-      dashboardType: typeof dashboard,
-      isArray: Array.isArray(dashboard)
-    })
+    logger.debug('Dashboard body:', body)
+    logger.debug('Dashboard payload:', safeDashboard)
   } catch (_) { /* never let logger throw */ }
 
-  if (dashboardData?.success === false) {
-    try { logger.error('Dashboard API returned error:', dashboardData.errors || dashboardData.message) } catch (_) {}
+  if (body?.success === false) {
+    try { logger.error('Dashboard API returned error:', body.errors || body.message) } catch (_) {}
   }
 
-  const safeDashboard = dashboard && typeof dashboard === 'object' && !Array.isArray(dashboard) ? dashboard : {}
-
-  // Extract data from StudentDashboardData structure
-  // API returns StudentDashboardData with properties: TotalAssignments, PendingAssignments, CompletedAssignments, AverageGrade, RecentAssignments, RecentGrades, etc.
-  // Handle both camelCase (default JSON serialization) and PascalCase (if configured differently)
+  // Extract data from StudentDashboardData structure (camelCase or PascalCase)
   const rawAverage = safeDashboard.averageGrade ?? safeDashboard.AverageGrade ?? 0
   const upcomingEventsList = ensureArray(safeDashboard.upcomingEvents ?? safeDashboard.UpcomingEvents)
   const stats = {
@@ -126,21 +117,22 @@ const StudentDashboard = () => {
       backgroundColor: ds?.backgroundColor ?? ds?.BackgroundColor ?? chartColors.primary,
       borderColor: ds?.borderColor ?? ds?.BorderColor ?? chartColors.primary,
     })) : []
-    const type = (chart.type ?? chart.Type ?? 'bar')
+    const type = safeStrLower(chart.type ?? chart.Type, 'bar') || 'bar'
     return {
       id: chart.id ?? chart.Id,
       title: chart.title ?? chart.Title ?? '',
-      type: typeof type === 'string' ? type.toLowerCase() : 'bar',
+      type,
       labels,
       datasets,
     }
   }).filter(chart => chart !== null && Array.isArray(chart.labels) && Array.isArray(chart.datasets))
 
+  const avgNum = typeof stats.averageScore === 'number' && !Number.isNaN(stats.averageScore) ? stats.averageScore : 0
   const statCards = [
     { title: 'Active Assignments', value: stats.activeAssignments || 0, icon: FileText, color: 'var(--primary-yellow)' },
     { title: 'Upcoming Exams', value: stats.upcomingExams || 0, icon: ClipboardList, color: 'var(--info)' },
     { title: 'Completed Assignments', value: stats.completedCourses || 0, icon: BookOpen, color: 'var(--success)' },
-    { title: 'Average Grade', value: `${stats.averageScore?.toFixed(1) || 0}%`, icon: TrendingUp, color: 'var(--warning)' },
+    { title: 'Average Grade', value: `${Number(avgNum).toFixed(1)}%`, icon: TrendingUp, color: 'var(--warning)' },
   ]
 
   // Prepare chart data (ensure subjectPerformance is array to avoid .map throw)
@@ -196,7 +188,7 @@ const StudentDashboard = () => {
   }
 
   // Show error banner if there was an error but we still have some data
-  const hasError = dashboardData?.success === false
+  const hasError = body?.success === false
 
   // Ensure we always have valid data structures to prevent rendering errors
   const safeRecentAssignments = Array.isArray(recentAssignments) ? recentAssignments : []
@@ -209,15 +201,15 @@ const StudentDashboard = () => {
         <div className="card" style={{ marginBottom: '1.5rem', backgroundColor: 'var(--danger-light)', border: '1px solid var(--danger)' }}>
           <div style={{ padding: '1rem' }}>
             <p style={{ color: 'var(--danger)', fontWeight: 'bold', marginBottom: '0.5rem' }}>Error loading dashboard data</p>
-            {Array.isArray(dashboardData?.errors) && dashboardData.errors.length > 0 && (
+            {Array.isArray(body?.errors) && body.errors.length > 0 && (
               <ul style={{ margin: 0, paddingLeft: '1.5rem', color: 'var(--danger)' }}>
-                {dashboardData.errors.map((err, idx) => (
+                {body.errors.map((err, idx) => (
                   <li key={idx} style={{ fontSize: '0.875rem' }}>{typeof err === 'string' ? err : String(err)}</li>
                 ))}
               </ul>
             )}
-            {dashboardData?.message && (
-              <p style={{ color: 'var(--danger)', fontSize: '0.875rem', marginTop: '0.5rem' }}>{dashboardData.message}</p>
+            {body?.message && (
+              <p style={{ color: 'var(--danger)', fontSize: '0.875rem', marginTop: '0.5rem' }}>{body.message}</p>
             )}
           </div>
         </div>
