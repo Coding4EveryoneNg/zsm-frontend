@@ -81,31 +81,44 @@ const StudentDashboard = () => {
   // Ensure dashboard is always an object - MUST BE DEFINED BEFORE USE
   const safeDashboard = dashboard && typeof dashboard === 'object' && !Array.isArray(dashboard) ? dashboard : {}
   
+  // Ensure value is an array (API may return string or object)
+  const ensureArray = (val) => {
+    if (Array.isArray(val)) return val
+    if (val == null) return []
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    }
+    return []
+  }
+
   // Extract data from StudentDashboardData structure
   // API returns StudentDashboardData with properties: TotalAssignments, PendingAssignments, CompletedAssignments, AverageGrade, RecentAssignments, RecentGrades, etc.
   // Handle both camelCase (default JSON serialization) and PascalCase (if configured differently)
   const rawAverage = safeDashboard.averageGrade ?? safeDashboard.AverageGrade ?? 0
+  const upcomingEventsList = ensureArray(safeDashboard.upcomingEvents ?? safeDashboard.UpcomingEvents)
   const stats = {
     activeAssignments: safeDashboard.pendingAssignments ?? safeDashboard.PendingAssignments ?? 0,
-    upcomingExams: Array.isArray(safeDashboard.upcomingEvents ?? safeDashboard.UpcomingEvents)
-      ? (safeDashboard.upcomingEvents || safeDashboard.UpcomingEvents || []).filter(e => (e?.type || e?.Type) === 'Examination').length
-      : 0,
+    upcomingExams: upcomingEventsList.filter(e => (e?.type || e?.Type) === 'Examination').length,
     completedCourses: safeDashboard.completedAssignments ?? safeDashboard.CompletedAssignments ?? 0,
     averageScore: typeof rawAverage === 'number' && !Number.isNaN(rawAverage) ? rawAverage : Number(rawAverage) || 0,
     totalAssignments: safeDashboard.totalAssignments ?? safeDashboard.TotalAssignments ?? 0,
   }
-  
-  const recentAssignments = safeDashboard.recentAssignments || safeDashboard.RecentAssignments || []
-  const upcomingExaminations = (safeDashboard.upcomingEvents || safeDashboard.UpcomingEvents || [])
-    .filter(e => (e?.type || e?.Type) === 'Examination') || []
-  const recentResults = safeDashboard.recentGrades || safeDashboard.RecentGrades || safeDashboard.termResults || safeDashboard.TermResults || []
-  const charts = safeDashboard.charts || safeDashboard.Charts || []
-  const subjectPerformance = safeDashboard.subjectPerformance || safeDashboard.SubjectPerformance || []
+
+  const recentAssignments = ensureArray(safeDashboard.recentAssignments ?? safeDashboard.RecentAssignments)
+  const upcomingExaminations = upcomingEventsList.filter(e => (e?.type || e?.Type) === 'Examination')
+  const recentResults = ensureArray(safeDashboard.recentGrades ?? safeDashboard.RecentGrades ?? safeDashboard.termResults ?? safeDashboard.TermResults)
+  const charts = ensureArray(safeDashboard.charts ?? safeDashboard.Charts)
+  const subjectPerformance = ensureArray(safeDashboard.subjectPerformance ?? safeDashboard.SubjectPerformance)
   const currentSessionTerm = safeDashboard.currentSessionTerm || safeDashboard.CurrentSessionTerm
-  const currentTermSubjects = safeDashboard.currentTermSubjects || safeDashboard.CurrentTermSubjects || []
-  
-  // Convert ChartData to Chart.js format (guard against non-array to avoid .map throw)
-  const safeCharts = Array.isArray(charts) ? charts : []
+  const currentTermSubjects = ensureArray(safeDashboard.currentTermSubjects ?? safeDashboard.CurrentTermSubjects)
+
+  // Convert ChartData to Chart.js format (charts already ensured as array above)
+  const safeCharts = charts
   const convertedCharts = safeCharts.map(chart => {
     if (!chart || typeof chart !== 'object') return null
     const labels = Array.isArray(chart.labels ?? chart.Labels) ? (chart.labels ?? chart.Labels) : []
