@@ -18,16 +18,16 @@ api.interceptors.request.use(
     if (token) {
       // Check if token is expired
       if (isTokenExpired(token)) {
-        // Token is expired, clear it and redirect to login
+        // Token is expired, clear it and signal session timeout for login page to show message
         localStorage.removeItem('token')
         localStorage.removeItem('user')
         localStorage.removeItem('tokenExpiry')
-        
-        // Only redirect if not already on login page
+        try {
+          sessionStorage.setItem('session_expired', 'true')
+        } catch (_) {}
         if (window.location.pathname !== '/login') {
           window.location.href = '/login'
         }
-        
         return Promise.reject(new Error('Token expired'))
       }
       
@@ -69,7 +69,12 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      window.location.href = '/login'
+      try {
+        sessionStorage.setItem('session_expired', 'true')
+      } catch (_) {}
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
     }
     
     // If error response is a blob (when responseType is 'blob' but server returns error as JSON)

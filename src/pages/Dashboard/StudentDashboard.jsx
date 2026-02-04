@@ -6,6 +6,7 @@ import Loading from '../../components/Common/Loading'
 import { BookOpen, ClipboardList, FileText, Award, Calendar, TrendingUp } from 'lucide-react'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartConfig'
+import { getErrorMessage } from '../../utils/errorHandler'
 import logger from '../../utils/logger'
 
 const StudentDashboard = () => {
@@ -39,7 +40,7 @@ const StudentDashboard = () => {
           <div className="empty-state">
             <p className="empty-state-text">Error loading dashboard</p>
             <p className="empty-state-subtext">
-              {error?.message || error?.errors?.[0] || error?.error || 'Please try again later'}
+              {getErrorMessage(error) || 'Please try again later'}
             </p>
             <div style={{ marginTop: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
               <p>Please check the browser console (F12) for more details.</p>
