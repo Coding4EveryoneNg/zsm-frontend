@@ -136,9 +136,11 @@ export const createPieChartData = (labels, data, colors) => {
 
 // Helper function to create bar chart data
 export const createBarChartData = (labels, datasets) => {
+  const safeLabels = Array.isArray(labels) ? labels : []
+  const safeDatasets = Array.isArray(datasets) ? datasets : []
   return {
-    labels,
-    datasets: datasets.map((dataset, index) => ({
+    labels: safeLabels,
+    datasets: safeDatasets.map((dataset, index) => ({
       ...dataset,
       backgroundColor: dataset.backgroundColor || chartColors.primary,
       borderColor: dataset.borderColor || chartColors.primary,

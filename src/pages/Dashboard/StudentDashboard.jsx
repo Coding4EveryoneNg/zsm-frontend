@@ -104,22 +104,27 @@ const StudentDashboard = () => {
   const currentSessionTerm = safeDashboard.currentSessionTerm || safeDashboard.CurrentSessionTerm
   const currentTermSubjects = safeDashboard.currentTermSubjects || safeDashboard.CurrentTermSubjects || []
   
-  // Convert ChartData to Chart.js format
-  const convertedCharts = (charts || []).map(chart => {
-    if (!chart) return null
+  // Convert ChartData to Chart.js format (guard against non-array to avoid .map throw)
+  const safeCharts = Array.isArray(charts) ? charts : []
+  const convertedCharts = safeCharts.map(chart => {
+    if (!chart || typeof chart !== 'object') return null
+    const labels = Array.isArray(chart.labels ?? chart.Labels) ? (chart.labels ?? chart.Labels) : []
+    const rawDatasets = chart.datasets ?? chart.Datasets
+    const datasets = Array.isArray(rawDatasets) ? rawDatasets.map(ds => ({
+      label: ds?.label ?? ds?.Label ?? '',
+      data: Array.isArray(ds?.data ?? ds?.Data) ? (ds.data ?? ds.Data) : [],
+      backgroundColor: ds?.backgroundColor ?? ds?.BackgroundColor ?? chartColors.primary,
+      borderColor: ds?.borderColor ?? ds?.BorderColor ?? chartColors.primary,
+    })) : []
+    const type = (chart.type ?? chart.Type ?? 'bar')
     return {
-      id: chart.id || chart.Id,
-      title: chart.title || chart.Title,
-      type: (chart.type || chart.Type || 'bar')?.toLowerCase(),
-      labels: chart.labels || chart.Labels || [],
-      datasets: (chart.datasets || chart.Datasets || []).map(ds => ({
-        label: ds.label || ds.Label,
-        data: ds.data || ds.Data || [],
-        backgroundColor: ds.backgroundColor || ds.BackgroundColor || chartColors.primary,
-        borderColor: ds.borderColor || ds.BorderColor || chartColors.primary,
-      }))
+      id: chart.id ?? chart.Id,
+      title: chart.title ?? chart.Title ?? '',
+      type: typeof type === 'string' ? type.toLowerCase() : 'bar',
+      labels,
+      datasets,
     }
-  }).filter(chart => chart !== null)
+  }).filter(chart => chart !== null && Array.isArray(chart.labels) && Array.isArray(chart.datasets))
 
   const statCards = [
     { title: 'Active Assignments', value: stats.activeAssignments || 0, icon: FileText, color: 'var(--primary-yellow)' },
@@ -128,26 +133,29 @@ const StudentDashboard = () => {
     { title: 'Average Grade', value: `${stats.averageScore?.toFixed(1) || 0}%`, icon: TrendingUp, color: 'var(--warning)' },
   ]
 
-  // Prepare chart data
+  // Prepare chart data (ensure subjectPerformance is array to avoid .map throw)
+  const safeSubjectPerformance = Array.isArray(subjectPerformance) ? subjectPerformance : []
   const performanceChartData = useMemo(() => {
-    if (subjectPerformance && subjectPerformance.length > 0) {
+    if (safeSubjectPerformance.length === 0) return null
+    try {
       return createBarChartData(
-        subjectPerformance.map(s => s.subjectName || s.SubjectName || 'Unknown'),
+        safeSubjectPerformance.map(s => s?.subjectName ?? s?.SubjectName ?? 'Unknown'),
         [{
           label: 'Score (%)',
-          data: subjectPerformance.map(s => s.averageScore || s.AverageScore || 0),
+          data: safeSubjectPerformance.map(s => s?.averageScore ?? s?.AverageScore ?? 0),
           backgroundColor: chartColors.primary,
           borderColor: chartColors.primary
         }]
       )
+    } catch {
+      return null
     }
-    return null
-  }, [subjectPerformance])
+  }, [safeSubjectPerformance])
 
-  // Render chart based on chart data from API
+  // Render chart based on chart data from API (guard so Chart.js never throws)
   const renderChart = (chart) => {
-    if (!chart || !chart.labels || !chart.datasets) return null
-
+    if (!chart || !Array.isArray(chart.labels) || !Array.isArray(chart.datasets)) return null
+    const chartType = (chart.type && typeof chart.type === 'string') ? chart.type.toLowerCase() : 'bar'
     const chartOptions = {
       ...defaultChartOptions,
       plugins: {
@@ -159,18 +167,21 @@ const StudentDashboard = () => {
         }
       }
     }
-
-    switch (chart.type?.toLowerCase()) {
-      case 'bar':
-        return <Bar data={chart} options={chartOptions} />
-      case 'line':
-        return <Line data={chart} options={chartOptions} />
-      case 'pie':
-        return <Pie data={chart} options={chartOptions} />
-      case 'doughnut':
-        return <Doughnut data={chart} options={chartOptions} />
-      default:
-        return null
+    try {
+      switch (chartType) {
+        case 'bar':
+          return <Bar data={chart} options={chartOptions} />
+        case 'line':
+          return <Line data={chart} options={chartOptions} />
+        case 'pie':
+          return <Pie data={chart} options={chartOptions} />
+        case 'doughnut':
+          return <Doughnut data={chart} options={chartOptions} />
+        default:
+          return <Bar data={chart} options={chartOptions} />
+      }
+    } catch {
+      return null
     }
   }
 
@@ -247,7 +258,7 @@ const StudentDashboard = () => {
               </div>
             </div>
           ))}
-          {performanceChartData && (
+          {performanceChartData?.labels && Array.isArray(performanceChartData.datasets) && (
             <div className="card" style={{ minHeight: '400px' }}>
               <div className="card-header">
                 <h2 className="card-title">Subject Performance</h2>

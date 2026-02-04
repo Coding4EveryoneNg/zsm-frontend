@@ -171,7 +171,27 @@ function App() {
           path="/dashboard/student"
           element={
             <ProtectedRoute allowedRoles={['Student']}>
-              <StudentDashboard />
+              <ErrorBoundary
+                fallback={({ resetError }) => (
+                  <div className="page-container" style={{ padding: '2rem' }}>
+                    <div className="card" style={{ maxWidth: '500px', margin: '0 auto' }}>
+                      <div className="card-header" style={{ borderBottom: '2px solid var(--warning)' }}>
+                        <h2 className="card-title">Student Dashboard</h2>
+                      </div>
+                      <div className="card-body">
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                          Something went wrong while loading the dashboard. Please try again.
+                        </p>
+                        <button type="button" className="btn btn-primary" onClick={resetError}>
+                          Try again
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              >
+                <StudentDashboard />
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         />

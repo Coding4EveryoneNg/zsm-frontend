@@ -56,7 +56,8 @@ const DashboardCalendar = () => {
 
   const eventsByDate = useMemo(() => {
     const res = data?.data ?? data
-    const events = res?.events ?? res?.Events ?? []
+    const raw = res?.events ?? res?.Events
+    const events = Array.isArray(raw) ? raw : []
     const map = {}
     events.forEach((evt) => {
       const d = (evt.eventDate || evt.EventDate || '').toString().slice(0, 10)
