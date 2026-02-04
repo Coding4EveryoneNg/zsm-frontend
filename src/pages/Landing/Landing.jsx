@@ -4,7 +4,8 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useQuery } from 'react-query'
 import { notificationsService } from '../../services/apiServices'
-import { Users, BookOpen, CreditCard, BarChart3, Shield, Rocket, CheckCircle, ArrowRight, School, UserCheck, Award, TrendingUp, Clock, Globe, Sun, Moon, GraduationCap, Bell, LogOut } from 'lucide-react'
+import { Users, BookOpen, CreditCard, BarChart3, Shield, Rocket, CheckCircle, ArrowRight, School, UserCheck, Award, TrendingUp, Clock, Globe, Sun, Moon, GraduationCap, Bell, LogOut, LayoutDashboard } from 'lucide-react'
+import { safeStrLower } from '../../utils/safeUtils'
 import './Landing.css'
 import logo from '../../assets/logo2.jpg'
 
@@ -122,6 +123,16 @@ const Landing = () => {
               </button>
               {isAuthenticated ? (
                 <>
+                  <Link
+                    to={`/dashboard/${safeStrLower(user?.role) || 'student'}`}
+                    style={{ color: safeTextSecondary, padding: '0.5rem 0.75rem', borderRadius: '0.5rem', textDecoration: 'none', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#f0b90b'; e.currentTarget.style.backgroundColor = isDark ? '#1e2026' : '#f5f5f5' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = safeTextSecondary; e.currentTarget.style.backgroundColor = 'transparent' }}
+                    title="Go to Dashboard"
+                  >
+                    <LayoutDashboard size={20} />
+                    Dashboard
+                  </Link>
                   <Link
                     to="/notifications"
                     style={{ position: 'relative', color: safeTextSecondary, padding: '0.5rem', borderRadius: '0.5rem', textDecoration: 'none', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center' }}
