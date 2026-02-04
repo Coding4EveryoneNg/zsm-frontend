@@ -89,10 +89,12 @@ const SchoolApplications = () => {
     setLoadingDetails(true)
     try {
       const response = await schoolApplicationsService.getApplication(applicationId)
-      // Handle API response structure: response.data or response.data.data
-      const applicationData = response?.data || response?.data?.data || response
-      if (applicationData) {
-        setSelectedApplication(applicationData)
+      // API returns { success, data: application } or just application; unwrap so we always store the application object
+      const body = response && typeof response === 'object' ? response : {}
+      const applicationData = (body.success !== undefined && body.data != null) ? body.data : (body.data ?? body)
+      const application = applicationData && typeof applicationData === 'object' && !Array.isArray(applicationData) ? applicationData : null
+      if (application) {
+        setSelectedApplication(application)
         setShowDetailsModal(true)
       } else {
         toast.error('Failed to load application details')
@@ -530,6 +532,15 @@ const ApplicationDetailsModal = ({ application, onClose, onApprove, onReject, is
 
   if (!application) return null
 
+  // Status can be numeric (0=Draft, 1=Submitted, 2=UnderReview) or string from API; support both camelCase and PascalCase
+  const applicationStatus = application.status ?? application.Status
+  const canApproveReject = showApproveReject && (() => {
+    const s = applicationStatus
+    if (s === 0 || s === 1 || s === 2) return true
+    const str = String(s ?? '').toLowerCase()
+    return ['draft', 'pending', 'submitted', 'underreview', 'under_review', '0', '1', '2'].includes(str)
+  })()
+
   const getStatusBadge = (status) => {
     // Convert status to string and handle null/undefined
     const statusStr = status != null ? String(status) : ''
@@ -600,7 +611,7 @@ const ApplicationDetailsModal = ({ application, onClose, onApprove, onReject, is
           <div style={{ display: 'grid', gap: '2rem' }}>
             {/* Status */}
             <div>
-              <strong>Status:</strong> {getStatusBadge(application.status)}
+              <strong>Status:</strong> {getStatusBadge(applicationStatus)}
             </div>
 
             {/* School Information */}
@@ -723,17 +734,13 @@ const ApplicationDetailsModal = ({ application, onClose, onApprove, onReject, is
             </div>
           </div>
 
-          <div style={{ marginTop: '2rem', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-            {showApproveReject && (String(application.status || '').toLowerCase() === 'pending' ||
-              String(application.status || '').toLowerCase() === 'submitted' ||
-              String(application.status || '').toLowerCase() === 'underreview' ||
-              application.status === 0 || application.status === 1 || application.status === 2) && (
+          <div style={{ marginTop: '2rem', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            {canApproveReject && (
               <>
                 <button
                   className="btn btn-success"
                   onClick={() => {
                     onApprove(application)
-                    onClose()
                   }}
                   disabled={isLoading}
                 >
@@ -744,7 +751,6 @@ const ApplicationDetailsModal = ({ application, onClose, onApprove, onReject, is
                   className="btn btn-danger"
                   onClick={() => {
                     onReject(application)
-                    onClose()
                   }}
                   disabled={isLoading}
                 >
