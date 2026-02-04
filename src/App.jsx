@@ -419,7 +419,23 @@ function App() {
           path="/assignments/:id"
           element={
             <ProtectedRoute>
-              <AssignmentDetails />
+              <ErrorBoundary
+                fallback={({ resetError }) => (
+                  <div className="page-container" style={{ padding: '2rem' }}>
+                    <div className="card" style={{ maxWidth: '500px', margin: '0 auto' }}>
+                      <div className="card-header"><h2 className="card-title">Assignment</h2></div>
+                      <div className="card-body">
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                          Something went wrong while loading this assignment. Please try again.
+                        </p>
+                        <button type="button" className="btn btn-primary" onClick={resetError}>Try again</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              >
+                <AssignmentDetails />
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         />
@@ -467,7 +483,23 @@ function App() {
           path="/examinations/:id/take"
           element={
             <ProtectedRoute allowedRoles={['Student']}>
-              <TakeExamination />
+              <ErrorBoundary
+                fallback={({ resetError }) => (
+                  <div className="page-container" style={{ padding: '2rem' }}>
+                    <div className="card" style={{ maxWidth: '500px', margin: '0 auto' }}>
+                      <div className="card-header"><h2 className="card-title">Examination</h2></div>
+                      <div className="card-body">
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                          Something went wrong while loading this examination. Please try again.
+                        </p>
+                        <button type="button" className="btn btn-primary" onClick={resetError}>Try again</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              >
+                <TakeExamination />
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         />

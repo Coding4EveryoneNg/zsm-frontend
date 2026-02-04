@@ -71,9 +71,9 @@ const AssignmentDetails = () => {
 
   const isSubmitted = assignment.submission || assignment.Submission
   const submission = assignment.submission || assignment.Submission
-  const isStudent = user?.role === 'Student'
+  const isStudent = String(user?.role ?? '').toLowerCase() === 'student'
   const canSubmit = isStudent && !isSubmitted
-  const questions = assignment.questions || assignment.Questions || []
+  const questions = Array.isArray(assignment.questions) ? assignment.questions : (Array.isArray(assignment.Questions) ? assignment.Questions : [])
 
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files)
@@ -270,10 +270,11 @@ const AssignmentDetails = () => {
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {questions.map((q, index) => {
-                const key = q.id || q.Id || index
-                const questionType = (q.questionType || q.QuestionType || '').toString()
+                const key = q?.id ?? q?.Id ?? index
+                const questionType = (q?.questionType ?? q?.QuestionType ?? '').toString()
                 const questionTypeLower = questionType.toLowerCase()
-                const options = q.options || q.Options || []
+                const rawOptions = q?.options ?? q?.Options
+                const options = Array.isArray(rawOptions) ? rawOptions : []
                 const answerValue = (answers[key]?.text || '').toString()
 
                 return (
@@ -446,7 +447,7 @@ const AssignmentDetails = () => {
             </div>
           ) : null}
 
-          {submission.filePaths && submission.filePaths.length > 0 && (
+          {Array.isArray(submission?.filePaths) && submission.filePaths.length > 0 && (
             <div style={{ marginBottom: '1.5rem' }}>
               <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
                 Attached Files
@@ -455,7 +456,7 @@ const AssignmentDetails = () => {
                 {submission.filePaths.map((filePath, index) => (
                   <div key={index} style={{ padding: '0.75rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <FileText size={18} color="var(--primary)" />
-                    <span style={{ color: 'var(--text-secondary)' }}>{filePath.split('/').pop()}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{String(filePath ?? '').split('/').pop() || 'File'}</span>
                     <a
                       href={filePath}
                       target="_blank"
