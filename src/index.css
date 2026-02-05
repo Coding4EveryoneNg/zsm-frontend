@@ -9,7 +9,7 @@
 }
 
 :root {
-  /* Yellow and Black Theme (Binance-style) */
+  /* Yellow and Black Theme (Binance-style) - Dark mode default */
   --primary-yellow: #f0b90b;
   --primary-yellow-dark: #d4a008;
   --primary-yellow-light: #f5c842;
@@ -24,6 +24,9 @@
   --bg-primary: #0b0e11;
   --bg-secondary: #181a20;
   --bg-tertiary: #1e2026;
+  /* Form controls: dark mode = black background, white text */
+  --form-bg: #0b0e11;
+  --form-color: #ffffff;
   --success: #0ecb81;
   --error: #f6465d;
   --warning: #f0b90b;
@@ -46,6 +49,9 @@
   --bg-primary: #ffffff;
   --bg-secondary: #f5f5f5;
   --bg-tertiary: #e8e8e8;
+  /* Form controls: light mode = white background, black text */
+  --form-bg: #ffffff;
+  --form-color: #0b0e11;
   --success: #0ecb81;
   --error: #f6465d;
   --warning: #f0b90b;
@@ -195,61 +201,93 @@ code {
   font-weight: 500;
 }
 
-.form-input {
+/* Form controls: single source of truth for all pages. Dark = black bg + white text; Light = white bg + black text. */
+.form-input,
+input.form-control {
   width: 100%;
   padding: 0.75rem;
-  background-color: var(--bg-tertiary);
+  background-color: var(--form-bg);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
-  color: var(--text-primary);
+  color: var(--form-color);
   font-size: 1rem;
   transition: all 0.3s ease;
 }
 
-.form-input:focus {
+.form-input:focus,
+input.form-control:focus {
   outline: none;
   border-color: var(--primary-yellow);
   box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
 }
 
-.form-input::placeholder {
+.form-input::placeholder,
+input.form-control::placeholder {
   color: var(--text-muted);
 }
 
-.form-select {
+.form-select,
+select.form-control {
   width: 100%;
   padding: 0.75rem;
-  background-color: var(--bg-tertiary);
+  background-color: var(--form-bg);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
-  color: var(--text-primary);
+  color: var(--form-color);
   font-size: 1rem;
   cursor: pointer;
 }
 
-.form-select:focus {
+.form-select:focus,
+select.form-control:focus {
   outline: none;
   border-color: var(--primary-yellow);
   box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
 }
 
-.form-textarea {
+/* Dropdown options use same theme as select */
+.form-select option,
+select.form-control option,
+body select option {
+  background-color: var(--form-bg);
+  color: var(--form-color);
+}
+
+.form-textarea,
+textarea.form-control {
   width: 100%;
   padding: 0.75rem;
-  background-color: var(--bg-tertiary);
+  background-color: var(--form-bg);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
-  color: var(--text-primary);
+  color: var(--form-color);
   font-size: 1rem;
   min-height: 120px;
   resize: vertical;
   font-family: inherit;
 }
 
-.form-textarea:focus {
+.form-textarea:focus,
+textarea.form-control:focus {
   outline: none;
   border-color: var(--primary-yellow);
   box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+/* Unclassed form elements inside app get theme colors so every page is consistent */
+body input:not([type="checkbox"]):not([type="radio"]),
+body select,
+body textarea {
+  background-color: var(--form-bg);
+  color: var(--form-color);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  padding: 0.5rem 0.75rem;
+}
+body input:not([type="checkbox"]):not([type="radio"])::placeholder,
+body textarea::placeholder {
+  color: var(--text-muted);
 }
 
 .form-error {
