@@ -16,8 +16,10 @@ const Students = () => {
   const [selectedSchoolId, setSelectedSchoolId] = useState('')
   const [selectedClassId, setSelectedClassId] = useState('')
 
-  const isAdmin = user?.role === 'Admin'
-  const isTeacher = user?.role === 'Teacher'
+  const roleLower = String(user?.role ?? '').toLowerCase()
+  const isAdmin = roleLower === 'admin'
+  const isTeacher = roleLower === 'teacher'
+  const isPrincipal = roleLower === 'principal'
 
   const { data: schoolsData } = useQuery(
     'schools-dropdown',
@@ -27,7 +29,7 @@ const Students = () => {
   const { data: schoolSwitchingData } = useQuery(
     ['dashboard', 'school-switching'],
     () => dashboardService.getSchoolSwitchingData(),
-    { enabled: isAdmin || isTeacher }
+    { enabled: isAdmin || isTeacher || isPrincipal }
   )
   const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
   const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
@@ -54,7 +56,7 @@ const Students = () => {
     }
   }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
 
-  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : (isTeacher ? principalOrAdminSchoolId : null)
+  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : (isTeacher || isPrincipal ? principalOrAdminSchoolId : null)
 
   const { data, isLoading, refetch } = useQuery(
     ['students', page, pageSize, effectiveSchoolId, isTeacher ? selectedClassId : null],
@@ -64,7 +66,7 @@ const Students = () => {
       if (isTeacher && selectedClassId) params.classId = selectedClassId
       return studentsService.getStudents(params)
     },
-    { keepPreviousData: true, enabled: isTeacher || (!isAdmin && !!principalOrAdminSchoolId) || (isAdmin && !!effectiveSchoolId) }
+    { keepPreviousData: true, enabled: isTeacher || isPrincipal || (isAdmin && !!effectiveSchoolId) || (!isAdmin && !!principalOrAdminSchoolId) }
   )
 
   const handleExportExcel = async () => {
