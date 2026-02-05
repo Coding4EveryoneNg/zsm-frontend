@@ -7,7 +7,7 @@ import Loading from '../../components/Common/Loading'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import { Users, GraduationCap, TrendingUp, CreditCard, Zap, Eye, FileText, Settings, BarChart3 } from 'lucide-react'
 import { defaultChartOptions } from '../../utils/chartConfig'
-import { safeStrLower } from '../../utils/safeUtils'
+import { safeStrLower, formatDecimal } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 
 const PrincipalDashboard = () => {
@@ -40,8 +40,8 @@ const PrincipalDashboard = () => {
   const statCards = [
     { title: 'Total Students', value: stats.totalStudents || 0, icon: Users, color: 'var(--primary-yellow)' },
     { title: 'Total Teachers', value: stats.totalTeachers || 0, icon: GraduationCap, color: 'var(--info)' },
-    { title: 'Average Performance', value: `${stats.averagePerformance || 0}%`, icon: TrendingUp, color: 'var(--success)' },
-    { title: 'Total Revenue', value: `$${stats.totalRevenue || 0}`, icon: CreditCard, color: 'var(--warning)' },
+    { title: 'Average Performance', value: `${formatDecimal(stats.averagePerformance ?? 0)}%`, icon: TrendingUp, color: 'var(--success)' },
+    { title: 'Total Revenue', value: `$${formatDecimal(stats.totalRevenue ?? 0)}`, icon: CreditCard, color: 'var(--warning)' },
   ]
 
   // Render chart based on chart data from API

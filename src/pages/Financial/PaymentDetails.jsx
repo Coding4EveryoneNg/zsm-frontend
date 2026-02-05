@@ -16,6 +16,7 @@ import {
   FileText
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { formatDecimal } from '../../utils/safeUtils'
 
 const PaymentDetails = () => {
   const { paymentId } = useParams()
@@ -212,7 +213,7 @@ const PaymentDetails = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <DollarSign size={20} color="var(--primary)" />
               <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                ${(payment.amount || payment.Amount || 0).toFixed(2)}
+                ${formatDecimal(payment.amount ?? payment.Amount)}
               </span>
             </div>
           </div>
@@ -359,7 +360,7 @@ const PaymentDetails = () => {
             <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span>Amount:</span>
-                <span style={{ fontWeight: 'bold' }}>${(payment.amount || payment.Amount || 0).toFixed(2)}</span>
+                <span style={{ fontWeight: 'bold' }}>${formatDecimal(payment.amount ?? payment.Amount)}</span>
               </div>
             </div>
 

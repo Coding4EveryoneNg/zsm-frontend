@@ -26,7 +26,13 @@ ChartJS.register(
   Filler
 )
 
-// Default chart options
+// Format numeric values to 2 decimal places for all chart tooltips and axis labels
+function chartValueFormat (value) {
+  const n = Number(value)
+  return Number.isNaN(n) ? '0.00' : n.toFixed(2)
+}
+
+// Default chart options - tooltips and y-axis show numbers to 2 decimal places
 export const defaultChartOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -54,7 +60,14 @@ export const defaultChartOptions = {
       },
       borderColor: 'rgba(255, 255, 255, 0.1)',
       borderWidth: 1,
-      cornerRadius: 8
+      cornerRadius: 8,
+      callbacks: {
+        label (context) {
+          const raw = context.parsed?.y ?? context.parsed ?? context.raw
+          const formatted = chartValueFormat(raw)
+          return `${context.dataset.label || context.label || ''}: ${formatted}`
+        }
+      }
     }
   },
   scales: {
@@ -75,6 +88,9 @@ export const defaultChartOptions = {
       ticks: {
         font: {
           size: 11
+        },
+        callback (value) {
+          return chartValueFormat(value)
         }
       }
     }

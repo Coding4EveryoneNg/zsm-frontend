@@ -68,9 +68,39 @@ export function safeFormatDate(dateVal, fmt = 'short', fallback = '') {
   }
 }
 
+/**
+ * Format a numeric value to a fixed number of decimal places for display.
+ * Use for amounts, percentages, averages, scores, and any decimal shown on the FE.
+ * @param {any} val - Number, string, or null/undefined
+ * @param {number} decimals - Default 2
+ * @returns {string} e.g. "12.34" or "0.00"
+ */
+export function formatDecimal(val, decimals = 2) {
+  if (val == null || val === '') return (0).toFixed(decimals)
+  const n = Number(val)
+  if (Number.isNaN(n)) return (0).toFixed(decimals)
+  return n.toFixed(decimals)
+}
+
+/**
+ * Round a number to N decimal places (returns number). Use when building chart data.
+ * @param {any} val
+ * @param {number} decimals - Default 2
+ * @returns {number}
+ */
+export function roundDecimal(val, decimals = 2) {
+  if (val == null || val === '') return 0
+  const n = Number(val)
+  if (Number.isNaN(n)) return 0
+  const factor = Math.pow(10, decimals)
+  return Math.round(n * factor) / factor
+}
+
 export default {
   ensureArray,
   safeStr,
   safeStrLower,
-  safeFormatDate
+  safeFormatDate,
+  formatDecimal,
+  roundDecimal
 }

@@ -8,7 +8,7 @@ import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import ErrorBoundary from '../../components/Common/ErrorBoundary'
 import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartConfig'
 import { getErrorMessage } from '../../utils/errorHandler'
-import { ensureArray, safeFormatDate, safeStrLower } from '../../utils/safeUtils'
+import { ensureArray, safeFormatDate, safeStrLower, formatDecimal, roundDecimal } from '../../utils/safeUtils'
 import { useAuth } from '../../contexts/AuthContext'
 import logger from '../../utils/logger'
 
@@ -155,7 +155,7 @@ const StudentDashboard = () => {
     { title: 'Active Assignments', value: stats.activeAssignments || 0, icon: FileText, color: 'var(--primary-yellow)' },
     { title: 'Upcoming Exams', value: stats.upcomingExams || 0, icon: ClipboardList, color: 'var(--info)' },
     { title: 'Completed Assignments', value: stats.completedCourses || 0, icon: BookOpen, color: 'var(--success)' },
-    { title: 'Average Grade', value: `${Number(avgNum).toFixed(1)}%`, icon: TrendingUp, color: 'var(--warning)' },
+    { title: 'Average Grade', value: `${formatDecimal(avgNum)}%`, icon: TrendingUp, color: 'var(--warning)' },
   ]
 
   // Prepare chart data (ensure subjectPerformance is array to avoid .map throw)
@@ -167,7 +167,7 @@ const StudentDashboard = () => {
         safeSubjectPerformance.map(s => String(s?.subjectName ?? s?.SubjectName ?? 'Unknown')),
         [{
           label: 'Score (%)',
-          data: safeSubjectPerformance.map(s => (typeof (s?.averageScore ?? s?.AverageScore) === 'number' && !Number.isNaN(s?.averageScore ?? s?.AverageScore) ? (s?.averageScore ?? s?.AverageScore) : 0)),
+          data: safeSubjectPerformance.map(s => roundDecimal(s?.averageScore ?? s?.AverageScore ?? 0)),
           backgroundColor: chartColorPrimary,
           borderColor: chartColorPrimary
         }]

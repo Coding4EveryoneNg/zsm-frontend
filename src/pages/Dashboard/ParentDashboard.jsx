@@ -7,7 +7,7 @@ import Loading from '../../components/Common/Loading'
 import { Users, Award, CreditCard, FileText, Zap, BookOpen, TrendingUp, ClipboardList, Clock, CheckCircle } from 'lucide-react'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import { defaultChartOptions, chartColors, createPieChartData } from '../../utils/chartConfig'
-import { safeStrLower } from '../../utils/safeUtils'
+import { safeStrLower, formatDecimal } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 
 const ParentDashboard = () => {
@@ -168,7 +168,7 @@ const ParentDashboard = () => {
   const statCards = [
     { title: 'Children', value: stats.totalChildren || stats.TotalChildren || 0, icon: Users, color: 'var(--primary-yellow)' },
     { title: 'Pending Payments', value: stats.pendingPayments || stats.PendingPayments || 0, icon: CreditCard, color: 'var(--warning)' },
-    { title: 'Total Paid', value: `$${stats.totalPaid || stats.TotalPaid || 0}`, icon: CreditCard, color: 'var(--success)' },
+    { title: 'Total Paid', value: `$${formatDecimal(stats.totalPaid ?? stats.TotalPaid)}`, icon: CreditCard, color: 'var(--success)' },
     { title: 'Recent Results', value: stats.recentResults || stats.RecentResults || 0, icon: Award, color: 'var(--info)' },
   ]
   
@@ -496,7 +496,7 @@ const ParentDashboard = () => {
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <p style={{ color: 'var(--text-primary)', fontWeight: 'bold' }}>
-                          ${amount}
+                          ${formatDecimal(amount)}
                         </p>
                         <span className={`badge ${status === 'Paid' ? 'badge-success' : 'badge-warning'}`}>
                           {status}

@@ -11,7 +11,7 @@ import {
   ClipboardList, BarChart3, RefreshCw, Globe, ChevronDown, Search, Bell
 } from 'lucide-react'
 import { defaultChartOptions } from '../../utils/chartConfig'
-import { safeStrLower } from '../../utils/safeUtils'
+import { safeStrLower, formatDecimal } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 import toast from 'react-hot-toast'
 
@@ -676,7 +676,7 @@ const SuperAdminDashboard = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h4 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                ${(mappedGlobalStats.totalRevenueAcrossSchools || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${formatDecimal(mappedGlobalStats.totalRevenueAcrossSchools ?? 0)}
               </h4>
               <p style={{ margin: 0, opacity: 0.9 }}>Total Revenue</p>
             </div>
@@ -994,10 +994,10 @@ const SuperAdminDashboard = () => {
                               </td>
                               <td>{school.studentCount || 0}</td>
                               <td>{school.teacherCount || 0}</td>
-                              <td>${(school.revenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                              <td>${formatDecimal(school.revenue ?? 0)}</td>
                               <td>
                                 <span className={`badge ${(school.growthRate || 0) >= 0 ? 'badge-success' : 'badge-danger'}`}>
-                                  {(school.growthRate || 0).toFixed(1)}%
+                                  {formatDecimal(school.growthRate ?? 0)}%
                                 </span>
                               </td>
                               <td>

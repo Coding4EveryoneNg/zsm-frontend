@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
 import { ArrowLeft, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { formatDecimal } from '../../utils/safeUtils'
 
 const PAYMENT_CATEGORY_SCHOOL_FEES = 'SchoolFees'
 const PAYMENT_CATEGORY_OTHER = 'Other'
@@ -331,7 +332,7 @@ const CreatePayment = () => {
                 <option value="">Select (Books, Other fees...)</option>
                 {Array.isArray(otherFees) && otherFees.map((fs) => (
                   <option key={fs.id || fs.Id} value={fs.id || fs.Id}>
-                    {fs.name || fs.Name} - {typeof (fs.amount ?? fs.Amount) === 'number' ? (fs.amount ?? fs.Amount).toLocaleString() : fs.amount ?? fs.Amount}
+                    {fs.name || fs.Name} - {formatDecimal(fs.amount ?? fs.Amount)}
                   </option>
                 ))}
               </select>

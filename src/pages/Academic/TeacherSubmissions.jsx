@@ -8,7 +8,7 @@ import { FileText, CheckCircle, Clock, User, BookOpen, Filter, X, Star } from 'l
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
-import { safeStrLower } from '../../utils/safeUtils'
+import { safeStrLower, formatDecimal } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 
 const TeacherSubmissions = () => {
@@ -563,7 +563,7 @@ const TeacherSubmissions = () => {
                         <td>{getStatusBadge(status)}</td>
                         <td>
                           {score !== null && score !== undefined ? (
-                            <span style={{ fontWeight: 'bold', color: 'var(--success)' }}>{score}%</span>
+                            <span style={{ fontWeight: 'bold', color: 'var(--success)' }}>{formatDecimal(score)}%</span>
                           ) : (
                             <span style={{ color: 'var(--text-muted)' }}>—</span>
                           )}

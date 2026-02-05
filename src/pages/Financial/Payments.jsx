@@ -5,6 +5,7 @@ import { paymentsService, commonService, dashboardService } from '../../services
 import Loading from '../../components/Common/Loading'
 import { useAuth } from '../../contexts/AuthContext'
 import { CreditCard, CheckCircle, Clock, XCircle, Calendar, DollarSign, Plus } from 'lucide-react'
+import { formatDecimal } from '../../utils/safeUtils'
 
 const Payments = () => {
   const { user } = useAuth()
@@ -157,14 +158,14 @@ const Payments = () => {
           <div className="card" style={{ textAlign: 'center' }}>
             <DollarSign size={32} color="var(--warning)" style={{ marginBottom: '0.5rem' }} />
             <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--warning)', marginBottom: '0.25rem' }}>
-              ${totalPending.toFixed(2)}
+              ${formatDecimal(totalPending)}
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Pending Payments</p>
           </div>
           <div className="card" style={{ textAlign: 'center' }}>
             <CheckCircle size={32} color="var(--success)" style={{ marginBottom: '0.5rem' }} />
             <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--success)', marginBottom: '0.25rem' }}>
-              ${totalPaid.toFixed(2)}
+              ${formatDecimal(totalPaid)}
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Total Paid</p>
           </div>
@@ -230,7 +231,7 @@ const Payments = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                       <DollarSign size={14} />
                       <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                        Amount: ${(payment.amount || 0).toFixed(2)}
+                        Amount: ${formatDecimal(payment.amount ?? 0)}
                       </span>
                     </div>
                     {payment.dueDate && (
