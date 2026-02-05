@@ -65,28 +65,32 @@ const StudentDashboard = () => {
     )
   }
 
-  // Handle different response structures (wrap in try so any unexpected shape doesn't crash the page)
+  // Unwrap API response: backend returns { success, data } (camelCase) or { Success, Data } (PascalCase)
   let body = {}
   let safeDashboard = {}
   try {
     body = dashboardData && typeof dashboardData === 'object' ? dashboardData : {}
-    const isApiWrapper = body.success !== undefined && body.data !== undefined
-    safeDashboard = (isApiWrapper && body.data && typeof body.data === 'object' && !Array.isArray(body.data))
-      ? body.data
-      : (body?.success === false ? {} : (body && typeof body === 'object' && !Array.isArray(body) ? body : {}))
+    const hasSuccessKey = 'success' in body || 'Success' in body
+    const innerData = body.data ?? body.Data
+    const hasInnerObject = innerData != null && typeof innerData === 'object' && !Array.isArray(innerData)
+    if (hasSuccessKey && hasInnerObject) {
+      safeDashboard = innerData
+    } else if (body.success === false || body.Success === false) {
+      safeDashboard = {}
+    } else {
+      safeDashboard = (body && typeof body === 'object' && !Array.isArray(body)) ? body : {}
+    }
   } catch (_) {
     safeDashboard = {}
   }
-  try {
-
   try {
     logger.debug('Dashboard raw data:', dashboardData)
     logger.debug('Dashboard body:', body)
     logger.debug('Dashboard payload:', safeDashboard)
   } catch (_) { /* never let logger throw */ }
 
-  if (body?.success === false) {
-    try { logger.error('Dashboard API returned error:', body.errors || body.message) } catch (_) {}
+  if (body?.success === false || body?.Success === false) {
+    try { logger.error('Dashboard API returned error:', body.errors || body.Errors || body.message || body.Message) } catch (_) {}
   }
 
   // Extract data from StudentDashboardData structure (camelCase or PascalCase)
@@ -109,6 +113,7 @@ const StudentDashboard = () => {
   const currentSessionTerm = rawSessionTerm && typeof rawSessionTerm === 'object' && !Array.isArray(rawSessionTerm) ? rawSessionTerm : null
   const currentTermSubjects = ensureArray(safeDashboard.currentTermSubjects ?? safeDashboard.CurrentTermSubjects)
 
+  const chartColorPrimary = (chartColors && chartColors.primary) ? chartColors.primary : '#6366f1'
   // Convert ChartData to Chart.js format (charts already ensured as array above)
   const safeCharts = charts
   const convertedCharts = safeCharts.map(chart => {
@@ -122,8 +127,8 @@ const StudentDashboard = () => {
         return {
           label: String(ds?.label ?? ds?.Label ?? ''),
           data: dataArr,
-          backgroundColor: ds?.backgroundColor ?? ds?.BackgroundColor ?? chartColors.primary,
-          borderColor: ds?.borderColor ?? ds?.BorderColor ?? chartColors.primary,
+          backgroundColor: ds?.backgroundColor ?? ds?.BackgroundColor ?? chartColorPrimary,
+          borderColor: ds?.borderColor ?? ds?.BorderColor ?? chartColorPrimary,
         }
       }) : []
       const type = safeStrLower(chart.type ?? chart.Type, 'bar') || 'bar'
@@ -153,12 +158,12 @@ const StudentDashboard = () => {
     if (safeSubjectPerformance.length === 0) return null
     try {
       return createBarChartData(
-        safeSubjectPerformance.map(s => s?.subjectName ?? s?.SubjectName ?? 'Unknown'),
+        safeSubjectPerformance.map(s => String(s?.subjectName ?? s?.SubjectName ?? 'Unknown')),
         [{
           label: 'Score (%)',
-          data: safeSubjectPerformance.map(s => s?.averageScore ?? s?.AverageScore ?? 0),
-          backgroundColor: chartColors.primary,
-          borderColor: chartColors.primary
+          data: safeSubjectPerformance.map(s => (typeof (s?.averageScore ?? s?.AverageScore) === 'number' && !Number.isNaN(s?.averageScore ?? s?.AverageScore) ? (s?.averageScore ?? s?.AverageScore) : 0)),
+          backgroundColor: chartColorPrimary,
+          borderColor: chartColorPrimary
         }]
       )
     } catch {
@@ -167,13 +172,14 @@ const StudentDashboard = () => {
   }, [safeSubjectPerformance])
 
   // Render chart based on chart data from API (guard so Chart.js never throws)
+  const opts = defaultChartOptions && typeof defaultChartOptions === 'object' ? defaultChartOptions : { responsive: true, maintainAspectRatio: false }
   const renderChart = (chart) => {
     if (!chart || !Array.isArray(chart.labels) || !Array.isArray(chart.datasets)) return null
     const chartType = safeStrLower(chart.type, 'bar') || 'bar'
     const chartOptions = {
-      ...defaultChartOptions,
+      ...opts,
       plugins: {
-        ...defaultChartOptions.plugins,
+        ...(opts.plugins || {}),
         title: {
           display: true,
           text: chart.title || '',
@@ -200,7 +206,7 @@ const StudentDashboard = () => {
   }
 
   // Show error banner if there was an error but we still have some data
-  const hasError = body?.success === false
+  const hasError = body?.success === false || body?.Success === false
 
   // Ensure we always have valid data structures to prevent rendering errors
   const safeRecentAssignments = Array.isArray(recentAssignments) ? recentAssignments : []
@@ -213,15 +219,15 @@ const StudentDashboard = () => {
         <div className="card" style={{ marginBottom: '1.5rem', backgroundColor: 'var(--danger-light)', border: '1px solid var(--danger)' }}>
           <div style={{ padding: '1rem' }}>
             <p style={{ color: 'var(--danger)', fontWeight: 'bold', marginBottom: '0.5rem' }}>Error loading dashboard data</p>
-            {Array.isArray(body?.errors) && body.errors.length > 0 && (
+            {Array.isArray(body?.errors ?? body?.Errors) && (body.errors ?? body.Errors).length > 0 && (
               <ul style={{ margin: 0, paddingLeft: '1.5rem', color: 'var(--danger)' }}>
-                {body.errors.map((err, idx) => (
+                {(body.errors ?? body.Errors).map((err, idx) => (
                   <li key={idx} style={{ fontSize: '0.875rem' }}>{typeof err === 'string' ? err : String(err)}</li>
                 ))}
               </ul>
             )}
-            {body?.message && (
-              <p style={{ color: 'var(--danger)', fontSize: '0.875rem', marginTop: '0.5rem' }}>{body.message}</p>
+            {(body?.message ?? body?.Message) && (
+              <p style={{ color: 'var(--danger)', fontSize: '0.875rem', marginTop: '0.5rem' }}>{body.message ?? body.Message}</p>
             )}
           </div>
         </div>
@@ -289,12 +295,10 @@ const StudentDashboard = () => {
                   <Bar 
                     data={performanceChartData} 
                     options={{
-                      ...defaultChartOptions,
+                      ...opts,
                       plugins: {
-                        ...defaultChartOptions.plugins,
-                        title: {
-                          display: false
-                        }
+                        ...(opts.plugins || {}),
+                        title: { display: false }
                       }
                     }} 
                   />
@@ -387,22 +391,6 @@ const StudentDashboard = () => {
       </ErrorBoundary>
     </div>
   )
-  } catch (e) {
-    try { logger.error('Student dashboard render error', e) } catch (_) {}
-    return (
-      <div className="page-container" style={{ padding: '2rem' }}>
-        <div className="card" style={{ maxWidth: '500px', margin: '0 auto' }}>
-          <div className="card-header"><h2 className="card-title">Student Dashboard</h2></div>
-          <div className="card-body">
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>Something went wrong while loading the dashboard. Please try again.</p>
-            <button type="button" className="btn btn-primary" onClick={() => typeof refetch === 'function' && refetch()}>
-              Try again
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
 }
 
 export default StudentDashboard
