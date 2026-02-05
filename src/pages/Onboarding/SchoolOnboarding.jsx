@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import { useTheme } from '../../contexts/ThemeContext'
 import { Rocket, GraduationCap, BookOpen, BarChart3, ArrowLeft, Check } from 'lucide-react'
 import logo from '../../assets/logo2.jpg'
+import { formatDecimal } from '../../utils/safeUtils'
 
 const SchoolOnboarding = () => {
   const navigate = useNavigate()
@@ -628,17 +629,17 @@ const SchoolOnboarding = () => {
                           <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{name}</div>
                           {fixedPerTerm != null && (
                             <div style={{ fontSize: '0.8rem', color: textSecondary }}>
-                              {isUnlimited ? `${Number(fixedPerTerm).toLocaleString()} / term` : `${Number(fixedPerTerm).toLocaleString()} / term`}
+                              {isUnlimited ? `${formatDecimal(fixedPerTerm)} / term` : `${formatDecimal(fixedPerTerm)} / term`}
                             </div>
                           )}
                           {pricePerUser != null && !isUnlimited && (
                             <div style={{ fontSize: '0.8rem', color: textSecondary }}>
-                              {Number(pricePerUser).toLocaleString()} / user
+                              {formatDecimal(pricePerUser)} / user
                               {maxUsers != null && ` · max ${maxUsers} users`}
                             </div>
                           )}
                           {minPerTerm != null && pricePerUser != null && (
-                            <div style={{ fontSize: '0.75rem', color: textSecondary }}>Min {Number(minPerTerm).toLocaleString()} / term</div>
+                            <div style={{ fontSize: '0.75rem', color: textSecondary }}>Min {formatDecimal(minPerTerm)} / term</div>
                           )}
                         </button>
                       )

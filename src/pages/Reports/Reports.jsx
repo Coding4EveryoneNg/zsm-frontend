@@ -9,7 +9,7 @@ import { defaultChartOptions, chartColors, createBarChartData, createLineChartDa
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
-import { safeStrLower } from '../../utils/safeUtils'
+import { safeStrLower, formatDecimal, roundDecimal } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 
 const Reports = () => {
@@ -306,7 +306,7 @@ const Reports = () => {
           safeSubjectPerformance.map(p => p.subjectName || p.SubjectName || 'Unknown'),
           [{
             label: 'Average Score (%)',
-            data: safeSubjectPerformance.map(p => Number(p.percentage ?? p.Percentage ?? p.averageScore ?? p.AverageScore ?? 0)),
+            data: safeSubjectPerformance.map(p => roundDecimal(p.percentage ?? p.Percentage ?? p.averageScore ?? p.AverageScore ?? 0)),
             backgroundColor: safeChartColors.primary,
             borderColor: safeChartColors.primary
           }]
@@ -324,7 +324,7 @@ const Reports = () => {
           safePerformanceData.map(p => p.className || p.ClassName || 'Unknown'),
           [{
             label: 'Average Score (%)',
-            data: safePerformanceData.map(p => Number(p.averageScore ?? p.AverageScore ?? 0)),
+            data: safePerformanceData.map(p => roundDecimal(p.averageScore ?? p.AverageScore ?? 0)),
             backgroundColor: safeChartColors.primary,
             borderColor: safeChartColors.primary
           }]
@@ -564,13 +564,13 @@ const Reports = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               <div style={{ textAlign: 'center', padding: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
                 <h3 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-                  {Number(overallPerformance.overallAverage ?? overallPerformance.OverallAverage ?? 0).toFixed(2)}
+                  {formatDecimal(overallPerformance.overallAverage ?? overallPerformance.OverallAverage)}
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Overall Average</p>
               </div>
               <div style={{ textAlign: 'center', padding: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
                 <h3 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--success)' }}>
-                  {Number(overallPerformance.overallPercentage ?? overallPerformance.OverallPercentage ?? 0).toFixed(2)}%
+                  {formatDecimal(overallPerformance.overallPercentage ?? overallPerformance.OverallPercentage)}%
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Overall Percentage</p>
               </div>
@@ -643,8 +643,8 @@ const Reports = () => {
                   {safeSubjectPerformance.map((subject, index) => (
                     <tr key={subject.subjectId || subject.SubjectId || index}>
                       <td>{subject.subjectName || subject.SubjectName || 'N/A'}</td>
-                      <td>{Number(subject.averageScore ?? subject.AverageScore ?? 0).toFixed(2)}</td>
-                      <td>{Number(subject.percentage ?? subject.Percentage ?? 0).toFixed(2)}%</td>
+                      <td>{formatDecimal(subject.averageScore ?? subject.AverageScore)}</td>
+                      <td>{formatDecimal(subject.percentage ?? subject.Percentage)}%</td>
                       <td>
                         <span className={`badge ${(subject.percentage || subject.Percentage || 0) >= 70 ? 'badge-success' : 'badge-warning'}`}>
                           {subject.grade || subject.Grade || 'N/A'}

@@ -8,6 +8,7 @@ import ConfirmDialog from '../../components/Common/ConfirmDialog'
 import { ArrowLeft, BookOpen, FileText, Download, Clock, User, Calendar, Upload, X, Plus, ArrowUp, ArrowDown, GripVertical, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import logger from '../../utils/logger'
+import { formatDecimal } from '../../utils/safeUtils'
 
 const CourseDetails = () => {
   const { id } = useParams()
@@ -437,7 +438,7 @@ const CourseDetails = () => {
                       <div style={{ display: 'flex', gap: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
                         <span>{fileName}</span>
                         {fileSize > 0 && (
-                          <span>{(fileSize / 1024 / 1024).toFixed(2)} MB</span>
+                          <span>{formatDecimal(fileSize / 1024 / 1024)} MB</span>
                         )}
                         {uploadedAt && (
                           <span>Uploaded: {new Date(uploadedAt).toLocaleDateString()}</span>

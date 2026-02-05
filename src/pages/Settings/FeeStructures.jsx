@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
 import { ArrowLeft, Plus, Save, Edit2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { formatDecimal } from '../../utils/safeUtils'
 
 const FeeStructures = () => {
   const navigate = useNavigate()
@@ -487,7 +488,7 @@ const FeeStructures = () => {
                         <td>{fs.feeCategory || fs.FeeCategory || 'Other'}</td>
                         <td>{fs.termName || fs.TermName || '-'}</td>
                         <td>{fs.className || fs.ClassName || 'All classes'}</td>
-                        <td>{(fs.amount ?? fs.Amount)?.toLocaleString?.() ?? fs.amount ?? fs.Amount}</td>
+                        <td>{formatDecimal(fs.amount ?? fs.Amount)}</td>
                         <td>{fs.feeType || fs.FeeType || 'Yearly'}</td>
                         <td>
                           <span className={`badge ${(fs.isActive !== false) ? 'badge-success' : 'badge-danger'}`}>

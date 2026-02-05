@@ -4,6 +4,7 @@ import { subscriptionService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { CheckCircle, XCircle, Building2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { formatDecimal } from '../../utils/safeUtils'
 
 const PendingSubscriptionPayments = () => {
   const queryClient = useQueryClient()
@@ -139,7 +140,7 @@ const PendingSubscriptionPayments = () => {
                       </span>
                     </td>
                     <td>{planName}</td>
-                    <td>{currency} {Number(amount).toLocaleString()}</td>
+                    <td>{currency} {formatDecimal(amount)}</td>
                     <td>{method}</td>
                     <td>{cheque || txRef || '—'}</td>
                     <td>{termStart ? new Date(termStart).toLocaleDateString() : '—'}</td>

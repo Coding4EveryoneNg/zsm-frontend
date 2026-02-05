@@ -6,6 +6,7 @@ import Loading from '../../components/Common/Loading'
 import { DollarSign, TrendingUp, TrendingDown, RefreshCw, ArrowLeft } from 'lucide-react'
 import logger from '../../utils/logger'
 import toast from 'react-hot-toast'
+import { formatDecimal } from '../../utils/safeUtils'
 
 const GlobalFinancialDashboard = () => {
   const navigate = useNavigate()
@@ -101,7 +102,7 @@ const GlobalFinancialDashboard = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h4 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                ${(mappedData.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${formatDecimal(mappedData.totalRevenue ?? 0)}
               </h4>
               <p style={{ margin: 0, opacity: 0.9 }}>Total Revenue</p>
             </div>
@@ -112,7 +113,7 @@ const GlobalFinancialDashboard = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h4 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                ${(mappedData.totalPendingPayments || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${formatDecimal(mappedData.totalPendingPayments ?? 0)}
               </h4>
               <p style={{ margin: 0, opacity: 0.9 }}>Pending Payments</p>
             </div>
@@ -123,7 +124,7 @@ const GlobalFinancialDashboard = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h4 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                ${(mappedData.totalOverduePayments || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${formatDecimal(mappedData.totalOverduePayments ?? 0)}
               </h4>
               <p style={{ margin: 0, opacity: 0.9 }}>Overdue Payments</p>
             </div>
@@ -134,7 +135,7 @@ const GlobalFinancialDashboard = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h4 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                ${(mappedData.totalPaidPayments || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${formatDecimal(mappedData.totalPaidPayments ?? 0)}
               </h4>
               <p style={{ margin: 0, opacity: 0.9 }}>Paid Payments</p>
             </div>
@@ -160,7 +161,7 @@ const GlobalFinancialDashboard = () => {
             <div className="card">
               <div className="card-body" style={{ textAlign: 'center' }}>
                 <h4 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  ${(mappedData.averageTransactionAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ${formatDecimal(mappedData.averageTransactionAmount ?? 0)}
                 </h4>
                 <p style={{ color: 'var(--text-muted)', margin: 0 }}>Average Transaction</p>
               </div>
@@ -170,7 +171,7 @@ const GlobalFinancialDashboard = () => {
             <div className="card">
               <div className="card-body" style={{ textAlign: 'center' }}>
                 <h4 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  {mappedData.revenueGrowthPercentage.toFixed(1)}%
+                  {formatDecimal(mappedData.revenueGrowthPercentage)}%
                 </h4>
                 <p style={{ color: 'var(--text-muted)', margin: 0 }}>Revenue Growth</p>
               </div>
@@ -180,7 +181,7 @@ const GlobalFinancialDashboard = () => {
             <div className="card">
               <div className="card-body" style={{ textAlign: 'center' }}>
                 <h4 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  {mappedData.paymentCollectionRate.toFixed(1)}%
+                  {formatDecimal(mappedData.paymentCollectionRate)}%
                 </h4>
                 <p style={{ color: 'var(--text-muted)', margin: 0 }}>Collection Rate</p>
               </div>
@@ -212,11 +213,11 @@ const GlobalFinancialDashboard = () => {
                   {mappedData.revenueByTenant.map((item, index) => (
                     <tr key={index}>
                       <td><strong>{item.tenantName || item.TenantName || 'N/A'}</strong></td>
-                      <td>${(item.revenue || item.Revenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                      <td>${formatDecimal(item.revenue ?? item.Revenue)}</td>
                       <td>{item.schoolCount || item.SchoolCount || 0}</td>
                       <td>{item.studentCount || item.StudentCount || 0}</td>
-                      <td>${(item.revenuePerStudent || item.RevenuePerStudent || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                      <td>{(item.percentage || item.Percentage || 0).toFixed(1)}%</td>
+                      <td>${formatDecimal(item.revenuePerStudent ?? item.RevenuePerStudent)}</td>
+                      <td>{formatDecimal(item.percentage ?? item.Percentage)}%</td>
                     </tr>
                   ))}
                 </tbody>
@@ -251,13 +252,13 @@ const GlobalFinancialDashboard = () => {
                     <tr key={index}>
                       <td><span className="badge badge-primary">{index + 1}</span></td>
                       <td><strong>{item.tenantName || item.TenantName || 'N/A'}</strong></td>
-                      <td>${(item.revenue || item.Revenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                      <td>${formatDecimal(item.revenue ?? item.Revenue)}</td>
                       <td>
                         <span className={`badge ${(item.growthPercentage || item.GrowthPercentage || 0) >= 0 ? 'badge-success' : 'badge-danger'}`}>
-                          {(item.growthPercentage || item.GrowthPercentage || 0).toFixed(1)}%
+                          {formatDecimal(item.growthPercentage ?? item.GrowthPercentage)}%
                         </span>
                       </td>
-                      <td>{(item.collectionRate || item.CollectionRate || 0).toFixed(1)}%</td>
+                      <td>{formatDecimal(item.collectionRate ?? item.CollectionRate)}%</td>
                       <td>{item.schoolCount || item.SchoolCount || 0}</td>
                       <td>{item.studentCount || item.StudentCount || 0}</td>
                     </tr>
@@ -278,19 +279,19 @@ const GlobalFinancialDashboard = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
             <div style={{ textAlign: 'center', padding: '1rem', backgroundColor: 'var(--success-light)', borderRadius: '0.5rem' }}>
               <h4 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--success)', marginBottom: '0.5rem' }}>
-                ${(mappedData.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                ${formatDecimal(mappedData.totalRevenue ?? 0)}
               </h4>
               <p style={{ color: 'var(--text-muted)', margin: 0 }}>Total Revenue</p>
             </div>
             <div style={{ textAlign: 'center', padding: '1rem', backgroundColor: 'var(--warning-light)', borderRadius: '0.5rem' }}>
               <h4 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--warning)', marginBottom: '0.5rem' }}>
-                ${(mappedData.totalPendingPayments || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                ${formatDecimal(mappedData.totalPendingPayments ?? 0)}
               </h4>
               <p style={{ color: 'var(--text-muted)', margin: 0 }}>Pending Payments</p>
             </div>
             <div style={{ textAlign: 'center', padding: '1rem', backgroundColor: 'var(--danger-light)', borderRadius: '0.5rem' }}>
               <h4 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--danger)', marginBottom: '0.5rem' }}>
-                ${(mappedData.totalOverduePayments || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                ${formatDecimal(mappedData.totalOverduePayments ?? 0)}
               </h4>
               <p style={{ color: 'var(--text-muted)', margin: 0 }}>Overdue Payments</p>
             </div>

@@ -7,7 +7,7 @@ import Loading from '../../components/Common/Loading'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import { Users, FileText, ClipboardList, TrendingUp, Zap, Plus, Eye, Clock, CheckCircle, BookOpen } from 'lucide-react'
 import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartConfig'
-import { safeStrLower } from '../../utils/safeUtils'
+import { safeStrLower, formatDecimal } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 
 const TeacherDashboard = () => {
@@ -76,7 +76,7 @@ const TeacherDashboard = () => {
     { title: 'Total Students', value: stats.totalStudents || 0, icon: Users, color: 'var(--primary-yellow)' },
     { title: 'Active Assignments', value: stats.activeAssignments || 0, icon: FileText, color: 'var(--info)' },
     { title: 'Pending Grading', value: stats.pendingGrading || 0, icon: ClipboardList, color: 'var(--warning)' },
-    { title: 'Average Performance', value: `${stats.averagePerformance || 0}%`, icon: TrendingUp, color: 'var(--success)' },
+    { title: 'Average Performance', value: `${formatDecimal(stats.averagePerformance ?? 0)}%`, icon: TrendingUp, color: 'var(--success)' },
   ]
 
   return (

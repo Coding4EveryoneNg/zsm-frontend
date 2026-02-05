@@ -8,7 +8,7 @@ import { ArrowLeft, FileText, Calendar, User, BookOpen, CheckCircle, Upload, X }
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
-import { ensureArray } from '../../utils/safeUtils'
+import { ensureArray, formatDecimal } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 
 const safeFormatDate = (dateVal, fmt = 'MMM dd, yyyy HH:mm') => {
@@ -494,7 +494,7 @@ const AssignmentDetails = () => {
                   <div>
                     <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Score: </span>
                     <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--success)' }}>
-                      {submission.score || submission.Score}% / {assignment.maxMarks || assignment.MaxMarks}
+                      {formatDecimal(submission.score ?? submission.Score)}% / {assignment.maxMarks || assignment.MaxMarks}
                     </span>
                   </div>
                 ) : null}
@@ -580,7 +580,7 @@ const AssignmentDetails = () => {
                       <FileText size={18} color="var(--primary)" />
                       <span style={{ flex: 1, color: 'var(--text-secondary)' }}>{file.name}</span>
                       <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                        {formatDecimal(file.size / 1024 / 1024)} MB
                       </span>
                       <button
                         type="button"
