@@ -9,15 +9,19 @@ import ErrorBoundary from '../../components/Common/ErrorBoundary'
 import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartConfig'
 import { getErrorMessage } from '../../utils/errorHandler'
 import { ensureArray, safeFormatDate, safeStrLower } from '../../utils/safeUtils'
+import { useAuth } from '../../contexts/AuthContext'
 import logger from '../../utils/logger'
 
 const StudentDashboard = () => {
+  const { isAuthenticated, loading: authLoading } = useAuth()
   const { data: dashboardData, isLoading, error, refetch } = useQuery(
     'studentDashboard',
     () => dashboardService.getStudentDashboard(),
     { 
+      enabled: !authLoading && !!isAuthenticated,
       refetchInterval: 30000,
-      retry: 1,
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
       onError: (err) => {
         try { logger.error('Student dashboard error:', err) } catch (_) {}
       },
@@ -26,6 +30,8 @@ const StudentDashboard = () => {
       }
     }
   )
+
+  if (authLoading || !isAuthenticated) return <Loading />
 
   if (isLoading) return <Loading />
 
