@@ -20,9 +20,12 @@ const Reports = () => {
   const [selectedSession, setSelectedSession] = useState('')
   const [selectedSchoolId, setSelectedSchoolId] = useState('')
 
-  const isAdmin = user?.role === 'Admin'
-  const isPrincipal = user?.role === 'Principal'
-  const isTeacher = user?.role === 'Teacher'
+  const roleLower = String(user?.role ?? '').toLowerCase()
+  const isAdmin = roleLower === 'admin'
+  const isPrincipal = roleLower === 'principal'
+  const isTeacher = roleLower === 'teacher'
+  const isParent = roleLower === 'parent'
+  const isStudent = roleLower === 'student'
   const showSchoolFilter = isAdmin
   const showTermSessionFilters = isAdmin || isPrincipal || isTeacher
 
@@ -68,25 +71,24 @@ const Reports = () => {
   // Get current student ID for result generation
   // For students, we need to get their student ID from the dashboard or user context
   // For parents viewing a child, use the studentId from URL params
-  const currentStudentId = studentId || (user?.role === 'Student' ? user?.id : null)
+  const currentStudentId = studentId || (isStudent ? user?.id : null)
 
   // Fetch dashboard data to get current term and session
   const { data: studentDashboardData } = useQuery(
     'studentDashboard',
     () => dashboardService.getStudentDashboard(),
     { 
-      enabled: user?.role === 'Student',
+      enabled: isStudent,
       refetchInterval: 60000
     }
   )
 
   // Fetch parent dashboard to get current term and session for parent view
-  // This is needed for both viewing children list and getting current term/session
   const { data: parentDashboardData } = useQuery(
     'parentDashboard',
     () => dashboardService.getParentDashboard(),
     { 
-      enabled: user?.role === 'Parent',
+      enabled: isParent,
       refetchInterval: 60000
     }
   )
@@ -94,11 +96,10 @@ const Reports = () => {
   // Extract current term and session from dashboard data
   useEffect(() => {
     let currentSessionTerm = null
-    
-    if (user?.role === 'Student' && studentDashboardData) {
+    if (isStudent && studentDashboardData) {
       const dashboard = studentDashboardData?.data || studentDashboardData || {}
       currentSessionTerm = dashboard.currentSessionTerm || dashboard.CurrentSessionTerm
-    } else if (user?.role === 'Parent' && parentDashboardData) {
+    } else if (isParent && parentDashboardData) {
       const dashboard = parentDashboardData?.data || parentDashboardData || {}
       currentSessionTerm = dashboard.currentSessionTerm || dashboard.CurrentSessionTerm
     }
@@ -111,14 +112,14 @@ const Reports = () => {
       if (termName) setSelectedTerm(termName)
       if (sessionName) setSelectedSession(sessionName)
     }
-  }, [studentDashboardData, parentDashboardData, user?.role, selectedTerm, selectedSession])
+  }, [studentDashboardData, parentDashboardData, isStudent, isParent, selectedTerm, selectedSession])
 
   // Check if result can be generated - only call if we have term and session
   const { data: canGenerateData } = useQuery(
     ['canGenerateResult', currentStudentId, selectedTerm, selectedSession],
     () => coursesService.canGenerateResult(currentStudentId, { term: selectedTerm, session: selectedSession }),
     { 
-      enabled: !!currentStudentId && (user?.role === 'Student' || user?.role === 'Parent') && !!selectedTerm && !!selectedSession
+      enabled: !!currentStudentId && (isStudent || isParent) && !!selectedTerm && !!selectedSession
     }
   )
 
@@ -172,39 +173,41 @@ const Reports = () => {
   const { data: reportsData, isLoading, error: reportsError } = useQuery(
     ['reports', studentId, view, selectedTerm, selectedSession],
     () => {
-      if (studentId && user?.role === 'Parent') {
-        // Parent viewing student performance/results
+      if (studentId && isParent) {
         return dashboardService.getParentStudentSubjectPerformance(studentId, { term: selectedTerm, session: selectedSession })
       }
-      // For different roles, call appropriate endpoints
-      if (user?.role === 'Teacher') {
+      if (isTeacher) {
         return reportsService.getTeacherStudentsResults({ term: selectedTerm, session: selectedSession })
-      } else if (user?.role === 'Principal') {
+      }
+      if (isPrincipal) {
         return reportsService.getPrincipalStudentsPerformance({ term: selectedTerm, session: selectedSession })
       }
-      // Default: return empty data structure
       return Promise.resolve({ data: { charts: [], performanceData: [], paymentData: [] } })
     },
     { 
       refetchInterval: 60000,
-      enabled: (studentId && user?.role === 'Parent') || user?.role === 'Teacher' || user?.role === 'Principal'
+      enabled: (!!studentId && isParent) || isTeacher || isPrincipal
     }
   )
 
   if (isLoading) return <Loading />
 
-  // Debug logging
-  logger.debug('Reports Data:', reportsData)
-  logger.debug('Reports Error:', reportsError)
-  logger.debug('Student ID:', studentId)
-  logger.debug('View:', view)
-  logger.debug('User Role:', user?.role)
-  logger.debug('Selected Term:', selectedTerm)
-  logger.debug('Selected Session:', selectedSession)
+  // Debug logging (guarded so logger never throws)
+  try {
+    if (typeof logger?.debug === 'function') {
+      logger.debug('Reports Data:', reportsData)
+      logger.debug('Reports Error:', reportsError)
+      logger.debug('Student ID:', studentId)
+      logger.debug('View:', view)
+      logger.debug('User Role:', user?.role)
+      logger.debug('Selected Term:', selectedTerm)
+      logger.debug('Selected Session:', selectedSession)
+    }
+  } catch (_) { /* no-op */ }
 
   // Handle error response
   if (reportsError) {
-    logger.error('Reports error details:', reportsError)
+    try { if (typeof logger?.error === 'function') logger.error('Reports error details:', reportsError) } catch (_) { /* no-op */ }
   }
 
   // Extract data based on view type - handle both camelCase and PascalCase
@@ -213,7 +216,7 @@ const Reports = () => {
   let apiData = {}
   if (reportsData) {
     if (reportsData.success === false) {
-      logger.error('Reports API returned error:', reportsData.errors || reportsData.message)
+      try { if (typeof logger?.error === 'function') logger.error('Reports API returned error:', reportsData.errors || reportsData.message) } catch (_) { /* no-op */ }
       // Still try to extract any partial data
       apiData = reportsData.data || {}
     } else {
@@ -243,27 +246,35 @@ const Reports = () => {
   const safePaymentData = Array.isArray(paymentData) ? paymentData : []
   const safePerformanceData = Array.isArray(performanceData) ? performanceData : []
 
-  // Debug logging
-  logger.debug('Extracted Data:', {
-    apiData,
-    subjectPerformance: safeSubjectPerformance,
-    subjectPerformanceLength: safeSubjectPerformance.length,
-    performanceData: safePerformanceData,
-    charts: safeCharts,
-    paymentData: safePaymentData,
-    studentName,
-    overallPerformance,
-    overallPerformanceKeys: Object.keys(overallPerformance)
-  })
+  try {
+    if (typeof logger?.debug === 'function') {
+      logger.debug('Extracted Data:', {
+        apiData,
+        subjectPerformance: safeSubjectPerformance,
+        subjectPerformanceLength: safeSubjectPerformance.length,
+        performanceData: safePerformanceData,
+        charts: safeCharts,
+        paymentData: safePaymentData,
+        studentName,
+        overallPerformance,
+        overallPerformanceKeys: Object.keys(overallPerformance)
+      })
+    }
+  } catch (_) { /* no-op */ }
+
+  // Safe chart options/colors to avoid spread on undefined
+  const safeChartOptions = defaultChartOptions && typeof defaultChartOptions === 'object' ? defaultChartOptions : { responsive: true, maintainAspectRatio: false, plugins: {} }
+  const safeChartPlugins = safeChartOptions.plugins && typeof safeChartOptions.plugins === 'object' ? safeChartOptions.plugins : {}
+  const safeChartColors = chartColors && typeof chartColors === 'object' ? chartColors : { primary: '#6366f1', success: '#10b981', warning: '#f59e0b', info: '#3b82f6' }
 
   // Render chart based on chart data from API
   const renderChart = (chart) => {
     if (!chart || !chart.labels || !chart.datasets) return null
 
     const chartOptions = {
-      ...defaultChartOptions,
+      ...safeChartOptions,
       plugins: {
-        ...defaultChartOptions.plugins,
+        ...safeChartPlugins,
         title: {
           display: true,
           text: chart.title || '',
@@ -289,49 +300,55 @@ const Reports = () => {
 
   // Subject Performance Chart (for parent viewing student performance)
   const subjectPerformanceChart = useMemo(() => {
-    if (safeSubjectPerformance && safeSubjectPerformance.length > 0) {
-      return createBarChartData(
-        safeSubjectPerformance.map(p => p.subjectName || p.SubjectName || 'Unknown'),
-        [{
-          label: 'Average Score (%)',
-          data: safeSubjectPerformance.map(p => p.percentage || p.Percentage || p.averageScore || p.AverageScore || 0),
-          backgroundColor: chartColors.primary,
-          borderColor: chartColors.primary
-        }]
-      )
-    }
+    try {
+      if (safeSubjectPerformance && safeSubjectPerformance.length > 0) {
+        return createBarChartData(
+          safeSubjectPerformance.map(p => p.subjectName || p.SubjectName || 'Unknown'),
+          [{
+            label: 'Average Score (%)',
+            data: safeSubjectPerformance.map(p => Number(p.percentage ?? p.Percentage ?? p.averageScore ?? p.AverageScore ?? 0)),
+            backgroundColor: safeChartColors.primary,
+            borderColor: safeChartColors.primary
+          }]
+        )
+      }
+    } catch (_) { /* no-op */ }
     return null
   }, [safeSubjectPerformance])
 
   // Performance by class chart
   const classPerformanceChart = useMemo(() => {
-    if (safePerformanceData && safePerformanceData.length > 0) {
-      return createBarChartData(
-        safePerformanceData.map(p => p.className || p.ClassName || 'Unknown'),
-        [{
-          label: 'Average Score (%)',
-          data: safePerformanceData.map(p => p.averageScore || p.AverageScore || 0),
-          backgroundColor: chartColors.primary,
-          borderColor: chartColors.primary
-        }]
-      )
-    }
+    try {
+      if (safePerformanceData && safePerformanceData.length > 0) {
+        return createBarChartData(
+          safePerformanceData.map(p => p.className || p.ClassName || 'Unknown'),
+          [{
+            label: 'Average Score (%)',
+            data: safePerformanceData.map(p => Number(p.averageScore ?? p.AverageScore ?? 0)),
+            backgroundColor: safeChartColors.primary,
+            borderColor: safeChartColors.primary
+          }]
+        )
+      }
+    } catch (_) { /* no-op */ }
     return null
   }, [safePerformanceData])
 
   // Payment status pie chart
   const paymentStatusChart = useMemo(() => {
-    if (safePaymentData && safePaymentData.length > 0) {
-      const paid = safePaymentData.filter(p => (p.status || p.Status) === 'Paid').length
-      const pending = safePaymentData.filter(p => (p.status || p.Status) === 'Pending').length
-      const partial = safePaymentData.filter(p => (p.status || p.Status) === 'PartiallyPaid').length
+    try {
+      if (safePaymentData && safePaymentData.length > 0) {
+        const paid = safePaymentData.filter(p => (p.status || p.Status) === 'Paid').length
+        const pending = safePaymentData.filter(p => (p.status || p.Status) === 'Pending').length
+        const partial = safePaymentData.filter(p => (p.status || p.Status) === 'PartiallyPaid').length
 
-      return createPieChartData(
-        ['Paid', 'Pending', 'Partially Paid'],
-        [paid, pending, partial],
-        [chartColors.success, chartColors.warning, chartColors.info]
-      )
-    }
+        return createPieChartData(
+          ['Paid', 'Pending', 'Partially Paid'],
+          [paid, pending, partial],
+          [safeChartColors.success, safeChartColors.warning, safeChartColors.info]
+        )
+      }
+    } catch (_) { /* no-op */ }
     return null
   }, [safePaymentData])
 
@@ -402,7 +419,7 @@ const Reports = () => {
         </h1>
         <div style={{ display: 'flex', gap: '1rem' }}>
           {/* Result Generation Buttons for Students and Parents */}
-          {(user?.role === 'Student' || (user?.role === 'Parent' && studentId)) && canGenerate && (
+          {(isStudent || (isParent && studentId)) && canGenerate && (
             <>
               <button 
                 className="btn btn-danger" 
@@ -425,16 +442,16 @@ const Reports = () => {
             </>
           )}
           {/* Export button for other roles */}
-          {(user?.role === 'Teacher' || user?.role === 'Principal' || user?.role === 'Admin') && (
+          {(isTeacher || isPrincipal || isAdmin) && (
             <>
               <button 
                 className="btn btn-danger" 
                 onClick={async () => {
                   try {
                     let response
-                    if (user?.role === 'Teacher') {
+                    if (isTeacher) {
                       response = await reportsService.exportTeacherStudentsResults({ term: selectedTerm, session: selectedSession })
-                    } else if (user?.role === 'Principal') {
+                    } else if (isPrincipal) {
                       response = await reportsService.exportPrincipalStudentsPerformance({ term: selectedTerm, session: selectedSession })
                     }
                     if (response) {
@@ -547,13 +564,13 @@ const Reports = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               <div style={{ textAlign: 'center', padding: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
                 <h3 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-                  {(overallPerformance.overallAverage || overallPerformance.OverallAverage || 0).toFixed(2)}
+                  {Number(overallPerformance.overallAverage ?? overallPerformance.OverallAverage ?? 0).toFixed(2)}
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Overall Average</p>
               </div>
               <div style={{ textAlign: 'center', padding: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
                 <h3 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--success)' }}>
-                  {(overallPerformance.overallPercentage || overallPerformance.OverallPercentage || 0).toFixed(2)}%
+                  {Number(overallPerformance.overallPercentage ?? overallPerformance.OverallPercentage ?? 0).toFixed(2)}%
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Overall Percentage</p>
               </div>
@@ -584,9 +601,9 @@ const Reports = () => {
             <Bar 
               data={subjectPerformanceChart} 
               options={{
-                ...defaultChartOptions,
+                ...safeChartOptions,
                 plugins: {
-                  ...defaultChartOptions.plugins,
+                  ...safeChartPlugins,
                   title: {
                     display: false
                   }
@@ -626,8 +643,8 @@ const Reports = () => {
                   {safeSubjectPerformance.map((subject, index) => (
                     <tr key={subject.subjectId || subject.SubjectId || index}>
                       <td>{subject.subjectName || subject.SubjectName || 'N/A'}</td>
-                      <td>{(subject.averageScore || subject.AverageScore || 0).toFixed(2)}</td>
-                      <td>{(subject.percentage || subject.Percentage || 0).toFixed(2)}%</td>
+                      <td>{Number(subject.averageScore ?? subject.AverageScore ?? 0).toFixed(2)}</td>
+                      <td>{Number(subject.percentage ?? subject.Percentage ?? 0).toFixed(2)}%</td>
                       <td>
                         <span className={`badge ${(subject.percentage || subject.Percentage || 0) >= 70 ? 'badge-success' : 'badge-warning'}`}>
                           {subject.grade || subject.Grade || 'N/A'}
@@ -661,9 +678,9 @@ const Reports = () => {
                 <Bar 
                   data={classPerformanceChart} 
                   options={{
-                    ...defaultChartOptions,
+                    ...safeChartOptions,
                     plugins: {
-                      ...defaultChartOptions.plugins,
+                      ...safeChartPlugins,
                       title: {
                         display: false
                       }
@@ -683,9 +700,9 @@ const Reports = () => {
                 <Pie 
                   data={paymentStatusChart} 
                   options={{
-                    ...defaultChartOptions,
+                    ...safeChartOptions,
                     plugins: {
-                      ...defaultChartOptions.plugins,
+                      ...safeChartPlugins,
                       title: {
                         display: false
                       }
