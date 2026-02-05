@@ -118,11 +118,12 @@ const PaymentDetails = () => {
     )
   }
 
-  const status = payment.status || payment.Status || ''
+  const status = (payment.status || payment.Status || '').trim()
+  const statusLower = status.toLowerCase()
   const canMakePayment = (status === 'Pending' || status === 'Overdue' || status === 'PartiallyPaid') &&
                          (user?.role === 'Student' || user?.role === 'Parent')
-  // Receipt is generatable for all payments (hand-collected are Paid/PartiallyPaid; list has no Pending from Add Payment)
-  const canDownloadReceipt = true
+  // Only show download receipt after partial or full payment has been made
+  const canDownloadReceipt = statusLower === 'paid' || statusLower === 'partiallypaid'
 
   const getStatusBadge = () => {
     switch (status) {

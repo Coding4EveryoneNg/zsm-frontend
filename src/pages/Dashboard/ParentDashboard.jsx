@@ -190,7 +190,7 @@ const ParentDashboard = () => {
   // Force render - ensure we always show something
   // This component should ALWAYS render, even if data is empty
   return (
-    <div style={{ width: '100%', minHeight: '100vh', padding: '1.5rem', backgroundColor: '#f5f5f5', position: 'relative' }}>
+    <div style={{ width: '100%', minHeight: '100vh', padding: '1.5rem', backgroundColor: 'var(--bg-primary)', position: 'relative' }}>
       {/* Error Banner */}
       {hasError && (
         <div className="card" style={{ marginBottom: '1.5rem', backgroundColor: '#fee', border: '1px solid #f00', padding: '1rem' }}>
@@ -214,7 +214,7 @@ const ParentDashboard = () => {
       {/* Header - Always visible */}
       <div className="dashboard-with-calendar" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '1.5rem', marginBottom: '2rem', alignItems: 'start' }}>
         <div>
-        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#333' }}>
+        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
           Parent Dashboard
         </h1>
         {(safeDashboard.schoolName || safeDashboard.SchoolName) && (
