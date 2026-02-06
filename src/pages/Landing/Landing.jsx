@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
-import { useQuery } from 'react-query'
-import { notificationsService } from '../../services/apiServices'
-import { Users, BookOpen, CreditCard, BarChart3, Shield, Rocket, CheckCircle, ArrowRight, School, UserCheck, Award, TrendingUp, Clock, Globe, Sun, Moon, GraduationCap, Bell, LogOut, LayoutDashboard } from 'lucide-react'
+import { useQuery, useMutation } from 'react-query'
+import { notificationsService, contactSalesService } from '../../services/apiServices'
+import { Users, BookOpen, CreditCard, BarChart3, Shield, Rocket, CheckCircle, ArrowRight, School, UserCheck, Award, TrendingUp, Clock, Globe, Sun, Moon, GraduationCap, Bell, LogOut, LayoutDashboard, X, Mail } from 'lucide-react'
+import { handleError, handleSuccess } from '../../utils/errorHandler'
 import { safeStrLower } from '../../utils/safeUtils'
 import './Landing.css'
 import logo from '../../assets/logo2.jpg'
@@ -12,6 +13,36 @@ import logo from '../../assets/logo2.jpg'
 const Landing = () => {
   const { user, isAuthenticated, logout } = useAuth()
   const navigate = useNavigate()
+  const [showContactModal, setShowContactModal] = useState(false)
+  const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', company: '', message: '' })
+
+  const contactMutation = useMutation(
+    (data) => contactSalesService.submitContactSales(data),
+    {
+      onSuccess: (res) => {
+        const msg = res?.message ?? res?.data ?? 'Thank you! Our team will get back to you shortly.'
+        handleSuccess(msg)
+        setShowContactModal(false)
+        setContactForm({ name: '', email: '', phone: '', company: '', message: '' })
+      },
+      onError: handleError
+    }
+  )
+
+  const handleContactSubmit = (e) => {
+    e.preventDefault()
+    if (!contactForm.name?.trim() || !contactForm.email?.trim() || !contactForm.message?.trim()) {
+      handleError({ message: 'Please fill in Name, Email, and Message.' })
+      return
+    }
+    contactMutation.mutate({
+      name: contactForm.name.trim(),
+      email: contactForm.email.trim(),
+      phone: contactForm.phone?.trim() || undefined,
+      company: contactForm.company?.trim() || undefined,
+      message: contactForm.message.trim()
+    })
+  }
 
   // Safely get theme with fallback
   let theme, toggleTheme, isDark
@@ -576,14 +607,16 @@ const Landing = () => {
                 <Rocket size={20} />
                 Get Started
               </Link>
-            <Link
-              to="/login"
-              style={{ background: 'rgba(11, 14, 17, 0.2)', backdropFilter: 'blur(12px)', color: '#0b0e11', border: '2px solid rgba(11, 14, 17, 0.3)', padding: '1rem 2rem', borderRadius: '0.75rem', fontSize: '1.125rem', fontWeight: 600, textDecoration: 'none', transition: 'all 0.2s' }}
-              onMouseEnter={(e) => { e.target.style.background = 'rgba(11, 14, 17, 0.3)' }}
-              onMouseLeave={(e) => { e.target.style.background = 'rgba(11, 14, 17, 0.2)' }}
+            <button
+              type="button"
+              onClick={() => setShowContactModal(true)}
+              style={{ background: 'rgba(11, 14, 17, 0.2)', backdropFilter: 'blur(12px)', color: '#0b0e11', border: '2px solid rgba(11, 14, 17, 0.3)', padding: '1rem 2rem', borderRadius: '0.75rem', fontSize: '1.125rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(11, 14, 17, 0.3)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(11, 14, 17, 0.2)' }}
             >
+              <Mail size={20} />
               Contact Sales
-            </Link>
+            </button>
           </div>
         </div>
       </section>
@@ -639,6 +672,196 @@ const Landing = () => {
           </div>
         </div>
       </footer>
+
+      {/* Contact Sales Modal */}
+      {showContactModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.6)',
+            padding: '1rem'
+          }}
+          onClick={() => !contactMutation.isLoading && setShowContactModal(false)}
+        >
+          <div
+            style={{
+              background: isDark ? '#181a20' : '#ffffff',
+              borderRadius: '1rem',
+              maxWidth: '480px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+              border: `1px solid ${isDark ? '#2b3139' : '#e5e7eb'}`
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.5rem 1.5rem 0' }}>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: isDark ? '#f0b90b' : '#0b0e11' }}>
+                Contact Sales
+              </h3>
+              <button
+                type="button"
+                onClick={() => !contactMutation.isLoading && setShowContactModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: isDark ? '#b7bdc6' : '#6b7280' }}
+                aria-label="Close"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleContactSubmit} style={{ padding: '1.5rem' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label htmlFor="contact-name" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: isDark ? '#b7bdc6' : '#374151' }}>
+                  Name <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  id="contact-name"
+                  type="text"
+                  required
+                  value={contactForm.name}
+                  onChange={(e) => setContactForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="Your name"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '0.5rem',
+                    border: `1px solid ${isDark ? '#2b3139' : '#d1d5db'}`,
+                    background: isDark ? '#0b0e11' : '#ffffff',
+                    color: isDark ? '#ffffff' : '#0b0e11',
+                    fontSize: '1rem'
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label htmlFor="contact-email" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: isDark ? '#b7bdc6' : '#374151' }}>
+                  Email <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  id="contact-email"
+                  type="email"
+                  required
+                  value={contactForm.email}
+                  onChange={(e) => setContactForm((f) => ({ ...f, email: e.target.value }))}
+                  placeholder="you@example.com"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '0.5rem',
+                    border: `1px solid ${isDark ? '#2b3139' : '#d1d5db'}`,
+                    background: isDark ? '#0b0e11' : '#ffffff',
+                    color: isDark ? '#ffffff' : '#0b0e11',
+                    fontSize: '1rem'
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label htmlFor="contact-phone" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: isDark ? '#b7bdc6' : '#374151' }}>
+                  Phone
+                </label>
+                <input
+                  id="contact-phone"
+                  type="tel"
+                  value={contactForm.phone}
+                  onChange={(e) => setContactForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="+1234567890"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '0.5rem',
+                    border: `1px solid ${isDark ? '#2b3139' : '#d1d5db'}`,
+                    background: isDark ? '#0b0e11' : '#ffffff',
+                    color: isDark ? '#ffffff' : '#0b0e11',
+                    fontSize: '1rem'
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label htmlFor="contact-company" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: isDark ? '#b7bdc6' : '#374151' }}>
+                  Company / School
+                </label>
+                <input
+                  id="contact-company"
+                  type="text"
+                  value={contactForm.company}
+                  onChange={(e) => setContactForm((f) => ({ ...f, company: e.target.value }))}
+                  placeholder="School or organization name"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '0.5rem',
+                    border: `1px solid ${isDark ? '#2b3139' : '#d1d5db'}`,
+                    background: isDark ? '#0b0e11' : '#ffffff',
+                    color: isDark ? '#ffffff' : '#0b0e11',
+                    fontSize: '1rem'
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label htmlFor="contact-message" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: isDark ? '#b7bdc6' : '#374151' }}>
+                  Message <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <textarea
+                  id="contact-message"
+                  required
+                  rows={4}
+                  value={contactForm.message}
+                  onChange={(e) => setContactForm((f) => ({ ...f, message: e.target.value }))}
+                  placeholder="Tell us about your needs..."
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '0.5rem',
+                    border: `1px solid ${isDark ? '#2b3139' : '#d1d5db'}`,
+                    background: isDark ? '#0b0e11' : '#ffffff',
+                    color: isDark ? '#ffffff' : '#0b0e11',
+                    fontSize: '1rem',
+                    resize: 'vertical',
+                    minHeight: '100px'
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => !contactMutation.isLoading && setShowContactModal(false)}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '0.5rem',
+                    border: `1px solid ${isDark ? '#2b3139' : '#d1d5db'}`,
+                    background: 'transparent',
+                    color: isDark ? '#b7bdc6' : '#374151',
+                    cursor: contactMutation.isLoading ? 'not-allowed' : 'pointer',
+                    fontWeight: 600
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={contactMutation.isLoading}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '0.5rem',
+                    border: 'none',
+                    background: '#f0b90b',
+                    color: '#0b0e11',
+                    cursor: contactMutation.isLoading ? 'not-allowed' : 'pointer',
+                    fontWeight: 600,
+                    opacity: contactMutation.isLoading ? 0.7 : 1
+                  }}
+                >
+                  {contactMutation.isLoading ? 'Sending...' : 'Send Message'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

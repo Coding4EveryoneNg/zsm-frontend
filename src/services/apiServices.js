@@ -350,6 +350,11 @@ export const userManagementService = {
   createParent: (data) => api.post('/userManagement/parents', data),
 }
 
+// Contact Sales (public - landing page inquiries)
+export const contactSalesService = {
+  submitContactSales: (data) => api.post('/ContactSales', data),
+}
+
 // Subscription Services (plans are public for onboarding; other endpoints require auth)
 export const subscriptionService = {
   getPlans: () => api.get('/Subscription/plans'),
