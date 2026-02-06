@@ -557,64 +557,6 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Technology Stack */}
-      <section className="landing-section" style={{ padding: '5rem 0', background: 'var(--bg-primary)' }}>
-        <div className="landing-container">
-          <div className="landing-text-center" style={{ marginBottom: '4rem' }}>
-            <h2 style={{ fontSize: '2.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '1rem' }}>Built with Modern Technology</h2>
-            <p style={{ fontSize: '1.25rem', color: 'var(--text-secondary)', maxWidth: '672px', margin: '0 auto' }}>
-              Leveraging the latest technologies for performance and scalability
-            </p>
-          </div>
-
-          <div className="landing-grid landing-grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem' }}>
-            {[
-              { name: 'ASP.NET Core 8', desc: 'Modern web framework', image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=200&h=200&fit=crop&q=80' },
-              { name: 'Entity Framework', desc: 'ORM for data access', image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=200&h=200&fit=crop&q=80' },
-              { name: 'CQRS Pattern', desc: 'Scalable architecture', image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=200&h=200&fit=crop&q=80' },
-              { name: 'React & Vite', desc: 'Fast frontend framework', image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&h=200&fit=crop&q=80' }
-            ].map((tech, index) => (
-              <div key={index} className="landing-text-center" style={{ 
-                padding: '1.5rem', 
-                borderRadius: '0.75rem', 
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-color)',
-                transition: 'all 0.3s' 
-              }}
-                onMouseEnter={(e) => { 
-                  e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
-                  e.currentTarget.style.borderColor = 'var(--primary-yellow)';
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                }}
-                onMouseLeave={(e) => { 
-                  e.currentTarget.style.boxShadow = 'none';
-                  e.currentTarget.style.borderColor = 'var(--border-color)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                <img 
-                  src={tech.image} 
-                  alt={tech.name}
-                  style={{ 
-                    width: '80px', 
-                    height: '80px', 
-                    borderRadius: '0.5rem',
-                    objectFit: 'cover',
-                    marginBottom: '1rem',
-                    border: '2px solid var(--primary-yellow)'
-                  }}
-                  onError={(e) => {
-                    e.target.style.display = 'none'
-                  }}
-                />
-                <h4 style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{tech.name}</h4>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{tech.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section style={{ padding: '5rem 0', background: 'linear-gradient(to right, #f0b90b, #f5c842)' }}>
         <div style={{ maxWidth: '896px', margin: '0 auto', padding: '0 1rem', textAlign: 'center' }}>
