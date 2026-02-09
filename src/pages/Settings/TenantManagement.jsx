@@ -5,7 +5,7 @@ import Loading from '../../components/Common/Loading'
 import ConfirmDialog from '../../components/Common/ConfirmDialog'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
 import logger from '../../utils/logger'
-import { Plus, Search, Building2, Edit, Eye, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, Search, Building2, Edit, Eye, CheckCircle, XCircle, Power, PowerOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const TenantManagement = () => {
@@ -36,6 +36,21 @@ const TenantManagement = () => {
         handleSuccess('Tenant created successfully')
         queryClient.invalidateQueries('tenants')
         setShowCreateModal(false)
+      },
+      onError: handleError
+    }
+  )
+
+  const toggleStatusMutation = useMutation(
+    (tenantId) => tenantsService.toggleStatus(tenantId),
+    {
+      onSuccess: (res) => {
+        const msg = res?.data?.message || (res?.data?.data?.isActive ? 'Tenant activated.' : 'Tenant deactivated.')
+        handleSuccess(msg)
+        queryClient.invalidateQueries('tenants')
+        if (selectedTenant && res?.data?.data?.isActive !== undefined) {
+          setSelectedTenant(prev => prev ? { ...prev, isActive: res.data.data.isActive } : null)
+        }
       },
       onError: handleError
     }
@@ -174,6 +189,15 @@ const TenantManagement = () => {
                     <td>{new Date(tenant.createdAt).toLocaleDateString()}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          className={`btn btn-sm ${tenant.isActive ? 'btn-outline-danger' : 'btn-outline-success'}`}
+                          onClick={() => toggleStatusMutation.mutate(tenant.id)}
+                          disabled={toggleStatusMutation.isLoading}
+                          title={tenant.isActive ? 'Deactivate tenant (users will not be able to log in)' : 'Activate tenant'}
+                        >
+                          {tenant.isActive ? <PowerOff size={16} /> : <Power size={16} />}
+                          {tenant.isActive ? ' Deactivate' : ' Activate'}
+                        </button>
                         <button
                           className="btn btn-sm btn-outline-primary"
                           onClick={() => handleViewDetails(tenant.id)}

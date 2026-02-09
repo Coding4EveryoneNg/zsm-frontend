@@ -1,17 +1,21 @@
 import React, { useState } from 'react'
-import { useQuery } from 'react-query'
+import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { schoolsService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
-import { handleError } from '../../utils/errorHandler'
+import { handleError, handleSuccess } from '../../utils/errorHandler'
 import logger from '../../utils/logger'
-import { Search, Building2, Users, GraduationCap, School, Eye } from 'lucide-react'
+import { Search, Building2, Users, GraduationCap, School, Eye, Power, PowerOff } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
 
 const SchoolManagement = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [searchTerm, setSearchTerm] = useState('')
+  const isSuperAdmin = user?.role === 'SuperAdmin'
 
   const { data, isLoading, error } = useQuery(
     ['schools', page, pageSize],
@@ -21,6 +25,18 @@ const SchoolManagement = () => {
       onError: (err) => {
         logger.error('Failed to fetch schools:', err)
       }
+    }
+  )
+
+  const toggleStatusMutation = useMutation(
+    (schoolId) => schoolsService.toggleStatus(schoolId),
+    {
+      onSuccess: (res) => {
+        const msg = res?.data?.message || (res?.data?.data?.isActive ? 'School activated.' : 'School deactivated.')
+        handleSuccess(msg)
+        queryClient.invalidateQueries('schools')
+      },
+      onError: handleError
     }
   )
 
@@ -136,12 +152,21 @@ const SchoolManagement = () => {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {isSuperAdmin && (
+                          <button
+                            className={`btn btn-sm ${school.isActive !== false ? 'btn-outline-danger' : 'btn-outline-success'}`}
+                            onClick={() => toggleStatusMutation.mutate(school.id)}
+                            disabled={toggleStatusMutation.isLoading}
+                            title={school.isActive !== false ? 'Deactivate school (users will not be able to log in)' : 'Activate school'}
+                          >
+                            {school.isActive !== false ? <PowerOff size={16} /> : <Power size={16} />}
+                            {school.isActive !== false ? ' Deactivate' : ' Activate'}
+                          </button>
+                        )}
                         <button
                           className="btn btn-sm btn-outline-primary"
                           onClick={() => {
-                            // Navigate to school details or view
                             if (school.id) {
-                              // Use the view endpoint for SuperAdmin
                               navigate(`/settings/school/${school.id}`)
                             }
                           }}
