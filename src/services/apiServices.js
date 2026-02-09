@@ -239,6 +239,7 @@ export const tenantsService = {
   createTenant: (data) => api.post('/tenants', data),
   updateTenant: (id, data) => api.put(`/tenants/${id}`, data),
   deleteTenant: (id) => api.delete(`/tenants/${id}`),
+  toggleStatus: (id) => api.patch(`/tenants/${id}/toggle-status`),
 }
 
 // Schools Services
@@ -247,6 +248,7 @@ export const schoolsService = {
   getSchool: (id) => api.get(`/schools/${id}`),
   getCurrentSchool: () => api.get('/schools'),
   updateSchool: (id, data) => api.put(`/schools/${id}`, data),
+  toggleStatus: (id) => api.patch(`/schools/${id}/toggle-status`),
   viewSchool: (schoolId) => api.get(`/schools/${schoolId}/view`),
   uploadLogo: (formData) => api.post('/schools/upload-logo', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
