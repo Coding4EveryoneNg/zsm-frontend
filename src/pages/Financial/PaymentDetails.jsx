@@ -121,10 +121,13 @@ const PaymentDetails = () => {
 
   const status = (payment.status || payment.Status || '').trim()
   const statusLower = status.toLowerCase()
+  // Only Parent, Admin, Principal can make payment; students cannot.
   const canMakePayment = (status === 'Pending' || status === 'Overdue' || status === 'PartiallyPaid') &&
-                         (user?.role === 'Student' || user?.role === 'Parent')
-  // Only show download receipt after partial or full payment has been made
-  const canDownloadReceipt = statusLower === 'paid' || statusLower === 'partiallypaid'
+                         (user?.role === 'Parent' || user?.role === 'Admin' || user?.role === 'Principal')
+  // Students can generate receipt for their payments; show for Paid, PartiallyPaid, and PendingApproval
+  const canDownloadReceipt = statusLower === 'paid' || statusLower === 'partiallypaid' || statusLower === 'pendingapproval'
+  const isAdmin = user?.role === 'Admin'
+  const canApproveOrReject = isAdmin && status === 'PendingApproval'
 
   const getStatusBadge = () => {
     switch (status) {
@@ -149,6 +152,20 @@ const PaymentDetails = () => {
             Partially Paid
           </span>
         )
+      case 'PendingApproval':
+        return (
+          <span className="badge badge-warning" style={{ backgroundColor: 'var(--warning)', color: '#000' }}>
+            <Clock size={14} style={{ marginRight: '0.25rem' }} />
+            Pending Approval
+          </span>
+        )
+      case 'Rejected':
+        return (
+          <span className="badge badge-danger">
+            <XCircle size={14} style={{ marginRight: '0.25rem' }} />
+            Rejected
+          </span>
+        )
       default:
         return (
           <span className="badge badge-warning">
@@ -164,14 +181,36 @@ const PaymentDetails = () => {
       setProcessing(true)
       processPaymentMutation.mutate({})
     } else {
-      // For gateway payments, use the gateway endpoint
       setProcessing(true)
       processPaymentMutation.mutate({
         paymentGateway: paymentMethod,
-        paidBy: user?.role === 'Student' ? 'Student' : 'Parent'
+        paidBy: user?.role === 'Parent' ? 'Parent' : (user?.role === 'Principal' ? 'Principal' : 'Admin')
       })
     }
   }
+
+  const approvePaymentMutation = useMutation(
+    () => paymentsService.approvePayment(paymentId),
+    {
+      onSuccess: () => {
+        toast.success('Payment approved.')
+        queryClient.invalidateQueries(['payment', paymentId])
+        queryClient.invalidateQueries(['payments'])
+      },
+      onError: (err) => toast.error(err?.response?.data?.message || err?.response?.data?.errors?.[0] || 'Failed to approve payment')
+    }
+  )
+  const rejectPaymentMutation = useMutation(
+    (reason) => paymentsService.rejectPayment(paymentId, reason),
+    {
+      onSuccess: () => {
+        toast.success('Payment rejected.')
+        queryClient.invalidateQueries(['payment', paymentId])
+        queryClient.invalidateQueries(['payments'])
+      },
+      onError: (err) => toast.error(err?.response?.data?.message || err?.response?.data?.errors?.[0] || 'Failed to reject payment')
+    }
+  )
 
   return (
     <div className="page-container">
@@ -282,9 +321,30 @@ const PaymentDetails = () => {
       </div>
 
       {/* Action Buttons */}
-      {(canMakePayment || canDownloadReceipt) && (
+      {(canMakePayment || canDownloadReceipt || canApproveOrReject) && (
         <div className="card">
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            {canApproveOrReject && (
+              <>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => approvePaymentMutation.mutate()}
+                  disabled={approvePaymentMutation.isLoading}
+                >
+                  <CheckCircle size={16} style={{ marginRight: '0.5rem' }} />
+                  {approvePaymentMutation.isLoading ? 'Approving...' : 'Approve Payment'}
+                </button>
+                <button
+                  className="btn btn-outline"
+                  style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}
+                  onClick={() => rejectPaymentMutation.mutate()}
+                  disabled={rejectPaymentMutation.isLoading}
+                >
+                  <XCircle size={16} style={{ marginRight: '0.5rem' }} />
+                  {rejectPaymentMutation.isLoading ? 'Rejecting...' : 'Reject Payment'}
+                </button>
+              </>
+            )}
             {canMakePayment && (
               <button
                 className="btn btn-primary"
