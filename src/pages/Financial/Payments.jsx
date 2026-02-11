@@ -82,11 +82,12 @@ const Payments = () => {
   const filteredPayments = filter === 'all' 
     ? payments 
     : filter === 'pending'
-    ? payments.filter(p => p.status === 'Pending' || p.status === 'Overdue')
+    ? payments.filter(p => ['Pending', 'Overdue', 'PendingApproval'].includes(p.status))
     : payments.filter(p => p.status === 'Paid')
 
   const getStatusBadge = (payment) => {
-    switch (payment.status) {
+    const status = (payment.status || '').trim()
+    switch (status) {
       case 'Paid':
         return (
           <span className="badge badge-success">
@@ -108,6 +109,20 @@ const Payments = () => {
             Partially Paid
           </span>
         )
+      case 'PendingApproval':
+        return (
+          <span className="badge badge-warning" style={{ backgroundColor: 'var(--warning)', color: '#000' }}>
+            <Clock size={14} style={{ marginRight: '0.25rem' }} />
+            Pending Approval
+          </span>
+        )
+      case 'Rejected':
+        return (
+          <span className="badge badge-danger">
+            <XCircle size={14} style={{ marginRight: '0.25rem' }} />
+            Rejected
+          </span>
+        )
       default:
         return (
           <span className="badge badge-warning">
@@ -118,7 +133,7 @@ const Payments = () => {
     }
   }
 
-  const totalPending = payments.filter(p => p.status === 'Pending' || p.status === 'Overdue').reduce((sum, p) => sum + (p.amount || 0), 0)
+  const totalPending = payments.filter(p => ['Pending', 'Overdue', 'PendingApproval'].includes(p.status)).reduce((sum, p) => sum + (p.amount || 0), 0)
   const totalPaid = payments.filter(p => p.status === 'Paid').reduce((sum, p) => sum + (p.amount || 0), 0)
 
   return (
@@ -143,7 +158,7 @@ const Payments = () => {
               </select>
             </div>
           )}
-          {(user?.role === 'Admin' || user?.role === 'Principal') && (
+          {(user?.role === 'Admin' || user?.role === 'Principal' || user?.role === 'Parent') && (
             <button className="btn btn-primary" onClick={() => navigate('/payments/create')}>
               <Plus size={18} />
               Add Payment
@@ -206,7 +221,7 @@ const Payments = () => {
               style={{
                 borderLeft: `4px solid ${
                   payment.status === 'Paid' ? 'var(--success)' : 
-                  payment.status === 'Overdue' ? 'var(--danger)' : 
+                  payment.status === 'Overdue' || payment.status === 'Rejected' ? 'var(--danger)' : 
                   'var(--warning)'
                 }`,
                 cursor: (user?.role === 'Student' || user?.role === 'Parent') ? 'pointer' : 'default'

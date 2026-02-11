@@ -556,7 +556,7 @@ function App() {
         <Route
           path="/payments/create"
           element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
+            <ProtectedRoute allowedRoles={['Admin', 'Principal', 'Parent']}>
               <CreatePayment />
             </ProtectedRoute>
           }
