@@ -90,7 +90,7 @@ api.interceptors.response.use(
           } 
         })
       } catch {
-        // If parsing fails, return original error
+        // If parsing fails, return original errors
         return Promise.reject(error)
       }
     }
