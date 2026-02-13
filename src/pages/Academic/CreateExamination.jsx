@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery } from 'react-query'
-import { examinationsService, commonService } from '../../services/apiServices'
+import { examinationsService, commonService, teachersService, dashboardService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
 import { ArrowLeft, Plus, X, Save } from 'lucide-react'
@@ -43,12 +43,47 @@ const CreateExamination = () => {
   const [correctAnswer, setCorrectAnswer] = useState('')
   const [options, setOptions] = useState(['', '', '', ''])
 
-  // Fetch dropdown data (terms only take schoolId; get school from selected class)
-  const { data: classesData } = useQuery('classes-dropdown', () => commonService.getClassesDropdown())
-  const { data: subjectsData } = useQuery('subjects-dropdown', () => commonService.getSubjectsDropdown())
+  // For teachers: only assigned classes and subjects; for others: full school dropdowns
+  const isTeacher = (user?.role || user?.Role || '').toString().toLowerCase() === 'teacher'
+  const { data: schoolData } = useQuery(
+    ['dashboard', 'school-switching'],
+    () => dashboardService.getSchoolSwitchingData(),
+    { enabled: isTeacher }
+  )
+  const teacherSchoolId = schoolData?.data?.currentSchoolId ?? schoolData?.data?.CurrentSchoolId ?? user?.schoolId ?? user?.SchoolId
+  const { data: teacherClassesRes } = useQuery(
+    ['teacher-assigned-classes', user?.id ?? user?.Id],
+    () => teachersService.getMyClasses(),
+    { enabled: isTeacher }
+  )
+  const { data: teacherSubjectsRes } = useQuery(
+    ['teacher-assigned-subjects', user?.id ?? user?.Id],
+    () => teachersService.getMySubjects(),
+    { enabled: isTeacher }
+  )
+  const { data: classesRes } = useQuery(
+    ['classes-dropdown', teacherSchoolId, isTeacher],
+    () => commonService.getClassesDropdown(isTeacher && teacherSchoolId ? { schoolId: teacherSchoolId } : {}),
+    { enabled: !isTeacher || !!teacherSchoolId }
+  )
+  const { data: subjectsRes } = useQuery(
+    ['subjects-dropdown', teacherSchoolId, isTeacher],
+    () => commonService.getSubjectsDropdown(isTeacher && teacherSchoolId ? { schoolId: teacherSchoolId } : {}),
+    { enabled: !isTeacher || !!teacherSchoolId }
+  )
+  const teacherAssignedClasses = teacherClassesRes?.data ?? teacherClassesRes ?? []
+  const teacherAssignedSubjects = teacherSubjectsRes?.data ?? teacherSubjectsRes ?? []
+  const classes = useMemo(() => {
+    if (!isTeacher) return (classesRes?.data ?? classesRes ?? [])
+    return teacherAssignedClasses
+  }, [isTeacher, classesRes, teacherAssignedClasses])
+  const subjects = useMemo(() => {
+    if (!isTeacher) return (subjectsRes?.data ?? subjectsRes ?? [])
+    return teacherAssignedSubjects
+  }, [isTeacher, subjectsRes, teacherAssignedSubjects])
+
   const { data: sessionsData } = useQuery('sessions-dropdown', () => commonService.getSessionsDropdown())
-  const classes = classesData?.data ?? classesData?.Data ?? []
-  const selectedClassForTerms = classes.find((c) => (c.id || c.Id) === formData.classId)
+  const selectedClassForTerms = Array.isArray(classes) ? classes.find((c) => (c.id || c.Id) === formData.classId) : null
   const schoolIdForTerms = selectedClassForTerms?.schoolId ?? selectedClassForTerms?.SchoolId
   const { data: termsData } = useQuery(
     ['terms-dropdown', schoolIdForTerms],
@@ -160,7 +195,6 @@ const CreateExamination = () => {
     setOptions(newOptions)
   }
 
-  const subjects = subjectsData?.data ?? subjectsData?.Data ?? []
   const terms = termsData?.data ?? termsData?.Data ?? []
 
   return (

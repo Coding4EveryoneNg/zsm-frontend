@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery } from 'react-query'
-import { assignmentsService, commonService } from '../../services/apiServices'
+import { assignmentsService, commonService, teachersService, dashboardService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
 import { ArrowLeft, Plus, X, Save } from 'lucide-react'
@@ -37,10 +37,49 @@ const CreateAssignment = () => {
   const [correctAnswer, setCorrectAnswer] = useState('')
   const [options, setOptions] = useState(['', '', '', ''])
 
-  // Fetch dropdown data
-  const { data: classesData } = useQuery('classes-dropdown', () => commonService.getClassesDropdown())
-  const { data: subjectsData } = useQuery('subjects-dropdown', () => commonService.getSubjectsDropdown())
-  const { data: teachersData } = useQuery('teachers-dropdown', () => commonService.getTeachersDropdown())
+  // For teachers: fetch only assigned classes and subjects; for others: full dropdowns
+  const isTeacher = (user?.role || user?.Role || '').toString().toLowerCase() === 'teacher'
+  const { data: schoolData } = useQuery(
+    ['dashboard', 'school-switching'],
+    () => dashboardService.getSchoolSwitchingData(),
+    { enabled: isTeacher }
+  )
+  const teacherSchoolId = schoolData?.data?.currentSchoolId ?? schoolData?.data?.CurrentSchoolId ?? user?.schoolId ?? user?.SchoolId
+  const { data: teacherClassesRes } = useQuery(
+    ['teacher-assigned-classes', user?.id ?? user?.Id],
+    () => teachersService.getMyClasses(),
+    { enabled: isTeacher }
+  )
+  const teacherAssignedClasses = teacherClassesRes?.data ?? teacherClassesRes ?? []
+  const { data: classesRes } = useQuery(
+    ['classes-dropdown', teacherSchoolId, isTeacher],
+    () => commonService.getClassesDropdown(isTeacher && teacherSchoolId ? { schoolId: teacherSchoolId } : {}),
+    { enabled: !isTeacher || !!teacherSchoolId }
+  )
+  const { data: subjectsRes } = useQuery(
+    ['subjects-dropdown', teacherSchoolId, isTeacher],
+    () => commonService.getSubjectsDropdown(isTeacher && teacherSchoolId ? { schoolId: teacherSchoolId } : {}),
+    { enabled: !isTeacher || !!teacherSchoolId }
+  )
+  const { data: teachersRes } = useQuery(
+    ['teachers-dropdown', teacherSchoolId],
+    () => commonService.getTeachersDropdown(teacherSchoolId ? { schoolId: teacherSchoolId } : {}),
+    { enabled: !isTeacher }
+  )
+  const { data: teacherSubjectsRes } = useQuery(
+    ['teacher-assigned-subjects', user?.id ?? user?.Id],
+    () => teachersService.getMySubjects(),
+    { enabled: isTeacher }
+  )
+  const teacherAssignedSubjects = teacherSubjectsRes?.data ?? teacherSubjectsRes ?? []
+  const classes = useMemo(() => {
+    if (!isTeacher) return (classesRes?.data ?? classesRes ?? [])
+    return teacherAssignedClasses
+  }, [isTeacher, classesRes, teacherAssignedClasses])
+  const subjects = useMemo(() => {
+    if (!isTeacher) return (subjectsRes?.data ?? subjectsRes ?? [])
+    return teacherAssignedSubjects
+  }, [isTeacher, subjectsRes, teacherAssignedSubjects])
   const { data: sessionsData } = useQuery('sessions-dropdown', () => commonService.getSessionsDropdown())
   const sessions = sessionsData?.data ?? sessionsData?.Data ?? []
   const selectedSession = formData.session && formData.session.length === 36
@@ -67,6 +106,13 @@ const CreateAssignment = () => {
     }
   )
 
+  const { data: teacherMeRes } = useQuery(
+    ['teacher-me', user?.id ?? user?.Id],
+    () => teachersService.getMe(),
+    { enabled: isTeacher }
+  )
+  const currentTeacherId = teacherMeRes?.data?.id ?? teacherMeRes?.data?.Id ?? teacherMeRes?.id ?? teacherMeRes?.Id
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -75,16 +121,17 @@ const CreateAssignment = () => {
       return
     }
 
-    // Get teacher ID from user if teacher
+    // Get teacher ID from user if teacher, otherwise from dropdown
     let teacherId = formData.teacherId
-    if (user?.role === 'Teacher' && !teacherId) {
-      // Try to get teacher ID from user context or teachers list
-      const teacher = teachersData?.data?.find(t => t.email === user?.email || t.Email === user?.email)
-      teacherId = teacher?.id || teacher?.Id
+    if (isTeacher) {
+      teacherId = currentTeacherId
+    } else if (!teacherId) {
+      const teacher = teachers?.find(t => (t.email ?? t.Email) === (user?.email ?? user?.Email))
+      teacherId = teacher?.id ?? teacher?.Id
     }
 
     if (!teacherId) {
-      toast.error('Please select a teacher')
+      toast.error(isTeacher ? 'Unable to identify teacher. Please try again.' : 'Please select a teacher')
       return
     }
 
@@ -169,9 +216,7 @@ const CreateAssignment = () => {
     })
   }
 
-  const classes = classesData?.data || []
-  const subjects = subjectsData?.data || []
-  const teachers = teachersData?.data || []
+  const teachers = teachersRes?.data ?? teachersRes ?? []
   const terms = termsData?.data || []
 
   return (

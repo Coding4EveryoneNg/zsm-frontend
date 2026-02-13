@@ -77,7 +77,7 @@ const Sidebar = () => {
       title: 'Subjects',
       icon: BookOpen,
       path: '/subjects',
-      roles: ['Admin', 'Principal'],
+      roles: ['Admin', 'Principal', 'Student'],
     },
     {
       title: 'Assignments',

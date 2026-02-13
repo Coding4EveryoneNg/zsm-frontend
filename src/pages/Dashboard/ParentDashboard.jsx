@@ -12,20 +12,32 @@ import logger from '../../utils/logger'
 
 const ParentDashboard = () => {
   const navigate = useNavigate()
-  
-  const { data: dashboardData, isLoading, error } = useQuery(
-    'parentDashboard',
-    () => dashboardService.getParentDashboard(),
-    { 
-      refetchInterval: 30000,
-      retry: 1,
-      onError: (err) => {
-        logger.error('Parent dashboard error:', err)
-      },
-      onSuccess: (data) => {
-        logger.debug('Parent dashboard success:', data)
-      }
-    }
+
+  // Split endpoints: summary first, then children, payments, results, activities (lazy)
+  const { data: summaryRes, isLoading: summaryLoading, error: summaryError } = useQuery(
+    'parentDashboardSummary',
+    () => dashboardService.getParentSummary(),
+    { refetchInterval: 30000, retry: 1, onError: (err) => logger.error('Parent dashboard summary error:', err) }
+  )
+  const { data: childrenRes, isLoading: childrenLoading } = useQuery(
+    'parentDashboardChildren',
+    () => dashboardService.getParentChildren(),
+    { refetchInterval: 30000, retry: 1 }
+  )
+  const { data: paymentsRes, isLoading: paymentsLoading } = useQuery(
+    'parentDashboardPayments',
+    () => dashboardService.getParentPayments(),
+    { refetchInterval: 30000, retry: 1 }
+  )
+  const { data: resultsRes, isLoading: resultsLoading } = useQuery(
+    'parentDashboardResults',
+    () => dashboardService.getParentResults(),
+    { refetchInterval: 30000, retry: 1 }
+  )
+  const { data: activitiesRes, isLoading: activitiesLoading } = useQuery(
+    'parentDashboardActivities',
+    () => dashboardService.getParentActivities(),
+    { refetchInterval: 30000, retry: 1 }
   )
 
   // Fetch examination statistics for parent's children
@@ -44,69 +56,28 @@ const ParentDashboard = () => {
   // Extract exam stats from response
   const examStats = examStatsData?.data || examStatsData || null
 
-  // Debug logging
-  logger.debug('Parent Dashboard State:', {
-    isLoading,
-    hasError: !!error,
-    hasData: !!dashboardData,
-    error,
-    dashboardData
-  })
+  if (summaryError) logger.error('Dashboard error details:', summaryError)
 
-  // Handle different response structures
-  // API returns: { success: true, data: ParentDashboardData } or { success: false, errors: [...] }
-  // After axios interceptor: response.data (which is the ApiResponse object)
-  let dashboard = {}
-  
-  if (error) {
-    logger.error('Dashboard error details:', error)
-    // Even with error, try to extract any partial data
-    if (error?.data) {
-      dashboard = error.data?.data || error.data || {}
-    }
-  } else if (dashboardData) {
-    // Check if it's an error response
-    if (dashboardData.success === false) {
-      logger.error('Parent Dashboard API returned error:', dashboardData.errors || dashboardData.message)
-      // Still try to render with empty data
-      dashboard = {}
-    } else {
-      // Success response - extract the data
-      // Handle both ApiResponse structure and direct data
-      // Check if dashboardData has a 'data' property (ApiResponse structure)
-      if (dashboardData.data !== undefined) {
-        dashboard = dashboardData.data || {}
-      } else {
-        // dashboardData itself is the data
-        dashboard = dashboardData || {}
-      }
-    }
-  } else {
-    // No data and no error - this might happen on first load
-    logger.warn('Parent Dashboard: No dashboardData and no error - using empty dashboard')
-    dashboard = {}
+  const summary = summaryRes?.data ?? summaryRes ?? {}
+  const childrenPayload = childrenRes?.data ?? childrenRes ?? {}
+  const paymentsPayload = paymentsRes?.data ?? paymentsRes ?? {}
+  const resultsPayload = resultsRes?.data ?? resultsRes ?? {}
+  const activitiesPayload = activitiesRes?.data ?? activitiesRes ?? {}
+
+  const safeDashboard = {
+    ...summary,
+    schoolName: summary.schoolName ?? summary.SchoolName,
+    userName: summary.userName ?? summary.UserName,
   }
-  
-  // Debug: Log the response to see structure
-  logger.debug('Parent Dashboard raw data:', dashboardData)
-  logger.debug('Parent Dashboard processed data:', dashboard)
-  logger.debug('Dashboard keys:', dashboard ? Object.keys(dashboard) : [])
-  logger.debug('Dashboard type:', typeof dashboard, 'Is array:', Array.isArray(dashboard))
-  
-  // Always render the dashboard structure, even if data is empty
-  // Ensure dashboard is always an object
-  const safeDashboard = dashboard && typeof dashboard === 'object' && !Array.isArray(dashboard) ? dashboard : {}
-  
-  // Additional safety check - if safeDashboard is still empty, ensure we have at least an empty object
-  if (!safeDashboard || Object.keys(safeDashboard).length === 0) {
-    logger.warn('Parent Dashboard: safeDashboard is empty, using default structure')
+  const stats = {
+    totalChildren: childrenPayload.totalChildren ?? childrenPayload.TotalChildren ?? 0,
+    pendingPayments: paymentsPayload.pendingPayments ?? paymentsPayload.PendingPayments ?? 0,
+    totalPaid: paymentsPayload.totalPaid ?? paymentsPayload.TotalPaid ?? 0,
+    recentResults: resultsPayload.recentResultsCount ?? resultsPayload.RecentResultsCount ?? 0,
   }
-  
-  // Extract data with property name flexibility (camelCase and PascalCase)
-  const stats = safeDashboard.stats || safeDashboard.Stats || {}
-  const children = safeDashboard.children || safeDashboard.Children || []
-  const recentPayments = safeDashboard.recentPayments || safeDashboard.RecentPayments || []
-  const charts = safeDashboard.charts || safeDashboard.Charts || []
+  const children = childrenPayload.children ?? childrenPayload.Children ?? []
+  const recentPayments = paymentsPayload.recentPayments ?? paymentsPayload.RecentPayments ?? []
+  const charts = activitiesPayload.charts ?? activitiesPayload.Charts ?? []
 
   // Ensure we always have valid data structures
   const safeChildren = Array.isArray(children) ? children : []
@@ -131,8 +102,7 @@ const ParentDashboard = () => {
     return null
   }, [safeRecentPayments])
 
-  // Now we can do conditional returns after all hooks are called
-  if (isLoading) return <Loading />
+  if (summaryLoading) return <Loading />
 
   // Render chart based on chart data from API
   const renderChart = (chart) => {
@@ -175,16 +145,14 @@ const ParentDashboard = () => {
   // Ensure statCards is always an array
   const safeStatCards = Array.isArray(statCards) ? statCards : []
 
-  // Show error banner if there was an error
-  const hasError = error || dashboardData?.success === false
-  const errorMessage = error?.message || error?.errors?.[0] || error?.error || dashboardData?.message
-  const errorList = error?.errors || dashboardData?.errors || []
+  const hasError = summaryError || summaryRes?.success === false
+  const errorMessage = summaryError?.message || summaryError?.response?.data?.errors?.[0] || summaryRes?.message
+  const errorList = summaryError?.response?.data?.errors || summaryRes?.errors || []
 
   // Ensure we always render something - even if data is completely empty
   // This prevents blank screens
-  // Force render even if dashboardData is null/undefined
-  if (!dashboardData && !error && !isLoading) {
-    logger.warn('Parent Dashboard: No data, no error, not loading - this should not happen')
+  if (!summaryRes && !summaryError && !summaryLoading) {
+    logger.warn('Parent Dashboard: No summary data, no error, not loading - this should not happen')
   }
 
   // Force render - ensure we always show something

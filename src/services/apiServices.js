@@ -34,6 +34,29 @@ export const dashboardService = {
   switchSchool: (schoolId) => api.post('/dashboard/switch-school', { schoolId }),
   /** SuperAdmin only: list of schools with total user count per school */
   getSchoolsWithUserCounts: () => api.get('/dashboard/superadmin/schools-user-counts'),
+
+  // Principal split (lazy loading)
+  getPrincipalSummary: () => api.get('/dashboard/principal/summary'),
+  getPrincipalRevenue: () => api.get('/dashboard/principal/revenue'),
+  getPrincipalClasses: () => api.get('/dashboard/principal/classes'),
+  getPrincipalTeachers: () => api.get('/dashboard/principal/teachers'),
+  getPrincipalEnrollments: () => api.get('/dashboard/principal/enrollments'),
+  getPrincipalTerms: () => api.get('/dashboard/principal/terms'),
+  getPrincipalActivities: () => api.get('/dashboard/principal/activities'),
+
+  // Parent split (lazy loading)
+  getParentSummary: () => api.get('/dashboard/parent/summary'),
+  getParentChildren: () => api.get('/dashboard/parent/children'),
+  getParentPayments: () => api.get('/dashboard/parent/payments'),
+  getParentResults: () => api.get('/dashboard/parent/results'),
+  getParentActivities: () => api.get('/dashboard/parent/activities'),
+
+  // Admin split (lazy loading)
+  getAdminSummary: () => api.get('/dashboard/admin/summary'),
+  getAdminSchools: () => api.get('/dashboard/admin/schools'),
+  getAdminApplications: () => api.get('/dashboard/admin/applications'),
+  getAdminRevenue: () => api.get('/dashboard/admin/revenue'),
+  getAdminActivities: () => api.get('/dashboard/admin/activities'),
 }
 
 // Students Services
@@ -50,7 +73,9 @@ export const studentsService = {
 export const teachersService = {
   getTeachers: (params) => api.get('/teachers', { params }),
   getTeacher: (id) => api.get(`/teachers/${id}`),
+  getMe: () => api.get('/teachers/me'),
   getMyClasses: () => api.get('/teachers/me/classes'),
+  getMySubjects: () => api.get('/teachers/me/subjects'),
   createTeacher: (data) => api.post('/teachers', data),
   updateTeacher: (id, data) => api.put(`/teachers/${id}`, data),
   deleteTeacher: (id) => api.delete(`/teachers/${id}`),
@@ -70,7 +95,9 @@ export const classesService = {
 // Subjects Services
 export const subjectsService = {
   getSubjects: (params) => api.get('/subjects', { params }),
+  getStudentSubjects: (params) => api.get('/subjects/student', { params }),
   getSubject: (id) => api.get(`/subjects/${id}`),
+  getStudentSubject: (id) => api.get(`/subjects/student/${id}`),
   createSubject: (data) => api.post('/subjects', data),
   updateSubject: (id, data) => api.put(`/subjects/${id}`, data),
   deleteSubject: (id) => api.delete(`/subjects/${id}`),

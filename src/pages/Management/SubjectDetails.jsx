@@ -2,20 +2,27 @@ import React from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from 'react-query'
 import Loading from '../../components/Common/Loading'
-import { ArrowLeft, BookOpen } from 'lucide-react'
+import { ArrowLeft, BookOpen, GraduationCap } from 'lucide-react'
 import { subjectsService } from '../../services/apiServices'
+import { useAuth } from '../../contexts/AuthContext'
 
 const SubjectDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const isStudent = (user?.role ?? user?.Role ?? '').toString().toLowerCase() === 'student'
 
-  const { data, isLoading } = useQuery(['subject', id], () => subjectsService.getSubject(id))
+  const { data, isLoading } = useQuery(
+    ['subject', id, isStudent],
+    () => (isStudent ? subjectsService.getStudentSubject(id) : subjectsService.getSubject(id))
+  )
 
   if (isLoading) return <Loading />
 
-  const subjectResponse = data?.data
+  const subjectResponse = data?.data ?? data
   const subject =
     subjectResponse?.subject ||
+    subjectResponse?.Subject ||
     subjectResponse?.data ||
     subjectResponse ||
     null
@@ -82,6 +89,19 @@ const SubjectDetails = () => {
               </span>
             </p>
           </div>
+          {(subject.teacherNames ?? subject.TeacherNames ?? []).length > 0 && (
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label className="form-label">Teacher(s)</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                {(subject.teacherNames ?? subject.TeacherNames ?? []).map((name, idx) => (
+                  <span key={idx} className="badge badge-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <GraduationCap size={14} />
+                    {name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

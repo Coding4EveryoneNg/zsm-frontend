@@ -15,11 +15,11 @@ const Notifications = () => {
   const { data, isLoading, error } = useQuery(
     ['notifications', page, filter],
     () => {
-      const params = { page, pageSize }
+      const params = { pageNumber: page, pageSize }
       if (filter === 'unread') {
-        params.isRead = false
+        params.unreadOnly = true
       } else if (filter === 'read') {
-        params.isRead = true
+        params.readOnly = true
       }
       return notificationsService.getUserNotifications(params)
     },

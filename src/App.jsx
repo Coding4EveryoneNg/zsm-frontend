@@ -376,7 +376,7 @@ function App() {
         <Route
           path="/subjects"
           element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
+            <ProtectedRoute allowedRoles={['Admin', 'Principal', 'Student']}>
               <Subjects />
             </ProtectedRoute>
           }
@@ -392,7 +392,7 @@ function App() {
         <Route
           path="/subjects/:id"
           element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
+            <ProtectedRoute allowedRoles={['Admin', 'Principal', 'Student']}>
               <SubjectDetails />
             </ProtectedRoute>
           }
@@ -556,7 +556,7 @@ function App() {
         <Route
           path="/payments/create"
           element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal', 'Parent']}>
+            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
               <CreatePayment />
             </ProtectedRoute>
           }
