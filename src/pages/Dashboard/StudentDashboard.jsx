@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { useQuery } from 'react-query'
 import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
 import { dashboardService } from '../../services/apiServices'
@@ -14,6 +14,7 @@ import logger from '../../utils/logger'
 
 const StudentDashboard = () => {
   const { isAuthenticated, loading: authLoading } = useAuth()
+  const [autoRetried, setAutoRetried] = useState(false)
   const { data: dashboardData, isLoading, error, refetch } = useQuery(
     'studentDashboard',
     () => dashboardService.getStudentDashboard(),
@@ -31,11 +32,20 @@ const StudentDashboard = () => {
     }
   )
 
+  // If the first attempt fails, automatically try once more before showing the error UI
+  useEffect(() => {
+    if (error && !autoRetried) {
+      setAutoRetried(true)
+      refetch()
+    }
+  }, [error, autoRetried, refetch])
+
   if (authLoading || !isAuthenticated) return <Loading />
 
   if (isLoading) return <Loading />
 
-  if (error) {
+  // Only show the error state if we've already auto-retried once and it still fails
+  if (error && autoRetried) {
     return (
       <div className="page-container">
         <div style={{ marginBottom: '2rem' }}>

@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { isTokenExpired } from '../utils/tokenUtils'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:7037/api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:44362/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -90,7 +90,7 @@ api.interceptors.response.use(
           } 
         })
       } catch {
-        // If parsing fails, return original error
+        // If parsing fails, return original errors
         return Promise.reject(error)
       }
     }

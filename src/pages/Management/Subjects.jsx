@@ -14,7 +14,8 @@ const Subjects = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSchoolId, setSelectedSchoolId] = useState('')
 
-  const isAdmin = user?.role === 'Admin'
+  const isAdmin = (user?.role ?? user?.Role ?? '').toString() === 'Admin'
+  const isStudent = (user?.role ?? user?.Role ?? '').toString().toLowerCase() === 'student'
 
   const { data: schoolsData } = useQuery(
     'schools-dropdown',
@@ -39,18 +40,19 @@ const Subjects = () => {
   const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : null
 
   const { data, isLoading } = useQuery(
-    ['subjects', page, pageSize, effectiveSchoolId],
+    ['subjects', page, pageSize, effectiveSchoolId, isStudent],
     () => {
       const params = { page, pageSize }
+      if (isStudent) return subjectsService.getStudentSubjects(params)
       if (isAdmin && effectiveSchoolId) params.schoolId = effectiveSchoolId
       return subjectsService.getSubjects(params)
     },
-    { enabled: !isAdmin || !!effectiveSchoolId }
+    { enabled: isStudent || !isAdmin || !!effectiveSchoolId }
   )
 
   if (isLoading) return <Loading />
 
-  const subjects = data?.data?.subjects ?? data?.data ?? []
+  const subjects = data?.data?.subjects ?? data?.data?.Subjects ?? data?.subjects ?? data?.Subjects ?? data?.data ?? []
   const totalPages = data?.data?.totalPages ?? data?.data?.TotalPages ?? 1
 
   // Filter subjects based on search term
@@ -83,10 +85,12 @@ const Subjects = () => {
               </select>
             </div>
           )}
-          <button className="btn btn-primary" onClick={() => navigate('/subjects/create')}>
-            <Plus size={18} />
-            Add Subject
-          </button>
+          {!isStudent && (
+            <button className="btn btn-primary" onClick={() => navigate('/subjects/create')}>
+              <Plus size={18} />
+              Add Subject
+            </button>
+          )}
         </div>
       </div>
 

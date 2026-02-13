@@ -12,30 +12,28 @@ import logger from '../../utils/logger'
 
 const PrincipalDashboard = () => {
   const navigate = useNavigate()
-  const { data: dashboardData, isLoading, error } = useQuery(
-    'principalDashboard',
-    () => dashboardService.getPrincipalDashboard(),
-    { 
-      refetchInterval: 30000,
-      retry: 1,
-      onError: (err) => {
-        logger.error('Principal dashboard error:', err)
-      }
-    }
+
+  // Split endpoints: summary first (stats, quick actions), then activities (charts, recent activities) lazy
+  const { data: summaryRes, isLoading: summaryLoading, error: summaryError } = useQuery(
+    'principalDashboardSummary',
+    () => dashboardService.getPrincipalSummary(),
+    { refetchInterval: 30000, retry: 1, onError: (err) => logger.error('Principal dashboard summary error:', err) }
+  )
+  const { data: activitiesRes, isLoading: activitiesLoading, error: activitiesError } = useQuery(
+    'principalDashboardActivities',
+    () => dashboardService.getPrincipalActivities(),
+    { refetchInterval: 30000, retry: 1, onError: (err) => logger.error('Principal dashboard activities error:', err) }
   )
 
-  if (isLoading) return <Loading />
+  if (summaryLoading) return <Loading />
 
-  // Handle errors gracefully
-  if (error) {
-    logger.error('Dashboard error details:', error)
-  }
+  if (summaryError) logger.error('Dashboard error details:', summaryError)
 
-  // Extract data with safe defaults
-  const dashboard = dashboardData?.data || {}
-  const stats = dashboard.stats || dashboard.Stats || {}
-  const charts = dashboard.charts || dashboard.Charts || []
-  const recentActivities = dashboard.recentActivities || dashboard.RecentActivities || []
+  const summary = summaryRes?.data ?? summaryRes ?? {}
+  const stats = summary.stats ?? summary.Stats ?? {}
+  const activitiesPayload = activitiesRes?.data ?? activitiesRes ?? {}
+  const charts = activitiesPayload.charts ?? activitiesPayload.Charts ?? []
+  const recentActivities = activitiesPayload.recentActivities ?? activitiesPayload.RecentActivities ?? []
 
   const statCards = [
     { title: 'Total Students', value: stats.totalStudents || 0, icon: Users, color: 'var(--primary-yellow)' },
@@ -78,10 +76,10 @@ const PrincipalDashboard = () => {
   return (
     <div className="page-container">
       {/* Error Banner */}
-      {error && (
+      {(summaryError || activitiesError) && (
         <div className="card" style={{ marginBottom: '2rem', backgroundColor: 'var(--danger)', color: 'white', padding: '1rem' }}>
           <p style={{ margin: 0 }}>
-            <strong>Error loading dashboard:</strong> {error?.message || 'Please refresh the page or contact support if the problem persists.'}
+            <strong>Error loading dashboard:</strong> {(summaryError || activitiesError)?.message || 'Please refresh the page or contact support if the problem persists.'}
           </p>
         </div>
       )}
@@ -180,8 +178,13 @@ const PrincipalDashboard = () => {
         })}
       </div>
 
-      {/* Charts Section */}
-      {charts.length > 0 && (
+      {/* Charts Section (lazy loaded) */}
+      {activitiesLoading && (
+        <div className="card" style={{ marginBottom: '2rem', padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+          Loading charts…
+        </div>
+      )}
+      {!activitiesLoading && charts.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
           {charts.map((chart, index) => (
             <div key={chart.id || index} className="card" style={{ minHeight: '400px' }}>
@@ -193,8 +196,13 @@ const PrincipalDashboard = () => {
         </div>
       )}
 
-      {/* Recent Activities */}
-      {recentActivities && recentActivities.length > 0 && (
+      {/* Recent Activities (lazy loaded) */}
+      {activitiesLoading && (
+        <div className="card" style={{ marginBottom: '2rem', padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+          Loading recent activities…
+        </div>
+      )}
+      {!activitiesLoading && recentActivities && recentActivities.length > 0 && (
         <div className="card">
           <div className="card-header">
             <h2 className="card-title">Recent Activities</h2>

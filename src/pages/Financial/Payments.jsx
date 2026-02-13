@@ -158,7 +158,7 @@ const Payments = () => {
               </select>
             </div>
           )}
-          {(user?.role === 'Admin' || user?.role === 'Principal' || user?.role === 'Parent') && (
+          {(user?.role === 'Admin' || user?.role === 'Principal') && (
             <button className="btn btn-primary" onClick={() => navigate('/payments/create')}>
               <Plus size={18} />
               Add Payment
