@@ -125,6 +125,23 @@ export const assignmentsService = {
   getParentAssignment: (id, params) => api.get(`/assignments/parent/${id}`, { params }),
 }
 
+// Attendance Services (class teacher marks; Admin/Principal view)
+export const attendanceService = {
+  getClassAttendanceForDate: (classId, date) => {
+    const isoDate = date && date.length >= 10 ? `${date.substring(0, 10)}T00:00:00` : date
+    return api.get(`/attendance/class/${classId}/date/${encodeURIComponent(isoDate)}`)
+  },
+  markAttendance: (data) => api.post('/attendance/mark', data),
+}
+
+// CA Tests Services
+export const caTestsService = {
+  getCATests: (params) => api.get('/catests', { params }),
+  getCATest: (id) => api.get(`/catests/${id}`),
+  createCATest: (data) => api.post('/catests', data),
+  gradeSubmission: (submissionId, data) => api.post(`/catests/submissions/${submissionId}/grade`, data),
+}
+
 // Examinations Services
 export const examinationsService = {
   getExaminations: (params) => api.get('/examinations', { params }),

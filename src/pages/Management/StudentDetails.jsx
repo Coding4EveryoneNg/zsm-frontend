@@ -4,10 +4,12 @@ import { useQuery } from 'react-query'
 import Loading from '../../components/Common/Loading'
 import { ArrowLeft } from 'lucide-react'
 import { studentsService } from '../../services/apiServices'
+import { useAuth } from '../../contexts/AuthContext'
 
 const StudentDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const { data, isLoading, isError, error, refetch } = useQuery(
     ['student', id],
@@ -22,6 +24,9 @@ const StudentDetails = () => {
   const rawStudent = rawPayload && typeof rawPayload === 'object' && ('id' in rawPayload || 'Id' in rawPayload)
     ? rawPayload
     : null
+  const roleLower = (user?.role ?? user?.Role ?? '').toString().toLowerCase()
+  const showAttendance = ['admin', 'principal', 'parent'].includes(roleLower)
+
   // Normalize to camelCase for display (API may return PascalCase)
   const student = rawStudent ? {
     id: rawStudent.id ?? rawStudent.Id,
@@ -43,7 +48,10 @@ const StudentDetails = () => {
     parentName: rawStudent.parentName ?? rawStudent.ParentName,
     parentEmail: rawStudent.parentEmail ?? rawStudent.ParentEmail,
     parentPhone: rawStudent.parentPhone ?? rawStudent.ParentPhone,
-    relationship: rawStudent.relationship ?? rawStudent.Relationship
+    relationship: rawStudent.relationship ?? rawStudent.Relationship,
+    attendancePercentCurrentTerm: rawStudent.attendancePercentCurrentTerm ?? rawStudent.AttendancePercentCurrentTerm,
+    attendanceTotalDays: rawStudent.attendanceTotalDays ?? rawStudent.AttendanceTotalDays,
+    attendancePresentDays: rawStudent.attendancePresentDays ?? rawStudent.AttendancePresentDays,
   } : null
 
   if (isError) {
@@ -154,6 +162,36 @@ const StudentDetails = () => {
             </p>
           </div>
         </div>
+
+        {showAttendance && (student.attendancePercentCurrentTerm != null || student.attendanceTotalDays != null) && (
+          <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+              Attendance (current term)
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+              {student.attendancePercentCurrentTerm != null && (
+                <div>
+                  <label className="form-label">Attendance %</label>
+                  <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem', fontWeight: 500 }}>
+                    {Number(student.attendancePercentCurrentTerm).toFixed(1)}%
+                  </p>
+                </div>
+              )}
+              {student.attendancePresentDays != null && (
+                <div>
+                  <label className="form-label">Days present</label>
+                  <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>{student.attendancePresentDays}</p>
+                </div>
+              )}
+              {student.attendanceTotalDays != null && (
+                <div>
+                  <label className="form-label">Total days</label>
+                  <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>{student.attendanceTotalDays}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {student.parentName || student.parentEmail || student.parentPhone ? (
           <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>

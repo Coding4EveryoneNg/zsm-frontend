@@ -36,7 +36,8 @@ const CreateSchoolApplication = () => {
         schoolDescription: data.schoolDescription || null,
         schoolType: data.schoolType || null,
         curriculum: data.curriculum || null,
-        subscriptionPlanId: data.subscriptionPlanId || undefined
+        subscriptionPlanId: data.subscriptionPlanId || undefined,
+        hasAttendanceModule: !!data.hasAttendanceModule
       }
 
       const response = await schoolApplicationsService.createApplication(requestData)
@@ -149,6 +150,10 @@ const CreateSchoolApplication = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <label className="form-label">School Description</label>
             <textarea {...register('schoolDescription')} className="form-input" rows={3} placeholder="Brief description" />
+          </div>
+          <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <input type="checkbox" id="hasAttendanceModule" {...register('hasAttendanceModule')} />
+            <label htmlFor="hasAttendanceModule" className="form-label" style={{ margin: 0 }}>Enable attendance module (daily attendance for students)</label>
           </div>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
             <button type="button" className="btn btn-secondary" onClick={() => navigate('/settings/school-applications')}>Cancel</button>
