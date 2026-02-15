@@ -53,8 +53,23 @@ const CreateSubject = () => {
       return
     }
 
+    const a = data.assignmentWeightPercent != null && data.assignmentWeightPercent !== '' ? parseFloat(data.assignmentWeightPercent) : null
+    const c = data.catestWeightPercent != null && data.catestWeightPercent !== '' ? parseFloat(data.catestWeightPercent) : null
+    const e = data.examWeightPercent != null && data.examWeightPercent !== '' ? parseFloat(data.examWeightPercent) : null
+    if (a != null || c != null || e != null) {
+      const sum = (a ?? 0) + (c ?? 0) + (e ?? 0)
+      if (Math.abs(sum - 100) > 0.01) {
+        toast.error('Assessment weights must sum to 100%')
+        return
+      }
+    }
+
     setLoading(true)
     try {
+      const a = data.assignmentWeightPercent != null && data.assignmentWeightPercent !== '' ? parseFloat(data.assignmentWeightPercent) : null
+      const c = data.catestWeightPercent != null && data.catestWeightPercent !== '' ? parseFloat(data.catestWeightPercent) : null
+      const e = data.examWeightPercent != null && data.examWeightPercent !== '' ? parseFloat(data.examWeightPercent) : null
+
       const requestData = {
         name: data.name,
         code: data.code || null,
@@ -62,6 +77,9 @@ const CreateSubject = () => {
         description: data.description || null,
         teacherId: data.teacherId || null,
         classId: data.classId || null,
+        assignmentWeightPercent: a,
+        catestWeightPercent: c,
+        examWeightPercent: e,
       }
 
       const response = await subjectsService.createSubject(requestData)
@@ -202,6 +220,46 @@ const CreateSubject = () => {
                 {errors.description.message}
               </span>
             )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div>
+              <label className="form-label">Assignment weight %</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                {...register('assignmentWeightPercent')}
+                className="form-input"
+                placeholder="33.33"
+              />
+              <small style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Sum of all three must equal 100</small>
+            </div>
+            <div>
+              <label className="form-label">CA Test weight %</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                {...register('catestWeightPercent')}
+                className="form-input"
+                placeholder="33.33"
+              />
+            </div>
+            <div>
+              <label className="form-label">Exam weight %</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                {...register('examWeightPercent')}
+                className="form-input"
+                placeholder="33.34"
+              />
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>

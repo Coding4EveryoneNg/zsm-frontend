@@ -58,6 +58,10 @@ import Examinations from './pages/Academic/Examinations'
 import ExaminationDetails from './pages/Academic/ExaminationDetails'
 import CreateExamination from './pages/Academic/CreateExamination'
 import TakeExamination from './pages/Academic/TakeExamination'
+import MarkAttendance from './pages/Academic/MarkAttendance'
+import CATests from './pages/Academic/CATests'
+import CreateCATest from './pages/Academic/CreateCATest'
+import CATestDetails from './pages/Academic/CATestDetails'
 import ExaminationTimetable from './pages/Academic/ExaminationTimetable'
 import Courses from './pages/Academic/Courses'
 import CourseDetails from './pages/Academic/CourseDetails'
@@ -444,6 +448,38 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['Teacher']}>
               <TeacherSubmissions />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/attendance/mark"
+          element={
+            <ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}>
+              <MarkAttendance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/catests"
+          element={
+            <ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}>
+              <CATests />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/catests/create"
+          element={
+            <ProtectedRoute allowedRoles={['Teacher']}>
+              <CreateCATest />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/catests/:id"
+          element={
+            <ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}>
+              <CATestDetails />
             </ProtectedRoute>
           }
         />

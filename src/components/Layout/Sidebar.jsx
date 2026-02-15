@@ -17,6 +17,8 @@ import {
   Menu,
   X,
   CalendarDays,
+  ClipboardCheck,
+  FileCheck,
 } from 'lucide-react'
 import logo from '../../assets/logo2.jpg'
 
@@ -92,10 +94,22 @@ const Sidebar = () => {
       roles: ['Teacher'],
     },
     {
+      title: 'Mark Attendance',
+      icon: ClipboardCheck,
+      path: '/attendance/mark',
+      roles: ['Teacher', 'Admin', 'Principal'],
+    },
+    {
       title: 'Examinations',
       icon: ClipboardList,
       path: '/examinations',
       roles: ['Student', 'Teacher', 'Admin', 'Principal', 'Parent'],
+    },
+    {
+      title: 'CA Tests',
+      icon: FileCheck,
+      path: '/catests',
+      roles: ['Teacher', 'Admin', 'Principal'],
     },
     {
       title: 'Courses',

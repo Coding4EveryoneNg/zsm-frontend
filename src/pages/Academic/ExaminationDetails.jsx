@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from 'react-query'
+import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { examinationsService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { useAuth } from '../../contexts/AuthContext'
+import { handleError, handleSuccess } from '../../utils/errorHandler'
 import { 
   ClipboardList, 
   Clock, 
@@ -13,18 +14,59 @@ import {
   ArrowLeft,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Send,
+  ThumbsUp,
+  ThumbsDown
 } from 'lucide-react'
 
 const ExaminationDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const [rejectModalOpen, setRejectModalOpen] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
 
   const { data, isLoading, error } = useQuery(
     ['examination', id],
     () => examinationsService.getExamination(id),
     { enabled: !!id }
+  )
+
+  const submitForApprovalMutation = useMutation(
+    () => examinationsService.submitForApproval(id),
+    {
+      onSuccess: () => {
+        handleSuccess('Examination submitted for approval.')
+        queryClient.invalidateQueries(['examination', id])
+      },
+      onError: (err) => handleError(err, 'Failed to submit for approval')
+    }
+  )
+
+  const approveMutation = useMutation(
+    () => examinationsService.approveExamination(id),
+    {
+      onSuccess: () => {
+        handleSuccess('Examination approved.')
+        queryClient.invalidateQueries(['examination', id])
+      },
+      onError: (err) => handleError(err, 'Failed to approve examination')
+    }
+  )
+
+  const rejectMutation = useMutation(
+    (reason) => examinationsService.rejectExamination(id, reason),
+    {
+      onSuccess: () => {
+        handleSuccess('Examination rejected.')
+        setRejectModalOpen(false)
+        setRejectReason('')
+        queryClient.invalidateQueries(['examination', id])
+      },
+      onError: (err) => handleError(err, 'Failed to reject examination')
+    }
   )
 
   if (isLoading) return <Loading />
@@ -68,10 +110,14 @@ const ExaminationDetails = () => {
   }
 
   const questions = exam.questions || exam.Questions || []
-  const isStudent = user?.role === 'Student'
+  const isStudent = (user?.role ?? '').toString() === 'Student'
+  const isTeacher = (user?.role ?? '').toString().toLowerCase() === 'teacher'
+  const isAdminOrPrincipal = ['Admin', 'Principal'].includes((user?.role ?? '').toString())
+  const status = (exam.status || exam.Status || '').toString()
+  const isDraft = status.toLowerCase() === 'draft'
+  const isAwaitingApproval = status === 'AwaitingApproval' || status === 'Pending'
 
   const getStatusBadge = () => {
-    const status = exam.status || exam.Status
     switch (status) {
       case 'Approved':
         return (
@@ -87,6 +133,7 @@ const ExaminationDetails = () => {
             Draft
           </span>
         )
+      case 'AwaitingApproval':
       case 'Pending':
         return (
           <span className="badge badge-info">
@@ -225,6 +272,32 @@ const ExaminationDetails = () => {
               </span>
             </div>
           ) : null}
+
+          {/* Audit: Approved by and date (when Approved) */}
+          {status === 'Approved' && (exam.approvedBy || exam.ApprovedBy || exam.approvedAt || exam.ApprovedAt) ? (
+            <>
+              {exam.approvedBy || exam.ApprovedBy ? (
+                <div>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block' }}>
+                    Approved By (User ID)
+                  </label>
+                  <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.875rem' }}>
+                    {exam.approvedBy || exam.ApprovedBy}
+                  </span>
+                </div>
+              ) : null}
+              {exam.approvedAt || exam.ApprovedAt ? (
+                <div>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block' }}>
+                    Approved Date
+                  </label>
+                  <span style={{ color: 'var(--text-primary)' }}>
+                    {new Date(exam.approvedAt || exam.ApprovedAt).toLocaleString()}
+                  </span>
+                </div>
+              ) : null}
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -346,6 +419,109 @@ const ExaminationDetails = () => {
         )}
       </div>
 
+      {/* Action Buttons for Teacher: Submit for Approval (Draft only) */}
+      {isTeacher && isDraft && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <button
+              className="btn btn-outline"
+              onClick={() => navigate('/examinations')}
+            >
+              Back
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => submitForApprovalMutation.mutate()}
+              disabled={submitForApprovalMutation.isLoading}
+            >
+              <Send size={16} style={{ marginRight: '0.5rem' }} />
+              {submitForApprovalMutation.isLoading ? 'Submitting...' : 'Submit for Approval'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Action Buttons for Admin/Principal: Approve or Reject (AwaitingApproval only) */}
+      {isAdminOrPrincipal && isAwaitingApproval && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <button
+              className="btn btn-outline"
+              onClick={() => navigate('/examinations')}
+            >
+              Back
+            </button>
+            <button
+              className="btn btn-outline btn-danger"
+              onClick={() => setRejectModalOpen(true)}
+              disabled={rejectMutation.isLoading}
+            >
+              <ThumbsDown size={16} style={{ marginRight: '0.5rem' }} />
+              Reject
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => approveMutation.mutate()}
+              disabled={approveMutation.isLoading}
+            >
+              <ThumbsUp size={16} style={{ marginRight: '0.5rem' }} />
+              {approveMutation.isLoading ? 'Approving...' : 'Approve'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {rejectModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={() => !rejectMutation.isLoading && setRejectModalOpen(false)}
+        >
+          <div
+            className="card"
+            style={{ maxWidth: '400px', width: '90%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Reject Examination</h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.875rem' }}>
+              Please provide a reason for rejection (required for audit).
+            </p>
+            <textarea
+              className="form-input"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Enter rejection reason..."
+              rows={4}
+              style={{ marginBottom: '1rem', resize: 'vertical' }}
+            />
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-outline"
+                onClick={() => setRejectModalOpen(false)}
+                disabled={rejectMutation.isLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={() => rejectMutation.mutate(rejectReason)}
+                disabled={!rejectReason.trim() || rejectMutation.isLoading}
+              >
+                {rejectMutation.isLoading ? 'Rejecting...' : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Action Buttons for Students */}
       {isStudent && (() => {
         const canTakeExam = () => {
@@ -402,6 +578,20 @@ const ExaminationDetails = () => {
           </div>
         )
       })()}
+
+      {/* Back button for Teacher/Admin/Principal when no action buttons shown */}
+      {!isStudent && ((isTeacher && !isDraft) || (isAdminOrPrincipal && !isAwaitingApproval)) && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              className="btn btn-outline"
+              onClick={() => navigate('/examinations')}
+            >
+              Back
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

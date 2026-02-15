@@ -1,16 +1,21 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from 'react-query'
+import { useQuery, useMutation, useQueryClient } from 'react-query'
 import Loading from '../../components/Common/Loading'
-import { ArrowLeft, BookOpen, GraduationCap } from 'lucide-react'
+import { ArrowLeft, BookOpen, GraduationCap, Save } from 'lucide-react'
 import { subjectsService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
+import toast from 'react-hot-toast'
 
 const SubjectDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const queryClient = useQueryClient()
   const isStudent = (user?.role ?? user?.Role ?? '').toString().toLowerCase() === 'student'
+  const canEdit = ['admin', 'principal'].includes((user?.role ?? user?.Role ?? '').toString().toLowerCase())
+  const [editWeights, setEditWeights] = useState(false)
+  const [weights, setWeights] = useState({ a: 33.33, c: 33.33, e: 33.34 })
 
   const { data, isLoading } = useQuery(
     ['subject', id, isStudent],
@@ -26,6 +31,43 @@ const SubjectDetails = () => {
     subjectResponse?.data ||
     subjectResponse ||
     null
+
+  const a = subject?.assignmentWeightPercent ?? subject?.AssignmentWeightPercent ?? 33.33
+  const c = subject?.catestWeightPercent ?? subject?.CATestWeightPercent ?? 33.33
+  const e = subject?.examWeightPercent ?? subject?.ExamWeightPercent ?? 33.34
+  const totalWeights = a + c + e
+
+  useEffect(() => {
+    if (subject && !editWeights) setWeights({ a, c, e })
+  }, [subject, a, c, e, editWeights])
+
+  const updateMutation = useMutation(
+    (payload) => subjectsService.updateSubject(id, payload),
+    {
+      onSuccess: () => {
+        toast.success('Subject weights updated.')
+        queryClient.invalidateQueries(['subject', id, isStudent])
+        setEditWeights(false)
+      },
+      onError: (err) => toast.error(err?.response?.data?.message || err?.message || 'Failed to update'),
+    }
+  )
+
+  const handleSaveWeights = () => {
+    const sum = (weights.a || 0) + (weights.c || 0) + (weights.e || 0)
+    if (Math.abs(sum - 100) > 0.01) {
+      toast.error('Weights must sum to 100')
+      return
+    }
+    updateMutation.mutate({
+      name: subject?.name ?? subject?.Name,
+      code: subject?.code ?? subject?.Code ?? null,
+      description: subject?.description ?? subject?.Description ?? null,
+      assignmentWeightPercent: weights.a,
+      catestWeightPercent: weights.c,
+      examWeightPercent: weights.e,
+    })
+  }
 
   if (!subject) {
     return (
@@ -89,6 +131,63 @@ const SubjectDetails = () => {
               </span>
             </p>
           </div>
+          {canEdit && (
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label className="form-label">Assessment weights (%)</label>
+              {editWeights ? (
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={weights.a}
+                    onChange={(e) => setWeights((w) => ({ ...w, a: parseFloat(e.target.value) || 0 }))}
+                    className="form-input"
+                    style={{ width: '100px' }}
+                  />
+                  <span>Assignment</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={weights.c}
+                    onChange={(e) => setWeights((w) => ({ ...w, c: parseFloat(e.target.value) || 0 }))}
+                    className="form-input"
+                    style={{ width: '100px' }}
+                  />
+                  <span>CA Test</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={weights.e}
+                    onChange={(e) => setWeights((w) => ({ ...w, e: parseFloat(e.target.value) || 0 }))}
+                    className="form-input"
+                    style={{ width: '100px' }}
+                  />
+                  <span>Exam</span>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveWeights} disabled={updateMutation.isLoading}>
+                    <Save size={14} /> Save
+                  </button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setEditWeights(false); setWeights({ a, c, e }) }}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <p style={{ color: 'var(--text-primary)', fontSize: '1rem', margin: 0 }}>
+                    Assignment: {a}% | CA Test: {c}% | Exam: {e}% (Total: {totalWeights.toFixed(2)}%)
+                  </p>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setEditWeights(true); setWeights({ a, c, e }) }}>
+                    Edit
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           {(subject.teacherNames ?? subject.TeacherNames ?? []).length > 0 && (
             <div style={{ gridColumn: '1 / -1' }}>
               <label className="form-label">Teacher(s)</label>
