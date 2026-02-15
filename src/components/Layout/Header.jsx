@@ -8,10 +8,21 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import logo from '../../assets/logo2.jpg'
 
+const DASHBOARD_ROUTES = {
+  student: '/dashboard/student',
+  teacher: '/dashboard/teacher',
+  admin: '/dashboard/admin',
+  principal: '/dashboard/principal',
+  superadmin: '/dashboard/superadmin',
+  parent: '/dashboard/parent',
+}
+
 const Header = () => {
   const { user, logout } = useAuth()
   const { theme, toggleTheme, isDark } = useTheme()
   const navigate = useNavigate()
+  const roleLower = String(user?.role ?? '').toLowerCase()
+  const dashboardPath = DASHBOARD_ROUTES[roleLower] || '/dashboard/student'
 
   const { data: unreadData } = useQuery({
     queryKey: ['unreadNotificationsCount'],
@@ -38,7 +49,7 @@ const Header = () => {
     >
       <div 
         style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer' }}
-        onClick={() => navigate('/')}
+        onClick={() => navigate(dashboardPath)}
         onMouseEnter={(e) => {
           e.currentTarget.style.opacity = '0.8'
         }}

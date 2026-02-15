@@ -1,97 +1,108 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import Layout from './components/Layout/Layout'
 import Loading from './components/Common/Loading'
 import ErrorBoundary from './components/Common/ErrorBoundary'
 
-// Landing Page
+// Eager load: Landing (first paint), Layout, Auth pages (small, critical path)
 import Landing from './pages/Landing/Landing'
-
-// Onboarding Pages
-import SchoolOnboarding from './pages/Onboarding/SchoolOnboarding'
-
-// Auth Pages
 import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
 import ForgotPassword from './pages/Auth/ForgotPassword'
 import ResetPassword from './pages/Auth/ResetPassword'
 import Unauthorized from './pages/Auth/Unauthorized'
 
-// Dashboard Pages
-import StudentDashboard from './pages/Dashboard/StudentDashboard'
-import TeacherDashboard from './pages/Dashboard/TeacherDashboard'
-import AdminDashboard from './pages/Dashboard/AdminDashboard'
-import PrincipalDashboard from './pages/Dashboard/PrincipalDashboard'
-import SuperAdminDashboard from './pages/Dashboard/SuperAdminDashboard'
-import GlobalFinancialDashboard from './pages/Dashboard/GlobalFinancialDashboard'
-import ParentDashboard from './pages/Dashboard/ParentDashboard'
+// Lazy load: Onboarding
+const SchoolOnboarding = lazy(() => import('./pages/Onboarding/SchoolOnboarding'))
 
-// Management Pages
-import Students from './pages/Management/Students'
-import StudentDetails from './pages/Management/StudentDetails'
-import CreateStudent from './pages/Management/CreateStudent'
-import Teachers from './pages/Management/Teachers'
-import TeacherDetails from './pages/Management/TeacherDetails'
-import CreateTeacher from './pages/Management/CreateTeacher'
-import CreatePrincipal from './pages/Management/CreatePrincipal'
-import Principals from './pages/Management/Principals'
-import Parents from './pages/Management/Parents'
-import PrincipalDetails from './pages/Management/PrincipalDetails'
-import Admins from './pages/Management/Admins'
-import CreateAdmin from './pages/Management/CreateAdmin'
-import SuperAdmins from './pages/Management/SuperAdmins'
-import SuperAdminDetails from './pages/Management/SuperAdminDetails'
-import Classes from './pages/Management/Classes'
-import ClassDetails from './pages/Management/ClassDetails'
-import CreateClass from './pages/Management/CreateClass'
-import Subjects from './pages/Management/Subjects'
-import SubjectDetails from './pages/Management/SubjectDetails'
-import CreateSubject from './pages/Management/CreateSubject'
-import AdminDetails from './pages/Management/AdminDetails'
+// Lazy load: Dashboards (heavy with charts)
+const StudentDashboard = lazy(() => import('./pages/Dashboard/StudentDashboard'))
+const TeacherDashboard = lazy(() => import('./pages/Dashboard/TeacherDashboard'))
+const AdminDashboard = lazy(() => import('./pages/Dashboard/AdminDashboard'))
+const PrincipalDashboard = lazy(() => import('./pages/Dashboard/PrincipalDashboard'))
+const SuperAdminDashboard = lazy(() => import('./pages/Dashboard/SuperAdminDashboard'))
+const GlobalFinancialDashboard = lazy(() => import('./pages/Dashboard/GlobalFinancialDashboard'))
+const ParentDashboard = lazy(() => import('./pages/Dashboard/ParentDashboard'))
 
-// Academic Pages
-import Assignments from './pages/Academic/Assignments'
-import AssignmentDetails from './pages/Academic/AssignmentDetails'
-import CreateAssignment from './pages/Academic/CreateAssignment'
-import TeacherSubmissions from './pages/Academic/TeacherSubmissions'
-import Examinations from './pages/Academic/Examinations'
-import ExaminationDetails from './pages/Academic/ExaminationDetails'
-import CreateExamination from './pages/Academic/CreateExamination'
-import TakeExamination from './pages/Academic/TakeExamination'
-import MarkAttendance from './pages/Academic/MarkAttendance'
-import CATests from './pages/Academic/CATests'
-import CreateCATest from './pages/Academic/CreateCATest'
-import CATestDetails from './pages/Academic/CATestDetails'
-import ExaminationTimetable from './pages/Academic/ExaminationTimetable'
-import ClassTimetable from './pages/Academic/ClassTimetable'
-import Courses from './pages/Academic/Courses'
-import CourseDetails from './pages/Academic/CourseDetails'
-import Books from './pages/Academic/Books'
-import CreateBook from './pages/Academic/CreateBook'
+// Lazy load: Management
+const Students = lazy(() => import('./pages/Management/Students'))
+const StudentDetails = lazy(() => import('./pages/Management/StudentDetails'))
+const CreateStudent = lazy(() => import('./pages/Management/CreateStudent'))
+const Teachers = lazy(() => import('./pages/Management/Teachers'))
+const TeacherDetails = lazy(() => import('./pages/Management/TeacherDetails'))
+const CreateTeacher = lazy(() => import('./pages/Management/CreateTeacher'))
+const CreatePrincipal = lazy(() => import('./pages/Management/CreatePrincipal'))
+const Principals = lazy(() => import('./pages/Management/Principals'))
+const Parents = lazy(() => import('./pages/Management/Parents'))
+const PrincipalDetails = lazy(() => import('./pages/Management/PrincipalDetails'))
+const Admins = lazy(() => import('./pages/Management/Admins'))
+const CreateAdmin = lazy(() => import('./pages/Management/CreateAdmin'))
+const SuperAdmins = lazy(() => import('./pages/Management/SuperAdmins'))
+const SuperAdminDetails = lazy(() => import('./pages/Management/SuperAdminDetails'))
+const Classes = lazy(() => import('./pages/Management/Classes'))
+const ClassDetails = lazy(() => import('./pages/Management/ClassDetails'))
+const CreateClass = lazy(() => import('./pages/Management/CreateClass'))
+const Subjects = lazy(() => import('./pages/Management/Subjects'))
+const SubjectDetails = lazy(() => import('./pages/Management/SubjectDetails'))
+const CreateSubject = lazy(() => import('./pages/Management/CreateSubject'))
+const AdminDetails = lazy(() => import('./pages/Management/AdminDetails'))
 
-// Financial Pages
-import Payments from './pages/Financial/Payments'
-import PaymentDetails from './pages/Financial/PaymentDetails'
-import PaymentCallback from './pages/Financial/PaymentCallback'
-import CreatePayment from './pages/Financial/CreatePayment'
+// Lazy load: Academic
+const Assignments = lazy(() => import('./pages/Academic/Assignments'))
+const AssignmentDetails = lazy(() => import('./pages/Academic/AssignmentDetails'))
+const CreateAssignment = lazy(() => import('./pages/Academic/CreateAssignment'))
+const TeacherSubmissions = lazy(() => import('./pages/Academic/TeacherSubmissions'))
+const Examinations = lazy(() => import('./pages/Academic/Examinations'))
+const ExaminationDetails = lazy(() => import('./pages/Academic/ExaminationDetails'))
+const CreateExamination = lazy(() => import('./pages/Academic/CreateExamination'))
+const TakeExamination = lazy(() => import('./pages/Academic/TakeExamination'))
+const MarkAttendance = lazy(() => import('./pages/Academic/MarkAttendance'))
+const CATests = lazy(() => import('./pages/Academic/CATests'))
+const CreateCATest = lazy(() => import('./pages/Academic/CreateCATest'))
+const CATestDetails = lazy(() => import('./pages/Academic/CATestDetails'))
+const ExaminationTimetable = lazy(() => import('./pages/Academic/ExaminationTimetable'))
+const ClassTimetable = lazy(() => import('./pages/Academic/ClassTimetable'))
+const Courses = lazy(() => import('./pages/Academic/Courses'))
+const CourseDetails = lazy(() => import('./pages/Academic/CourseDetails'))
+const Books = lazy(() => import('./pages/Academic/Books'))
+const CreateBook = lazy(() => import('./pages/Academic/CreateBook'))
 
-// Reports Pages
-import Reports from './pages/Reports/Reports'
+// Lazy load: Financial
+const Payments = lazy(() => import('./pages/Financial/Payments'))
+const PaymentDetails = lazy(() => import('./pages/Financial/PaymentDetails'))
+const PaymentCallback = lazy(() => import('./pages/Financial/PaymentCallback'))
+const CreatePayment = lazy(() => import('./pages/Financial/CreatePayment'))
 
-// Other Pages
-import Notifications from './pages/Notifications/Notifications'
-import Settings from './pages/Settings/Settings'
-import SessionTerm from './pages/Settings/SessionTerm'
-import SchoolCalendar from './pages/Settings/SchoolCalendar'
-import SchoolManagement from './pages/Settings/SchoolManagement'
-import TenantManagement from './pages/Settings/TenantManagement'
-import SchoolApplications from './pages/Settings/SchoolApplications'
-import CreateSchoolApplication from './pages/Settings/CreateSchoolApplication'
-import SchoolDetails from './pages/Settings/SchoolDetails'
-import FeeStructures from './pages/Settings/FeeStructures'
-import SchoolSubscription from './pages/Settings/SchoolSubscription'
-import PendingSubscriptionPayments from './pages/Settings/PendingSubscriptionPayments'
+// Lazy load: Reports, Notifications, Settings
+const Reports = lazy(() => import('./pages/Reports/Reports'))
+const Notifications = lazy(() => import('./pages/Notifications/Notifications'))
+const Settings = lazy(() => import('./pages/Settings/Settings'))
+const SessionTerm = lazy(() => import('./pages/Settings/SessionTerm'))
+const SchoolCalendar = lazy(() => import('./pages/Settings/SchoolCalendar'))
+const SchoolManagement = lazy(() => import('./pages/Settings/SchoolManagement'))
+const TenantManagement = lazy(() => import('./pages/Settings/TenantManagement'))
+const SchoolApplications = lazy(() => import('./pages/Settings/SchoolApplications'))
+const CreateSchoolApplication = lazy(() => import('./pages/Settings/CreateSchoolApplication'))
+const SchoolDetails = lazy(() => import('./pages/Settings/SchoolDetails'))
+const FeeStructures = lazy(() => import('./pages/Settings/FeeStructures'))
+const SchoolSubscription = lazy(() => import('./pages/Settings/SchoolSubscription'))
+const PendingSubscriptionPayments = lazy(() => import('./pages/Settings/PendingSubscriptionPayments'))
+
+// Wrapper for lazy routes with Suspense
+const LazyRoute = ({ children }) => (
+  <Suspense fallback={<Loading />}>
+    {children}
+  </Suspense>
+)
+
+// Redirect /dashboard to role-specific dashboard
+const DashboardRedirect = () => {
+  const { user } = useAuth()
+  const roleLower = String(user?.role ?? '').toLowerCase()
+  const routes = { student: '/dashboard/student', teacher: '/dashboard/teacher', admin: '/dashboard/admin', principal: '/dashboard/principal', superadmin: '/dashboard/superadmin', parent: '/dashboard/parent' }
+  return <Navigate to={routes[roleLower] || '/dashboard/student'} replace />
+}
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -164,7 +175,7 @@ function App() {
       <Route path="/" element={<Landing />} />
       
       {/* Public Routes */}
-      <Route path="/school-onboarding" element={<PublicRoute><SchoolOnboarding /></PublicRoute>} />
+      <Route path="/school-onboarding" element={<PublicRoute><LazyRoute><SchoolOnboarding /></LazyRoute></PublicRoute>} />
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
@@ -173,32 +184,36 @@ function App() {
 
       {/* Protected Routes with Layout */}
       <Route element={<Layout />}>
+        {/* Redirect /dashboard to role-specific dashboard */}
+        <Route path="/dashboard" element={<DashboardRedirect />} />
         {/* Dashboard Routes */}
         <Route
           path="/dashboard/student"
           element={
             <ProtectedRoute allowedRoles={['Student']}>
-              <ErrorBoundary
-                fallback={({ resetError }) => (
-                  <div className="page-container" style={{ padding: '2rem' }}>
-                    <div className="card" style={{ maxWidth: '500px', margin: '0 auto' }}>
-                      <div className="card-header" style={{ borderBottom: '2px solid var(--warning)' }}>
-                        <h2 className="card-title">Student Dashboard</h2>
-                      </div>
-                      <div className="card-body">
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                          Something went wrong while loading the dashboard. Please try again.
-                        </p>
-                        <button type="button" className="btn btn-primary" onClick={resetError}>
-                          Try again
-                        </button>
+              <LazyRoute>
+                <ErrorBoundary
+                  fallback={({ resetError }) => (
+                    <div className="page-container" style={{ padding: '2rem' }}>
+                      <div className="card" style={{ maxWidth: '500px', margin: '0 auto' }}>
+                        <div className="card-header" style={{ borderBottom: '2px solid var(--warning)' }}>
+                          <h2 className="card-title">Student Dashboard</h2>
+                        </div>
+                        <div className="card-body">
+                          <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                            Something went wrong while loading the dashboard. Please try again.
+                          </p>
+                          <button type="button" className="btn btn-primary" onClick={resetError}>
+                            Try again
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              >
-                <StudentDashboard />
-              </ErrorBoundary>
+                  )}
+                >
+                  <StudentDashboard />
+                </ErrorBoundary>
+              </LazyRoute>
             </ProtectedRoute>
           }
         />
@@ -206,7 +221,7 @@ function App() {
           path="/dashboard/teacher"
           element={
             <ProtectedRoute allowedRoles={['Teacher']}>
-              <TeacherDashboard />
+              <LazyRoute><TeacherDashboard /></LazyRoute>
             </ProtectedRoute>
           }
         />
@@ -214,7 +229,7 @@ function App() {
           path="/dashboard/admin"
           element={
             <ProtectedRoute allowedRoles={['Admin']}>
-              <AdminDashboard />
+              <LazyRoute><AdminDashboard /></LazyRoute>
             </ProtectedRoute>
           }
         />
@@ -222,7 +237,7 @@ function App() {
           path="/dashboard/principal"
           element={
             <ProtectedRoute allowedRoles={['Principal']}>
-              <PrincipalDashboard />
+              <LazyRoute><PrincipalDashboard /></LazyRoute>
             </ProtectedRoute>
           }
         />
@@ -230,7 +245,7 @@ function App() {
           path="/dashboard/superadmin"
           element={
             <ProtectedRoute allowedRoles={['SuperAdmin']}>
-              <SuperAdminDashboard />
+              <LazyRoute><SuperAdminDashboard /></LazyRoute>
             </ProtectedRoute>
           }
         />
@@ -238,532 +253,80 @@ function App() {
           path="/dashboard/parent"
           element={
             <ProtectedRoute allowedRoles={['Parent']}>
-              <ParentDashboard />
+              <LazyRoute><ParentDashboard /></LazyRoute>
             </ProtectedRoute>
           }
         />
 
         {/* Management Routes */}
-        <Route
-          path="/students"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal', 'Teacher']}>
-              <Students />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/students/create"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <CreateStudent />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/students/:id"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal', 'Teacher']}>
-              <StudentDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/teachers"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <Teachers />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/teachers/create"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <CreateTeacher />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/teachers/:id"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <TeacherDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/principals"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <Principals />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/parents"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <Parents />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/principals/create"
-          element={
-            <ProtectedRoute allowedRoles={['Admin']}>
-              <CreatePrincipal />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/principals/:id"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <PrincipalDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admins"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <Admins />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admins/create"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <CreateAdmin />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admins/:id"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <AdminDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/superadmins"
-          element={
-            <ProtectedRoute allowedRoles={['SuperAdmin']}>
-              <SuperAdmins />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/superadmins/:id"
-          element={
-            <ProtectedRoute allowedRoles={['SuperAdmin']}>
-              <SuperAdminDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/classes"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <Classes />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/classes/create"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <CreateClass />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/classes/:id"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <ClassDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/subjects"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal', 'Student']}>
-              <Subjects />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/subjects/create"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <CreateSubject />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/subjects/:id"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal', 'Student']}>
-              <SubjectDetails />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/students" element={<ProtectedRoute allowedRoles={['Admin', 'Principal', 'Teacher']}><LazyRoute><Students /></LazyRoute></ProtectedRoute>} />
+        <Route path="/students/create" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><CreateStudent /></LazyRoute></ProtectedRoute>} />
+        <Route path="/students/:id" element={<ProtectedRoute allowedRoles={['Admin', 'Principal', 'Teacher']}><LazyRoute><StudentDetails /></LazyRoute></ProtectedRoute>} />
+        <Route path="/teachers" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><Teachers /></LazyRoute></ProtectedRoute>} />
+        <Route path="/teachers/create" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><CreateTeacher /></LazyRoute></ProtectedRoute>} />
+        <Route path="/teachers/:id" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><TeacherDetails /></LazyRoute></ProtectedRoute>} />
+        <Route path="/principals" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><Principals /></LazyRoute></ProtectedRoute>} />
+        <Route path="/parents" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><Parents /></LazyRoute></ProtectedRoute>} />
+        <Route path="/principals/create" element={<ProtectedRoute allowedRoles={['Admin']}><LazyRoute><CreatePrincipal /></LazyRoute></ProtectedRoute>} />
+        <Route path="/principals/:id" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><PrincipalDetails /></LazyRoute></ProtectedRoute>} />
+        <Route path="/admins" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><Admins /></LazyRoute></ProtectedRoute>} />
+        <Route path="/admins/create" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><CreateAdmin /></LazyRoute></ProtectedRoute>} />
+        <Route path="/admins/:id" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><AdminDetails /></LazyRoute></ProtectedRoute>} />
+        <Route path="/superadmins" element={<ProtectedRoute allowedRoles={['SuperAdmin']}><LazyRoute><SuperAdmins /></LazyRoute></ProtectedRoute>} />
+        <Route path="/superadmins/:id" element={<ProtectedRoute allowedRoles={['SuperAdmin']}><LazyRoute><SuperAdminDetails /></LazyRoute></ProtectedRoute>} />
+        <Route path="/classes" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><Classes /></LazyRoute></ProtectedRoute>} />
+        <Route path="/classes/create" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><CreateClass /></LazyRoute></ProtectedRoute>} />
+        <Route path="/classes/:id" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><ClassDetails /></LazyRoute></ProtectedRoute>} />
+        <Route path="/subjects" element={<ProtectedRoute allowedRoles={['Admin', 'Principal', 'Student']}><LazyRoute><Subjects /></LazyRoute></ProtectedRoute>} />
+        <Route path="/subjects/create" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><CreateSubject /></LazyRoute></ProtectedRoute>} />
+        <Route path="/subjects/:id" element={<ProtectedRoute allowedRoles={['Admin', 'Principal', 'Student']}><LazyRoute><SubjectDetails /></LazyRoute></ProtectedRoute>} />
 
         {/* Academic Routes */}
-        <Route
-          path="/assignments"
-          element={
-            <ProtectedRoute>
-              <Assignments />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/assignments/create"
-          element={
-            <ProtectedRoute allowedRoles={['Teacher']}>
-              <CreateAssignment />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/assignments/:id"
-          element={
-            <ProtectedRoute>
-              <ErrorBoundary
-                fallback={({ resetError }) => (
-                  <div className="page-container" style={{ padding: '2rem' }}>
-                    <div className="card" style={{ maxWidth: '500px', margin: '0 auto' }}>
-                      <div className="card-header"><h2 className="card-title">Assignment</h2></div>
-                      <div className="card-body">
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                          Something went wrong while loading this assignment. Please try again.
-                        </p>
-                        <button type="button" className="btn btn-primary" onClick={resetError}>Try again</button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              >
-                <AssignmentDetails />
-              </ErrorBoundary>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/assignments/submissions"
-          element={
-            <ProtectedRoute allowedRoles={['Teacher']}>
-              <TeacherSubmissions />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/attendance/mark"
-          element={
-            <ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}>
-              <MarkAttendance />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/catests"
-          element={
-            <ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}>
-              <CATests />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/catests/create"
-          element={
-            <ProtectedRoute allowedRoles={['Teacher']}>
-              <CreateCATest />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/catests/:id"
-          element={
-            <ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}>
-              <CATestDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/examinations"
-          element={
-            <ProtectedRoute>
-              <Examinations />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/academic/examination-timetable"
-          element={
-            <ProtectedRoute allowedRoles={['Student', 'Teacher', 'Admin', 'Principal']}>
-              <ExaminationTimetable />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/academic/class-timetable"
-          element={
-            <ProtectedRoute allowedRoles={['Student', 'Teacher', 'Admin', 'Principal']}>
-              <ClassTimetable />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/examinations/create"
-          element={
-            <ProtectedRoute allowedRoles={['Teacher']}>
-              <CreateExamination />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/examinations/:id"
-          element={
-            <ProtectedRoute>
-              <ExaminationDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/examinations/:id/take"
-          element={
-            <ProtectedRoute allowedRoles={['Student']}>
-              <ErrorBoundary
-                fallback={({ resetError }) => (
-                  <div className="page-container" style={{ padding: '2rem' }}>
-                    <div className="card" style={{ maxWidth: '500px', margin: '0 auto' }}>
-                      <div className="card-header"><h2 className="card-title">Examination</h2></div>
-                      <div className="card-body">
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                          Something went wrong while loading this examination. Please try again.
-                        </p>
-                        <button type="button" className="btn btn-primary" onClick={resetError}>Try again</button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              >
-                <TakeExamination />
-              </ErrorBoundary>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/courses"
-          element={
-            <ProtectedRoute>
-              <Courses />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/courses/:id"
-          element={
-            <ProtectedRoute>
-              <CourseDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/books"
-          element={
-            <ProtectedRoute>
-              <Books />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/books/create"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <CreateBook />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/assignments" element={<ProtectedRoute><LazyRoute><Assignments /></LazyRoute></ProtectedRoute>} />
+        <Route path="/assignments/create" element={<ProtectedRoute allowedRoles={['Teacher']}><LazyRoute><CreateAssignment /></LazyRoute></ProtectedRoute>} />
+        <Route path="/assignments/:id" element={<ProtectedRoute><LazyRoute><ErrorBoundary fallback={({ resetError }) => (<div className="page-container" style={{ padding: '2rem' }}><div className="card" style={{ maxWidth: '500px', margin: '0 auto' }}><div className="card-header"><h2 className="card-title">Assignment</h2></div><div className="card-body"><p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>Something went wrong while loading this assignment. Please try again.</p><button type="button" className="btn btn-primary" onClick={resetError}>Try again</button></div></div></div>)}><AssignmentDetails /></ErrorBoundary></LazyRoute></ProtectedRoute>} />
+        <Route path="/assignments/submissions" element={<ProtectedRoute allowedRoles={['Teacher']}><LazyRoute><TeacherSubmissions /></LazyRoute></ProtectedRoute>} />
+        <Route path="/attendance/mark" element={<ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}><LazyRoute><MarkAttendance /></LazyRoute></ProtectedRoute>} />
+        <Route path="/catests" element={<ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}><LazyRoute><CATests /></LazyRoute></ProtectedRoute>} />
+        <Route path="/catests/create" element={<ProtectedRoute allowedRoles={['Teacher']}><LazyRoute><CreateCATest /></LazyRoute></ProtectedRoute>} />
+        <Route path="/catests/:id" element={<ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}><LazyRoute><CATestDetails /></LazyRoute></ProtectedRoute>} />
+        <Route path="/examinations" element={<ProtectedRoute><LazyRoute><Examinations /></LazyRoute></ProtectedRoute>} />
+        <Route path="/academic/examination-timetable" element={<ProtectedRoute allowedRoles={['Student', 'Teacher', 'Admin', 'Principal']}><LazyRoute><ExaminationTimetable /></LazyRoute></ProtectedRoute>} />
+        <Route path="/academic/class-timetable" element={<ProtectedRoute allowedRoles={['Student', 'Teacher', 'Admin', 'Principal']}><LazyRoute><ClassTimetable /></LazyRoute></ProtectedRoute>} />
+        <Route path="/examinations/create" element={<ProtectedRoute allowedRoles={['Teacher']}><LazyRoute><CreateExamination /></LazyRoute></ProtectedRoute>} />
+        <Route path="/examinations/:id" element={<ProtectedRoute><LazyRoute><ExaminationDetails /></LazyRoute></ProtectedRoute>} />
+        <Route path="/examinations/:id/take" element={<ProtectedRoute allowedRoles={['Student']}><LazyRoute><ErrorBoundary fallback={({ resetError }) => (<div className="page-container" style={{ padding: '2rem' }}><div className="card" style={{ maxWidth: '500px', margin: '0 auto' }}><div className="card-header"><h2 className="card-title">Examination</h2></div><div className="card-body"><p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>Something went wrong while loading this examination. Please try again.</p><button type="button" className="btn btn-primary" onClick={resetError}>Try again</button></div></div></div>)}><TakeExamination /></ErrorBoundary></LazyRoute></ProtectedRoute>} />
+        <Route path="/courses" element={<ProtectedRoute><LazyRoute><Courses /></LazyRoute></ProtectedRoute>} />
+        <Route path="/courses/:id" element={<ProtectedRoute><LazyRoute><CourseDetails /></LazyRoute></ProtectedRoute>} />
+        <Route path="/books" element={<ProtectedRoute><LazyRoute><Books /></LazyRoute></ProtectedRoute>} />
+        <Route path="/books/create" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><CreateBook /></LazyRoute></ProtectedRoute>} />
 
         {/* Financial Routes */}
-        <Route
-          path="/payments"
-          element={
-            <ProtectedRoute>
-              <Payments />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/payments/callback/:gateway"
-          element={
-            <ProtectedRoute allowedRoles={['Parent', 'Admin', 'Principal']}>
-              <PaymentCallback />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/payments/cancel"
-          element={
-            <ProtectedRoute allowedRoles={['Parent', 'Admin', 'Principal']}>
-              <PaymentCallback />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/payments/:paymentId"
-          element={
-            <ProtectedRoute allowedRoles={['Student', 'Parent', 'Admin', 'Principal']}>
-              <PaymentDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/payments/create"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <CreatePayment />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/payments" element={<ProtectedRoute><LazyRoute><Payments /></LazyRoute></ProtectedRoute>} />
+        <Route path="/payments/callback/:gateway" element={<ProtectedRoute allowedRoles={['Parent', 'Admin', 'Principal']}><LazyRoute><PaymentCallback /></LazyRoute></ProtectedRoute>} />
+        <Route path="/payments/cancel" element={<ProtectedRoute allowedRoles={['Parent', 'Admin', 'Principal']}><LazyRoute><PaymentCallback /></LazyRoute></ProtectedRoute>} />
+        <Route path="/payments/:paymentId" element={<ProtectedRoute allowedRoles={['Student', 'Parent', 'Admin', 'Principal']}><LazyRoute><PaymentDetails /></LazyRoute></ProtectedRoute>} />
+        <Route path="/payments/create" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><CreatePayment /></LazyRoute></ProtectedRoute>} />
 
         {/* Reports Routes */}
-        <Route
-          path="/reports"
-          element={
-            <ProtectedRoute>
-              <Reports />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/reports/student/:studentId/results"
-          element={
-            <ProtectedRoute allowedRoles={['Student', 'Parent', 'Teacher', 'Admin', 'Principal']}>
-              <Reports />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/reports/student/:studentId/performance"
-          element={
-            <ProtectedRoute allowedRoles={['Student', 'Parent', 'Teacher', 'Admin', 'Principal']}>
-              <Reports />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/reports" element={<ProtectedRoute><LazyRoute><Reports /></LazyRoute></ProtectedRoute>} />
+        <Route path="/reports/student/:studentId/results" element={<ProtectedRoute allowedRoles={['Student', 'Parent', 'Teacher', 'Admin', 'Principal']}><LazyRoute><Reports /></LazyRoute></ProtectedRoute>} />
+        <Route path="/reports/student/:studentId/performance" element={<ProtectedRoute allowedRoles={['Student', 'Parent', 'Teacher', 'Admin', 'Principal']}><LazyRoute><Reports /></LazyRoute></ProtectedRoute>} />
 
         {/* Other Routes */}
-        <Route
-          path="/notifications"
-          element={
-            <ProtectedRoute>
-              <Notifications />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings/session-term"
-          element={
-            <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin', 'Principal']}>
-              <SessionTerm />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/school-calendar"
-          element={
-            <ProtectedRoute allowedRoles={['Student', 'Teacher', 'Admin', 'Principal', 'Parent']}>
-              <SchoolCalendar />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings/school"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin']}>
-              <SchoolManagement />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings/fee-structures"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <FeeStructures />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings/subscription"
-          element={
-            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
-              <SchoolSubscription />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings/subscription-payments"
-          element={
-            <ProtectedRoute allowedRoles={['SuperAdmin']}>
-              <PendingSubscriptionPayments />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings/tenants"
-          element={
-            <ProtectedRoute allowedRoles={['SuperAdmin']}>
-              <TenantManagement />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings/school-applications"
-          element={
-            <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}>
-              <SchoolApplications />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings/school-applications/create"
-          element={
-            <ProtectedRoute allowedRoles={['Admin']}>
-              <CreateSchoolApplication />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/schools/:schoolId"
-          element={
-            <ProtectedRoute allowedRoles={['SuperAdmin']}>
-              <SchoolDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/dashboard/finance/global"
-          element={
-            <ProtectedRoute allowedRoles={['SuperAdmin']}>
-              <GlobalFinancialDashboard />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/notifications" element={<ProtectedRoute><LazyRoute><Notifications /></LazyRoute></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><LazyRoute><Settings /></LazyRoute></ProtectedRoute>} />
+        <Route path="/settings/session-term" element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Admin', 'Principal']}><LazyRoute><SessionTerm /></LazyRoute></ProtectedRoute>} />
+        <Route path="/school-calendar" element={<ProtectedRoute allowedRoles={['Student', 'Teacher', 'Admin', 'Principal', 'Parent']}><LazyRoute><SchoolCalendar /></LazyRoute></ProtectedRoute>} />
+        <Route path="/settings/school" element={<ProtectedRoute allowedRoles={['Admin', 'SuperAdmin']}><LazyRoute><SchoolManagement /></LazyRoute></ProtectedRoute>} />
+        <Route path="/settings/fee-structures" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><FeeStructures /></LazyRoute></ProtectedRoute>} />
+        <Route path="/settings/subscription" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><SchoolSubscription /></LazyRoute></ProtectedRoute>} />
+        <Route path="/settings/subscription-payments" element={<ProtectedRoute allowedRoles={['SuperAdmin']}><LazyRoute><PendingSubscriptionPayments /></LazyRoute></ProtectedRoute>} />
+        <Route path="/settings/tenants" element={<ProtectedRoute allowedRoles={['SuperAdmin']}><LazyRoute><TenantManagement /></LazyRoute></ProtectedRoute>} />
+        <Route path="/settings/school-applications" element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}><LazyRoute><SchoolApplications /></LazyRoute></ProtectedRoute>} />
+        <Route path="/settings/school-applications/create" element={<ProtectedRoute allowedRoles={['Admin']}><LazyRoute><CreateSchoolApplication /></LazyRoute></ProtectedRoute>} />
+        <Route path="/schools/:schoolId" element={<ProtectedRoute allowedRoles={['SuperAdmin']}><LazyRoute><SchoolDetails /></LazyRoute></ProtectedRoute>} />
+        <Route path="/dashboard/finance/global" element={<ProtectedRoute allowedRoles={['SuperAdmin']}><LazyRoute><GlobalFinancialDashboard /></LazyRoute></ProtectedRoute>} />
       </Route>
 
         {/* Default redirect for unknown routes */}

@@ -194,28 +194,31 @@ const Students = () => {
             </thead>
             <tbody>
               {students.length > 0 ? (
-                students.map((student) => (
-                  <tr key={student.id}>
-                    <td>{student.studentId || student.id}</td>
-                    <td>{student.firstName ?? student.FirstName} {student.lastName ?? student.LastName}</td>
-                    <td>{student.email ?? student.Email}</td>
-                    <td>{student.className ?? student.ClassName ?? 'N/A'}</td>
-                    <td>
-                      <span className={`badge ${(student.isActive !== false) ? 'badge-success' : 'badge-danger'}`}>
-                        {(student.isActive !== false) ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-                        onClick={() => navigate(`/students/${student.id}`)}
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                students.map((student) => {
+                  const studentId = student.id ?? student.Id
+                  return (
+                    <tr key={studentId ?? student.studentId ?? student.StudentId ?? Math.random()}>
+                      <td>{student.studentId ?? student.StudentId ?? studentId ?? '—'}</td>
+                      <td>{student.firstName ?? student.FirstName} {student.lastName ?? student.LastName}</td>
+                      <td>{student.email ?? student.Email}</td>
+                      <td>{student.className ?? student.ClassName ?? 'N/A'}</td>
+                      <td>
+                        <span className={`badge ${(student.isActive !== false) ? 'badge-success' : 'badge-danger'}`}>
+                          {(student.isActive !== false) ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+                          onClick={() => studentId && navigate(`/students/${studentId}`)}
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })
               ) : (
                 <tr>
                   <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>

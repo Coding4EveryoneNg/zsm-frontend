@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import {
@@ -22,6 +22,15 @@ import {
 } from 'lucide-react'
 import logo from '../../assets/logo2.jpg'
 
+const DASHBOARD_ROUTES = {
+  student: '/dashboard/student',
+  teacher: '/dashboard/teacher',
+  admin: '/dashboard/admin',
+  principal: '/dashboard/principal',
+  superadmin: '/dashboard/superadmin',
+  parent: '/dashboard/parent',
+}
+
 const Sidebar = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -30,13 +39,19 @@ const Sidebar = () => {
 
   const roleLower = String(user?.role ?? '').toLowerCase()
   const hasRole = (roles) => Array.isArray(roles) && roles.some((r) => String(r).toLowerCase() === roleLower)
+  const dashboardPath = DASHBOARD_ROUTES[roleLower] || '/dashboard/student'
 
-  const isActive = (path) => {
+  const isActive = useCallback((path) => {
     if (path === '/dashboard') {
       return location.pathname.startsWith('/dashboard')
     }
     return location.pathname.startsWith(path)
-  }
+  }, [location.pathname])
+
+  const handleNavigate = useCallback((path) => {
+    navigate(path)
+    setIsMobileMenuOpen(false)
+  }, [navigate])
 
   const menuItems = [
     {
@@ -183,17 +198,15 @@ const Sidebar = () => {
     },
   ]
 
-  const filteredMenuItems = menuItems.filter((item) =>
-    hasRole(item.roles)
+  const filteredMenuItems = useMemo(
+    () => menuItems.filter((item) => hasRole(item.roles)),
+    [roleLower]
   )
-
-  const handleNavigate = (path) => {
-    navigate(path)
-    setIsMobileMenuOpen(false)
-  }
 
   const SidebarContent = () => (
     <nav
+      role="navigation"
+      aria-label="Main navigation"
       style={{
         width: '250px',
         backgroundColor: 'var(--bg-secondary)',
@@ -209,7 +222,7 @@ const Sidebar = () => {
     >
       <div 
         style={{ padding: '0 1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
-        onClick={() => navigate('/')}
+        onClick={() => navigate(dashboardPath)}
         onMouseEnter={(e) => {
           e.currentTarget.style.opacity = '0.8'
         }}
@@ -239,7 +252,9 @@ const Sidebar = () => {
         return (
           <div key={item.path}>
             <button
+              type="button"
               onClick={() => handleNavigate(item.path)}
+              aria-current={active ? 'page' : undefined}
               style={{
                 width: '100%',
                 padding: '0.75rem 1.5rem',
@@ -278,6 +293,7 @@ const Sidebar = () => {
                   .filter((sub) => hasRole(sub.roles))
                   .map((sub) => (
                     <button
+                      type="button"
                       key={sub.path}
                       onClick={() => handleNavigate(sub.path)}
                       style={{
@@ -308,6 +324,9 @@ const Sidebar = () => {
     <>
       {/* Mobile Menu Button */}
       <button
+        type="button"
+        aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+        aria-expanded={isMobileMenuOpen}
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         style={{
           display: 'none',
