@@ -86,6 +86,15 @@ const Assignments = () => {
     : assignments.filter(a => a.isSubmitted || a.IsSubmitted)
 
   const getStatusBadge = (assignment) => {
+    const status = (assignment.status ?? assignment.Status ?? '').toString().toLowerCase()
+    if (status === 'draft') {
+      return (
+        <span className="badge badge-warning">
+          <Clock size={14} style={{ marginRight: '0.25rem' }} />
+          Draft
+        </span>
+      )
+    }
     const isSubmitted = assignment.isSubmitted || assignment.IsSubmitted || false
     if (isSubmitted) {
       return (

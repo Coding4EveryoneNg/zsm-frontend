@@ -28,6 +28,7 @@ const CreateCATest = () => {
     { enabled: isTeacher }
   )
   const teacherSchoolId = schoolData?.data?.currentSchoolId ?? schoolData?.data?.CurrentSchoolId ?? user?.schoolId ?? user?.SchoolId
+
   const { data: teacherClassesRes } = useQuery(
     ['teacher-assigned-classes', user?.id ?? user?.Id],
     () => teachersService.getMyClasses(),

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { assignmentsService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
-import { ArrowLeft, FileText, Calendar, User, BookOpen, CheckCircle, Upload, X } from 'lucide-react'
+import { ArrowLeft, FileText, Calendar, User, BookOpen, CheckCircle, Upload, X, Send } from 'lucide-react'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
@@ -53,6 +53,18 @@ const AssignmentDetails = () => {
     }
   )
 
+  const publishMutation = useMutation(
+    () => assignmentsService.publishAssignment(id),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['assignment', id])
+        queryClient.invalidateQueries('assignments')
+        handleSuccess('Assignment published and assigned to students.')
+      },
+      onError: (err) => handleError(err, 'Failed to publish assignment')
+    }
+  )
+
   if (isLoading) return <Loading />
 
   if (error) {
@@ -84,6 +96,9 @@ const AssignmentDetails = () => {
   const isSubmitted = assignment.submission || assignment.Submission
   const submission = assignment.submission || assignment.Submission
   const isStudent = String(user?.role ?? '').toLowerCase() === 'student'
+  const isTeacher = String(user?.role ?? '').toLowerCase() === 'teacher'
+  const assignmentStatus = (assignment.status ?? assignment.Status ?? 'Active').toString()
+  const isDraft = assignmentStatus.toLowerCase() === 'draft'
   const canSubmit = isStudent && !isSubmitted
   const questions = ensureArray(assignment.questions ?? assignment.Questions)
 
@@ -189,20 +204,36 @@ const AssignmentDetails = () => {
 
   return (
     <div className="page-container">
-      <button
-        className="btn btn-secondary"
-        onClick={() => navigate(-1)}
-        style={{ marginBottom: '1.5rem' }}
-      >
-        <ArrowLeft size={18} />
-        Back
-      </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <button
+          className="btn btn-secondary"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft size={18} />
+          Back
+        </button>
+        {isTeacher && isDraft && (
+          <button
+            className="btn btn-primary"
+            onClick={() => publishMutation.mutate()}
+            disabled={publishMutation.isLoading}
+          >
+            <Send size={16} style={{ marginRight: '0.5rem' }} />
+            {publishMutation.isLoading ? 'Publishing...' : 'Publish & Assign to Students'}
+          </button>
+        )}
+      </div>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div style={{ marginBottom: '1.5rem' }}>
           <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
             {assignment.title || assignment.Title}
           </h1>
+          {isDraft && isTeacher && (
+            <span className="badge badge-warning" style={{ marginRight: '0.5rem' }}>
+              Draft
+            </span>
+          )}
           {isSubmitted && (
             <span className="badge badge-success">
               <CheckCircle size={14} style={{ marginRight: '0.25rem' }} />

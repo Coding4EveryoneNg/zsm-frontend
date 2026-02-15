@@ -53,6 +53,17 @@ const CreateSubject = () => {
       return
     }
 
+    const a = data.assignmentWeightPercent != null && data.assignmentWeightPercent !== '' ? parseFloat(data.assignmentWeightPercent) : null
+    const c = data.catestWeightPercent != null && data.catestWeightPercent !== '' ? parseFloat(data.catestWeightPercent) : null
+    const e = data.examWeightPercent != null && data.examWeightPercent !== '' ? parseFloat(data.examWeightPercent) : null
+    if (a != null || c != null || e != null) {
+      const sum = (a ?? 0) + (c ?? 0) + (e ?? 0)
+      if (Math.abs(sum - 100) > 0.01) {
+        toast.error('Assessment weights must sum to 100%')
+        return
+      }
+    }
+
     setLoading(true)
     try {
       const a = data.assignmentWeightPercent != null && data.assignmentWeightPercent !== '' ? parseFloat(data.assignmentWeightPercent) : null

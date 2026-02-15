@@ -2,8 +2,9 @@ import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { caTestsService } from '../../services/apiServices'
+import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, Save, Send } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
 
@@ -11,12 +12,24 @@ const CATestDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { user } = useAuth()
   const [editingScores, setEditingScores] = useState({})
 
   const { data, isLoading, isError, error } = useQuery(
     ['catest', id],
     () => caTestsService.getCATest(id),
     { enabled: !!id }
+  )
+
+  const submitMutation = useMutation(
+    () => caTestsService.submitCATest(id),
+    {
+      onSuccess: () => {
+        handleSuccess('CA Test submitted and assigned to students.')
+        queryClient.invalidateQueries(['catest', id])
+      },
+      onError: (err) => handleError(err, 'Failed to submit CA Test')
+    }
   )
 
   const gradeMutation = useMutation(
@@ -62,6 +75,9 @@ const CATestDetails = () => {
   const className = catest.className ?? catest.ClassName
   const termName = catest.termName ?? catest.TermName
   const createdBy = catest.createdByTeacherName ?? catest.CreatedByTeacherName
+  const status = (catest.status ?? catest.Status ?? 'Active').toString()
+  const isDraft = status.toLowerCase() === 'draft'
+  const isTeacher = (user?.role ?? user?.Role ?? '').toString().toLowerCase() === 'teacher'
   const submissions = catest.submissions ?? catest.Submissions ?? []
 
   const handleGrade = (sub) => {
@@ -128,7 +144,29 @@ const CATestDetails = () => {
                 <label className="form-label">Created by</label>
                 <p style={{ color: 'var(--text-primary)', margin: 0 }}>{createdBy}</p>
               </div>
+              <div>
+                <label className="form-label">Status</label>
+                <p style={{ color: 'var(--text-primary)', margin: 0 }}>
+                  <span className={`badge ${isDraft ? 'badge-outline' : 'badge-success'}`}>{status}</span>
+                </p>
+              </div>
             </div>
+            {isDraft && isTeacher && (
+              <div style={{ marginTop: '1rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => submitMutation.mutate()}
+                  disabled={submitMutation.isLoading}
+                >
+                  <Send size={18} style={{ marginRight: '0.5rem' }} />
+                  {submitMutation.isLoading ? 'Submitting...' : 'Submit & Assign to Students'}
+                </button>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                  Submitting will assign this CA Test to all students in the class.
+                </p>
+              </div>
+            )}
             {description && (
               <div style={{ marginTop: '1rem' }}>
                 <label className="form-label">Description</label>
@@ -139,7 +177,9 @@ const CATestDetails = () => {
 
           <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Submissions</h3>
           {submissions.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)' }}>No submissions yet.</p>
+            <p style={{ color: 'var(--text-secondary)' }}>
+              {isDraft ? 'Submit the CA Test to assign it to all students in the class.' : 'No submissions yet.'}
+            </p>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table className="table">

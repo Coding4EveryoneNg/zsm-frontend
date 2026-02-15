@@ -25,7 +25,7 @@ const StudentDetails = () => {
     ? rawPayload
     : null
   const roleLower = (user?.role ?? user?.Role ?? '').toString().toLowerCase()
-  const showAttendance = ['admin', 'principal', 'parent'].includes(roleLower)
+  const showAttendance = ['admin', 'principal', 'parent', 'teacher'].includes(roleLower)
 
   // Normalize to camelCase for display (API may return PascalCase)
   const student = rawStudent ? {
@@ -166,12 +166,12 @@ const StudentDetails = () => {
         {showAttendance && (student.attendancePercentCurrentTerm != null || student.attendanceTotalDays != null) && (
           <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
             <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-primary)' }}>
-              Attendance (current term)
+              Attendance (term to date)
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
               {student.attendancePercentCurrentTerm != null && (
                 <div>
-                  <label className="form-label">Attendance %</label>
+                  <label className="form-label">Attendance % till date</label>
                   <p style={{ color: 'var(--text-primary)', fontSize: '1.1rem', fontWeight: 500 }}>
                     {Number(student.attendancePercentCurrentTerm).toFixed(1)}%
                   </p>

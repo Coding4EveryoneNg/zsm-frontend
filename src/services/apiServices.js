@@ -111,6 +111,7 @@ export const assignmentsService = {
   createAssignment: (data) => api.post('/assignments', data),
   updateAssignment: (id, data) => api.put(`/assignments/${id}`, data),
   deleteAssignment: (id) => api.delete(`/assignments/${id}`),
+  publishAssignment: (id) => api.post(`/assignments/${id}/publish`),
   submitAssignment: (id, data) => api.post(`/assignments/${id}/submit`, data),
   checkAssignmentAnswer: (assignmentId, questionId, data) =>
     api.post(`/assignments/${assignmentId}/questions/${questionId}/check-answer`, data),
@@ -139,6 +140,7 @@ export const caTestsService = {
   getCATests: (params) => api.get('/catests', { params }),
   getCATest: (id) => api.get(`/catests/${id}`),
   createCATest: (data) => api.post('/catests', data),
+  submitCATest: (id) => api.post(`/catests/${id}/submit`),
   gradeSubmission: (submissionId, data) => api.post(`/catests/submissions/${submissionId}/grade`, data),
 }
 
@@ -151,7 +153,7 @@ export const examinationsService = {
   deleteExamination: (id) => api.delete(`/examinations/${id}`),
   submitForApproval: (id) => api.post(`/examinations/${id}/submit-for-approval`),
   approveExamination: (id) => api.post(`/examinations/${id}/approve`),
-  rejectExamination: (id, reason) => api.post(`/examinations/${id}/reject`, { reason }),
+  rejectExamination: (id, rejectionComments) => api.post(`/examinations/${id}/reject`, { rejectionComments }),
   startExamination: (id) => api.post(`/examinations/${id}/start`),
   submitExamination: (id, data) => api.post(`/examinations/${id}/submit`, data),
   checkExaminationAnswer: (examinationId, questionId, data) =>

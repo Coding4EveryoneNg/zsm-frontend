@@ -73,6 +73,8 @@ const MarkAttendance = () => {
   )
 
   const records = attendanceRes?.data?.data?.records ?? attendanceRes?.records ?? []
+  const attendanceAvailable = attendanceRes?.data?.data?.attendanceAvailable ?? attendanceRes?.attendanceAvailable ?? true
+  const attendanceUnavailableReason = attendanceRes?.data?.data?.attendanceUnavailableReason ?? attendanceRes?.attendanceUnavailableReason ?? null
   const initialStatuses = useMemo(() => {
     const map = {}
     records.forEach((r) => {
@@ -140,7 +142,7 @@ const MarkAttendance = () => {
     })
   }
 
-  const canMark = isWeekday && records.length > 0
+  const canMark = isWeekday && attendanceAvailable && records.length > 0
 
   return (
     <div className="page-container">
@@ -201,11 +203,24 @@ const MarkAttendance = () => {
                     Weekend – attendance cannot be marked
                   </small>
                 )}
+                {!loadingAttendance && selectedClassId && selectedDate && isWeekday && !attendanceAvailable && attendanceUnavailableReason && (
+                  <small style={{ color: 'var(--danger)', marginTop: '0.25rem', display: 'block' }}>
+                    {attendanceUnavailableReason}
+                  </small>
+                )}
               </div>
             </div>
 
             {loadingAttendance && selectedClassId && selectedDate && (
               <Loading />
+            )}
+
+            {!loadingAttendance && selectedClassId && selectedDate && isWeekday && !attendanceAvailable && (
+              <div style={{ padding: '1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+                <p style={{ color: 'var(--danger)', margin: 0, fontWeight: 500 }}>
+                  {attendanceUnavailableReason || 'Attendance cannot be marked for this date.'}
+                </p>
+              </div>
             )}
 
             {!loadingAttendance && selectedClassId && selectedDate && isWeekday && (

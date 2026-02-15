@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { caTestsService, commonService, dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { useAuth } from '../../contexts/AuthContext'
-import { ClipboardList, Calendar, BookOpen, Plus } from 'lucide-react'
+import { ClipboardList, Calendar, BookOpen, Plus, Clock } from 'lucide-react'
 
 const CATests = () => {
   const { user } = useAuth()
@@ -111,6 +111,7 @@ const CATests = () => {
                     <th>Subject</th>
                     <th>Class</th>
                     <th>Term</th>
+                    <th>Status</th>
                     <th>Max Marks</th>
                     <th>Due Date</th>
                     <th>Graded</th>
@@ -118,7 +119,10 @@ const CATests = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {catests.map((ct) => (
+                  {catests.map((ct) => {
+                    const ctStatus = (ct.status ?? ct.Status ?? 'Active').toString().toLowerCase()
+                    const isDraft = ctStatus === 'draft'
+                    return (
                     <tr key={ct.id ?? ct.Id}>
                       <td>
                         <strong>{ct.title ?? ct.Title}</strong>
@@ -126,6 +130,16 @@ const CATests = () => {
                       <td>{ct.subjectName ?? ct.SubjectName}</td>
                       <td>{ct.className ?? ct.ClassName}</td>
                       <td>{ct.termName ?? ct.TermName}</td>
+                      <td>
+                        {isDraft ? (
+                          <span className="badge badge-warning">
+                            <Clock size={12} style={{ marginRight: '0.25rem' }} />
+                            Draft
+                          </span>
+                        ) : (
+                          <span className="badge badge-success">Active</span>
+                        )}
+                      </td>
                       <td>{ct.maxMarks ?? ct.MaxMarks}</td>
                       <td>
                         <span style={{ display: 'block', fontSize: '0.875rem' }}>
@@ -146,7 +160,8 @@ const CATests = () => {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  );
+                  })}
                 </tbody>
               </table>
             </div>
