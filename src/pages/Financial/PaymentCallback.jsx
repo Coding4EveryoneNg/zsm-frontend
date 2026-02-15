@@ -63,7 +63,8 @@ const PaymentCallback = () => {
           setMessage(data?.message ?? data?.Message ?? 'Payment verified and processed successfully.')
         } else {
           setStatus('error')
-          setMessage(data?.message ?? data?.Message || (Array.isArray(data?.errors) ? data.errors[0] : null) || (Array.isArray(data?.Errors) ? data.Errors[0] : null) || 'Payment verification failed.')
+          const errMsg = (data?.message ?? data?.Message) || (Array.isArray(data?.errors) ? data.errors[0] : null) || (Array.isArray(data?.Errors) ? data.Errors[0] : null) || 'Payment verification failed.'
+          setMessage(errMsg)
         }
       } catch (err) {
         setStatus('error')
