@@ -37,9 +37,10 @@ const PaymentDetails = () => {
     (data) => paymentsService.processStudentPayment(paymentId, data),
     {
       onSuccess: (response) => {
-        if (response?.data?.redirectUrl) {
-          // Redirect to payment gateway
-          window.location.href = response.data.redirectUrl
+        const redirectUrl = response?.data?.redirectUrl ?? response?.redirectUrl
+        if (redirectUrl) {
+          // Redirect to payment gateway (Flutterwave/PayPal)
+          window.location.href = redirectUrl
         } else {
           toast.success('Payment processed successfully!')
           queryClient.invalidateQueries(['payment', paymentId])
@@ -307,6 +308,44 @@ const PaymentDetails = () => {
             </div>
           ) : null}
         </div>
+
+        {(payment.transactions ?? payment.Transactions ?? []).length > 0 && (
+          <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+            <label style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.75rem', display: 'block' }}>
+              Transaction History
+            </label>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="table" style={{ width: '100%', fontSize: '0.875rem' }}>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Gateway</th>
+                    <th>Fee</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(payment.transactions ?? payment.Transactions).map((tx) => (
+                    <tr key={tx.id ?? tx.Id}>
+                      <td>{tx.transactionDate || tx.TransactionDate ? new Date(tx.transactionDate || tx.TransactionDate).toLocaleString() : '—'}</td>
+                      <td>${formatDecimal(tx.amount ?? tx.Amount)}</td>
+                      <td>{tx.paymentMethod ?? tx.PaymentMethod ?? '—'}</td>
+                      <td>{tx.paymentGateway ?? tx.PaymentGateway ?? '—'}</td>
+                      <td>{(tx.gatewayTransactionFee ?? tx.GatewayTransactionFee) != null ? `$${formatDecimal(tx.gatewayTransactionFee ?? tx.GatewayTransactionFee)}` : '—'}</td>
+                      <td>
+                        <span className={`badge ${(tx.status ?? tx.Status) === 'Success' ? 'badge-success' : (tx.status ?? tx.Status) === 'Failed' ? 'badge-danger' : 'badge-warning'}`}>
+                          {tx.status ?? tx.Status ?? '—'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {payment.notes || payment.Notes ? (
           <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>

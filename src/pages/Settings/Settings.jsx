@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { Calendar, School, Building2, FileCheck, Settings as SettingsIcon, UserPlus, CalendarClock } from 'lucide-react'
+import { Calendar, School, Building2, FileCheck, Settings as SettingsIcon, UserPlus, CalendarClock, CreditCard, DollarSign } from 'lucide-react'
 
 const Settings = () => {
   const { user } = useAuth()
@@ -37,6 +37,13 @@ const Settings = () => {
       roles: ['Student', 'Teacher', 'Admin', 'Principal'],
     },
     {
+      title: 'Class Timetable',
+      description: 'View and manage the daily class schedule (e.g., Mon 8am Math, Tue 9am English).',
+      path: '/academic/class-timetable',
+      icon: CalendarClock,
+      roles: ['Student', 'Teacher', 'Admin', 'Principal'],
+    },
+    {
       title: 'Tenants',
       description: 'Manage tenants (organizations) and their configuration.',
       path: '/settings/tenants',
@@ -49,6 +56,20 @@ const Settings = () => {
       path: '/settings/school-applications',
       icon: FileCheck,
       roles: ['SuperAdmin', 'Admin'],
+    },
+    {
+      title: 'Subscription',
+      description: 'Manage your school subscription plan and billing.',
+      path: '/settings/subscription',
+      icon: CreditCard,
+      roles: ['Admin', 'Principal'],
+    },
+    {
+      title: 'Subscription Payments',
+      description: 'Confirm or reject subscription payments from schools (SuperAdmin only).',
+      path: '/settings/subscription-payments',
+      icon: DollarSign,
+      roles: ['SuperAdmin'],
     },
   ]
 

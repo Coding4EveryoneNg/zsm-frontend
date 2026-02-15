@@ -271,6 +271,20 @@ export const examinationTimetableService = {
   delete: (id) => api.delete(`/examination-timetable/${id}`),
 }
 
+// Class Timetable Services (daily schedule)
+export const classTimetableService = {
+  list: (params) => api.get('/class-timetable', { params }),
+  get: (id) => api.get(`/class-timetable/${id}`),
+  getSlots: (id) => api.get(`/class-timetable/${id}/slots`),
+  getSubjectsForClass: (classId) => api.get('/class-timetable/subjects-for-class', { params: { classId } }),
+  create: (data) => api.post('/class-timetable', data),
+  approve: (id, approve) => api.post(`/class-timetable/${id}/approve`, { approve }),
+  addSlot: (id, data) => api.post(`/class-timetable/${id}/slots`, data),
+  updateSlot: (slotId, data) => api.put(`/class-timetable/slots/${slotId}`, data),
+  deleteSlot: (slotId) => api.delete(`/class-timetable/slots/${slotId}`),
+  delete: (id) => api.delete(`/class-timetable/${id}`),
+}
+
 // School Applications Services
 export const schoolApplicationsService = {
   getApplications: (params) => api.get('/schoolapplications', { params }),
