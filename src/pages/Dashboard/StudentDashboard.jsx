@@ -3,7 +3,8 @@ import { useQuery } from 'react-query'
 import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
 import { dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
-import { BookOpen, ClipboardList, FileText, Award, Calendar, TrendingUp } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { BookOpen, ClipboardList, FileText, Award, Calendar, TrendingUp, FileBarChart } from 'lucide-react'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import ErrorBoundary from '../../components/Common/ErrorBoundary'
 import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartConfig'
@@ -13,6 +14,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import logger from '../../utils/logger'
 
 const StudentDashboard = () => {
+  const navigate = useNavigate()
   const { isAuthenticated, loading: authLoading } = useAuth()
   const [autoRetried, setAutoRetried] = useState(false)
   const { data: dashboardData, isLoading, error, refetch } = useQuery(
@@ -128,6 +130,7 @@ const StudentDashboard = () => {
   const rawSessionTerm = safeDashboard.currentSessionTerm ?? safeDashboard.CurrentSessionTerm
   const currentSessionTerm = rawSessionTerm && typeof rawSessionTerm === 'object' && !Array.isArray(rawSessionTerm) ? rawSessionTerm : null
   const currentTermSubjects = ensureArray(safeDashboard.currentTermSubjects ?? safeDashboard.CurrentTermSubjects)
+  const studentGuidId = safeDashboard.studentGuidId ?? safeDashboard.StudentGuidId ?? null
 
   const chartColorPrimary = (chartColors && chartColors.primary) ? chartColors.primary : '#6366f1'
   // Convert ChartData to Chart.js format (charts already ensured as array above)
@@ -264,6 +267,16 @@ const StudentDashboard = () => {
               <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
                 {currentSessionTerm.sessionName || currentSessionTerm.SessionName} • {currentSessionTerm.termName || currentSessionTerm.TermName}
               </p>
+            )}
+            {studentGuidId && (
+              <button
+                className="btn btn-primary"
+                onClick={() => navigate(`/reports/student/${studentGuidId}/results`)}
+                style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <FileBarChart size={18} />
+                View / Generate Results
+              </button>
             )}
           </div>
           <ErrorBoundary fallback={() => <div className="card" style={{ padding: '1rem' }}><p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Calendar unavailable</p></div>}>

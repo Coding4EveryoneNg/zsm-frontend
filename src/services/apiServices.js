@@ -28,6 +28,7 @@ export const dashboardService = {
   getTransactionMonitoring: (params) => api.get('/dashboard/finance/transaction-monitoring', { params }),
   getSubjectPerformance: (params) => api.get('/dashboard/student/subject-performance', { params }),
   getParentStudentSubjectPerformance: (studentId, params) => api.get(`/dashboard/parent/student/${studentId}/subject-performance`, { params }),
+  getTeacherStudentSubjectPerformance: (studentId, params) => api.get(`/dashboard/teacher/student/${studentId}/subject-performance`, { params }),
   getTermsSessions: () => api.get('/dashboard/student/terms-sessions'),
   getSchoolSwitchingData: () => api.get('/dashboard/school-switching'),
   getSchoolDashboard: (schoolId) => api.get(`/dashboard/school/${schoolId}`),
