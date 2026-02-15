@@ -36,6 +36,7 @@ import TeacherDetails from './pages/Management/TeacherDetails'
 import CreateTeacher from './pages/Management/CreateTeacher'
 import CreatePrincipal from './pages/Management/CreatePrincipal'
 import Principals from './pages/Management/Principals'
+import Parents from './pages/Management/Parents'
 import PrincipalDetails from './pages/Management/PrincipalDetails'
 import Admins from './pages/Management/Admins'
 import CreateAdmin from './pages/Management/CreateAdmin'
@@ -63,6 +64,7 @@ import CATests from './pages/Academic/CATests'
 import CreateCATest from './pages/Academic/CreateCATest'
 import CATestDetails from './pages/Academic/CATestDetails'
 import ExaminationTimetable from './pages/Academic/ExaminationTimetable'
+import ClassTimetable from './pages/Academic/ClassTimetable'
 import Courses from './pages/Academic/Courses'
 import CourseDetails from './pages/Academic/CourseDetails'
 import Books from './pages/Academic/Books'
@@ -71,6 +73,7 @@ import CreateBook from './pages/Academic/CreateBook'
 // Financial Pages
 import Payments from './pages/Financial/Payments'
 import PaymentDetails from './pages/Financial/PaymentDetails'
+import PaymentCallback from './pages/Financial/PaymentCallback'
 import CreatePayment from './pages/Financial/CreatePayment'
 
 // Reports Pages
@@ -298,6 +301,14 @@ function App() {
           }
         />
         <Route
+          path="/parents"
+          element={
+            <ProtectedRoute allowedRoles={['Admin', 'Principal']}>
+              <Parents />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/principals/create"
           element={
             <ProtectedRoute allowedRoles={['Admin']}>
@@ -500,6 +511,14 @@ function App() {
           }
         />
         <Route
+          path="/academic/class-timetable"
+          element={
+            <ProtectedRoute allowedRoles={['Student', 'Teacher', 'Admin', 'Principal']}>
+              <ClassTimetable />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/examinations/create"
           element={
             <ProtectedRoute allowedRoles={['Teacher']}>
@@ -578,6 +597,22 @@ function App() {
           element={
             <ProtectedRoute>
               <Payments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payments/callback/:gateway"
+          element={
+            <ProtectedRoute allowedRoles={['Parent', 'Admin', 'Principal']}>
+              <PaymentCallback />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payments/cancel"
+          element={
+            <ProtectedRoute allowedRoles={['Parent', 'Admin', 'Principal']}>
+              <PaymentCallback />
             </ProtectedRoute>
           }
         />

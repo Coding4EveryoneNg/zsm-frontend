@@ -1,10 +1,25 @@
 import React, { useEffect } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Header from './Header'
 import ErrorBoundary from '../Common/ErrorBoundary'
+import { useAuth } from '../../contexts/AuthContext'
+
+const DASHBOARD_ROUTES = {
+  Student: '/dashboard/student',
+  Teacher: '/dashboard/teacher',
+  Admin: '/dashboard/admin',
+  Principal: '/dashboard/principal',
+  SuperAdmin: '/dashboard/superadmin',
+  Parent: '/dashboard/parent',
+}
 
 const Layout = () => {
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const roleKey = Object.keys(DASHBOARD_ROUTES).find((k) => k.toLowerCase() === String(user?.role ?? '').toLowerCase())
+  const dashboardPath = roleKey ? DASHBOARD_ROUTES[roleKey] : '/dashboard/student'
+
   useEffect(() => {
     // Add authenticated class to body for dark theme
     document.body.classList.add('authenticated')
@@ -33,7 +48,10 @@ const Layout = () => {
                 <div className="card-header"><h2 className="card-title">Something went wrong</h2></div>
                 <div className="card-body">
                   <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>This page could not be loaded. Please try again.</p>
-                  <button type="button" className="btn btn-primary" onClick={resetError}>Try again</button>
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <button type="button" className="btn btn-primary" onClick={() => { resetError(); navigate(dashboardPath) }}>Try again</button>
+                    <button type="button" className="btn btn-outline" onClick={() => navigate(dashboardPath)}>Go to Dashboard</button>
+                  </div>
                 </div>
               </div>
             </div>

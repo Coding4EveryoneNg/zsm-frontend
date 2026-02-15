@@ -96,11 +96,13 @@ const Reports = () => {
   const currentStudentId = studentId || (isStudent ? studentGuidIdFromDashboard : null)
 
   // Redirect student from /reports to their results page when we have their studentGuidId
+  const emptyGuid = '00000000-0000-0000-0000-000000000000'
+  const validStudentGuid = studentGuidIdFromDashboard && String(studentGuidIdFromDashboard) !== emptyGuid
   useEffect(() => {
-    if (isStudent && !studentId && studentGuidIdFromDashboard) {
+    if (isStudent && !studentId && validStudentGuid) {
       navigate(`/reports/student/${studentGuidIdFromDashboard}/results`, { replace: true })
     }
-  }, [isStudent, studentId, studentGuidIdFromDashboard, navigate])
+  }, [isStudent, studentId, validStudentGuid, studentGuidIdFromDashboard, navigate])
 
   // Extract current term and session from dashboard data
   useEffect(() => {
@@ -295,34 +297,42 @@ const Reports = () => {
   const safeChartPlugins = safeChartOptions.plugins && typeof safeChartOptions.plugins === 'object' ? safeChartOptions.plugins : {}
   const safeChartColors = chartColors && typeof chartColors === 'object' ? chartColors : { primary: '#6366f1', success: '#10b981', warning: '#f59e0b', info: '#3b82f6' }
 
-  // Render chart based on chart data from API
+  // Render chart based on chart data from API (defensive to prevent runtime errors)
   const renderChart = (chart) => {
-    if (!chart || !chart.labels || !chart.datasets) return null
+    try {
+      if (!chart || typeof chart !== 'object') return null
+      const labels = chart.labels
+      const datasets = chart.datasets
+      if (!Array.isArray(labels) || !Array.isArray(datasets) || datasets.length === 0) return null
 
-    const chartOptions = {
-      ...safeChartOptions,
-      plugins: {
-        ...safeChartPlugins,
-        title: {
-          display: true,
-          text: chart.title || '',
-          font: { size: 16, weight: 'bold' }
+      const chartOptions = {
+        ...safeChartOptions,
+        plugins: {
+          ...safeChartPlugins,
+          title: {
+            display: true,
+            text: chart.title || '',
+            font: { size: 16, weight: 'bold' }
+          }
         }
       }
-    }
 
-    const chartType = safeStrLower(chart.type)
-    switch (chartType) {
-      case 'bar':
-        return <Bar data={chart} options={chartOptions} />
-      case 'line':
-        return <Line data={chart} options={chartOptions} />
-      case 'pie':
-        return <Pie data={chart} options={chartOptions} />
-      case 'doughnut':
-        return <Doughnut data={chart} options={chartOptions} />
-      default:
-        return null
+      const chartType = safeStrLower(chart.type)
+      switch (chartType) {
+        case 'bar':
+          return <Bar data={chart} options={chartOptions} />
+        case 'line':
+          return <Line data={chart} options={chartOptions} />
+        case 'pie':
+          return <Pie data={chart} options={chartOptions} />
+        case 'doughnut':
+          return <Doughnut data={chart} options={chartOptions} />
+        default:
+          return null
+      }
+    } catch (err) {
+      try { if (typeof logger?.error === 'function') logger.error('Chart render error:', err) } catch (_) { /* no-op */ }
+      return null
     }
   }
 

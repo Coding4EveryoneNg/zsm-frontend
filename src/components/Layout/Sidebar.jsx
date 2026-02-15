@@ -58,6 +58,12 @@ const Sidebar = () => {
       roles: ['Admin', 'Principal'],
     },
     {
+      title: 'Parents',
+      icon: Users,
+      path: '/parents',
+      roles: ['Admin', 'Principal'],
+    },
+    {
       title: 'Admins',
       icon: Users,
       path: '/admins',
@@ -124,6 +130,12 @@ const Sidebar = () => {
       roles: ['Student', 'Teacher', 'Admin', 'Principal', 'Parent'],
     },
     {
+      title: 'Class Timetable',
+      icon: CalendarDays,
+      path: '/academic/class-timetable',
+      roles: ['Student', 'Teacher', 'Admin', 'Principal'],
+    },
+    {
       title: 'School Calendar',
       icon: CalendarDays,
       path: '/school-calendar',
@@ -163,6 +175,7 @@ const Sidebar = () => {
         { title: 'Subscription', path: '/settings/subscription', roles: ['Admin', 'Principal'] },
         { title: 'Manage Principals', path: '/principals', roles: ['Admin', 'Principal'] },
         { title: 'Exam Timetable', path: '/academic/examination-timetable', roles: ['Student', 'Teacher', 'Admin', 'Principal'] },
+        { title: 'Class Timetable', path: '/academic/class-timetable', roles: ['Student', 'Teacher', 'Admin', 'Principal'] },
         { title: 'Tenants', path: '/settings/tenants', roles: ['SuperAdmin'] },
         { title: 'School Applications', path: '/settings/school-applications', roles: ['SuperAdmin', 'Admin'] },
         { title: 'Subscription Payments', path: '/settings/subscription-payments', roles: ['SuperAdmin'] },
