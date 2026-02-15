@@ -610,7 +610,7 @@ function App() {
         <Route
           path="/reports/student/:studentId/results"
           element={
-            <ProtectedRoute allowedRoles={['Parent']}>
+            <ProtectedRoute allowedRoles={['Student', 'Parent', 'Teacher', 'Admin', 'Principal']}>
               <Reports />
             </ProtectedRoute>
           }
@@ -618,7 +618,7 @@ function App() {
         <Route
           path="/reports/student/:studentId/performance"
           element={
-            <ProtectedRoute allowedRoles={['Parent']}>
+            <ProtectedRoute allowedRoles={['Student', 'Parent', 'Teacher', 'Admin', 'Principal']}>
               <Reports />
             </ProtectedRoute>
           }

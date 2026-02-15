@@ -144,7 +144,7 @@ const Sidebar = () => {
       title: 'Reports',
       icon: BarChart3,
       path: '/reports',
-      roles: ['Teacher', 'Principal', 'Admin', 'Parent'],
+      roles: ['Student', 'Teacher', 'Principal', 'Admin', 'Parent'],
     },
     {
       title: 'Notifications',

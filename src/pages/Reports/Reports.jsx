@@ -68,11 +68,6 @@ const Reports = () => {
   const terms = Array.isArray(termsData) ? termsData : (termsData?.data ?? termsData?.Data ?? termsData?.items ?? termsData?.Items ?? [])
   const sessions = Array.isArray(sessionsData) ? sessionsData : (sessionsData?.data ?? sessionsData?.Data ?? sessionsData?.items ?? sessionsData?.Items ?? [])
 
-  // Get current student ID for result generation
-  // For students, we need to get their student ID from the dashboard or user context
-  // For parents viewing a child, use the studentId from URL params
-  const currentStudentId = studentId || (isStudent ? user?.id : null)
-
   // Fetch dashboard data to get current term and session
   const { data: studentDashboardData } = useQuery(
     'studentDashboard',
@@ -92,6 +87,20 @@ const Reports = () => {
       refetchInterval: 60000
     }
   )
+
+  // Get current student ID for result generation (must be Student entity Guid, not ApplicationUser id)
+  // For students: use studentId from URL, or studentGuidId from dashboard when at /reports
+  // For parents viewing a child: use studentId from URL params
+  const studentDashboardPayload = studentDashboardData?.data || studentDashboardData || {}
+  const studentGuidIdFromDashboard = studentDashboardPayload.studentGuidId ?? studentDashboardPayload.StudentGuidId
+  const currentStudentId = studentId || (isStudent ? studentGuidIdFromDashboard : null)
+
+  // Redirect student from /reports to their results page when we have their studentGuidId
+  useEffect(() => {
+    if (isStudent && !studentId && studentGuidIdFromDashboard) {
+      navigate(`/reports/student/${studentGuidIdFromDashboard}/results`, { replace: true })
+    }
+  }, [isStudent, studentId, studentGuidIdFromDashboard, navigate])
 
   // Extract current term and session from dashboard data
   useEffect(() => {
@@ -114,12 +123,23 @@ const Reports = () => {
     }
   }, [studentDashboardData, parentDashboardData, isStudent, isParent, selectedTerm, selectedSession])
 
+  // Set default term/session for Teacher from reports API response
+  useEffect(() => {
+    if (isTeacher && !studentId && reportsData?.data && !selectedTerm && !selectedSession) {
+      const data = reportsData.data || reportsData
+      const terms = data.availableTerms || data.AvailableTerms || []
+      const sessions = data.availableSessions || data.AvailableSessions || []
+      if (terms.length > 0) setSelectedTerm(terms[0])
+      if (sessions.length > 0) setSelectedSession(sessions[0])
+    }
+  }, [isTeacher, studentId, reportsData, selectedTerm, selectedSession])
+
   // Check if result can be generated - only call if we have term and session
   const { data: canGenerateData } = useQuery(
     ['canGenerateResult', currentStudentId, selectedTerm, selectedSession],
     () => coursesService.canGenerateResult(currentStudentId, { term: selectedTerm, session: selectedSession }),
     { 
-      enabled: !!currentStudentId && (isStudent || isParent) && !!selectedTerm && !!selectedSession
+      enabled: !!currentStudentId && (isStudent || isParent || (isTeacher && studentId)) && !!selectedTerm && !!selectedSession
     }
   )
 
@@ -176,17 +196,23 @@ const Reports = () => {
       if (studentId && isParent) {
         return dashboardService.getParentStudentSubjectPerformance(studentId, { term: selectedTerm, session: selectedSession })
       }
+      if (studentId && isTeacher) {
+        return dashboardService.getTeacherStudentSubjectPerformance(studentId, { term: selectedTerm, session: selectedSession })
+      }
       if (isTeacher) {
         return reportsService.getTeacherStudentsResults({ term: selectedTerm, session: selectedSession })
       }
       if (isPrincipal) {
         return reportsService.getPrincipalStudentsPerformance({ term: selectedTerm, session: selectedSession })
       }
+      if (isStudent) {
+        return dashboardService.getSubjectPerformance({ term: selectedTerm, session: selectedSession })
+      }
       return Promise.resolve({ data: { charts: [], performanceData: [], paymentData: [] } })
     },
     { 
       refetchInterval: 60000,
-      enabled: (!!studentId && isParent) || isTeacher || isPrincipal
+      enabled: (!!studentId && (isParent || isTeacher)) || (isTeacher && !studentId) || isPrincipal || isStudent
     }
   )
 
@@ -234,6 +260,7 @@ const Reports = () => {
   const subjectPerformance = apiData.subjectPerformances || apiData.SubjectPerformances || apiData.subjectPerformance || apiData.SubjectPerformance || []
   const charts = apiData.charts || apiData.Charts || []
   const paymentData = apiData.paymentData || apiData.PaymentData || []
+  const teacherStudentResults = apiData.studentResults || apiData.StudentResults || []
   const studentName = apiData.studentName || apiData.StudentName || ''
   const overallPerformance = apiData.overallPerformance || apiData.OverallPerformance || {}
   const performanceData = studentId && view === 'performance' 
@@ -245,6 +272,7 @@ const Reports = () => {
   const safeCharts = Array.isArray(charts) ? charts : []
   const safePaymentData = Array.isArray(paymentData) ? paymentData : []
   const safePerformanceData = Array.isArray(performanceData) ? performanceData : []
+  const safeTeacherStudentResults = Array.isArray(teacherStudentResults) ? teacherStudentResults : []
 
   try {
     if (typeof logger?.debug === 'function') {
@@ -400,14 +428,14 @@ const Reports = () => {
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        {studentId && (
+        {(studentId || isStudent) && (
           <button 
             className="btn btn-outline-secondary" 
-            onClick={() => navigate('/dashboard/parent')}
+            onClick={() => navigate(isStudent ? '/dashboard/student' : (isTeacher && studentId) ? '/reports' : '/dashboard/parent')}
             style={{ marginRight: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
             <ArrowLeft size={18} />
-            Back to Dashboard
+            {isStudent ? 'Back to Dashboard' : (isTeacher && studentId) ? 'Back to Students' : 'Back to Dashboard'}
           </button>
         )}
         <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
@@ -418,8 +446,8 @@ const Reports = () => {
           }
         </h1>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          {/* Result Generation Buttons for Students and Parents */}
-          {(isStudent || (isParent && studentId)) && canGenerate && (
+          {/* Result Generation Buttons for Students, Parents, and Teachers (when viewing a student) */}
+          {(isStudent || (isParent && studentId) || (isTeacher && studentId)) && canGenerate && (
             <>
               <button 
                 className="btn btn-danger" 
@@ -540,6 +568,60 @@ const Reports = () => {
           )}
         </div>
       </div>
+
+      {/* Teacher: Student list with View/Generate Result links */}
+      {isTeacher && !studentId && safeTeacherStudentResults.length > 0 && (
+        <div className="card" style={{ marginBottom: '2rem' }}>
+          <div className="card-header">
+            <h2 className="card-title">Students - View & Generate Results</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+              Select a student to view their performance and generate PDF/Excel reports
+            </p>
+          </div>
+          <div className="card-body">
+            <div style={{ overflowX: 'auto' }}>
+              <table className="table" style={{ width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th>Student Name</th>
+                    <th>Student Number</th>
+                    <th>Class</th>
+                    <th>Results</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {safeTeacherStudentResults.map((sr) => {
+                    const sid = sr.studentId || sr.StudentId
+                    const name = sr.studentName || sr.StudentName || 'N/A'
+                    const num = sr.studentNumber || sr.StudentNumber || 'N/A'
+                    const cls = sr.className || sr.ClassName || 'N/A'
+                    const numResults = Array.isArray(sr.results || sr.Results) ? (sr.results || sr.Results).length : 0
+                    return (
+                      <tr key={sid}>
+                        <td>{name}</td>
+                        <td>{num}</td>
+                        <td>{cls}</td>
+                        <td>{numResults} term(s)</td>
+                        <td>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => navigate(`/reports/student/${sid}/results`)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                          >
+                            <FileText size={16} />
+                            View / Generate Result
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Charts from API */}
       {safeCharts.length > 0 && (
