@@ -117,7 +117,11 @@ const Parents = () => {
                         <button
                           type="button"
                           className="btn btn-sm btn-outline"
-                          onClick={() => navigate(`/students/${(parent.students ?? parent.Students)[0]?.id ?? (parent.students ?? parent.Students)[0]?.Id}`)}
+                          onClick={() => {
+                            const first = (parent.students ?? parent.Students)[0]
+                            const sid = first?.id ?? first?.Id
+                            if (sid) navigate(`/students/${sid}`)
+                          }}
                         >
                           View child <ChevronRight size={14} />
                         </button>

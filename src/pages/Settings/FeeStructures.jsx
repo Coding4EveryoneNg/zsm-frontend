@@ -14,6 +14,8 @@ const FeeStructures = () => {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(50)
   const [editForm, setEditForm] = useState({ name: '', description: '', amount: '', feeType: 'Yearly', classId: '', termId: '', feeCategory: 'Other' })
   const [formData, setFormData] = useState({ schoolId: '', classId: '', termId: '', feeCategory: 'Other', name: '', description: '', amount: '', feeType: 'Yearly' })
   const [selectedSchoolId, setSelectedSchoolId] = useState('') // Page-level school for Admin: data shown is for this school
@@ -43,14 +45,27 @@ const FeeStructures = () => {
 
   // Current school for page: Admin uses selected dropdown; Principal uses their school
   const currentSchoolIdForPage = isPrincipal ? (principalOrAdminSchoolId || defaultSchoolId) : (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId)
+
+  // Reset to page 1 when school filter changes
+  React.useEffect(() => {
+    setPage(1)
+  }, [currentSchoolIdForPage])
   const schoolIdForClasses = formData.schoolId || currentSchoolIdForPage || ''
 
   const { data: feeData, isLoading, error: feeError } = useQuery(
-    ['fee-structures', isAdmin ? currentSchoolIdForPage : null],
-    () => feeStructuresService.getFeeStructures(isAdmin && currentSchoolIdForPage ? { schoolId: currentSchoolIdForPage } : undefined),
+    ['fee-structures', isAdmin ? currentSchoolIdForPage : null, page, pageSize],
+    () => feeStructuresService.getFeeStructures(
+      isAdmin && currentSchoolIdForPage ? { schoolId: currentSchoolIdForPage, page, pageSize } : { page, pageSize }
+    ),
     { enabled: !isAdmin || !!currentSchoolIdForPage }
   )
-  const feeStructures = feeData?.data ?? feeData?.Data ?? []
+  // API returns { data: { items, totalCount, currentPage, pageSize, totalPages } }
+  const paginatedData = feeData?.data ?? feeData?.Data ?? {}
+  const feeStructures = Array.isArray(paginatedData?.items)
+    ? paginatedData.items
+    : (Array.isArray(paginatedData?.Items) ? paginatedData.Items : (Array.isArray(paginatedData) ? paginatedData : []))
+  const totalCount = paginatedData?.totalCount ?? paginatedData?.TotalCount ?? feeStructures?.length ?? 0
+  const totalPages = paginatedData?.totalPages ?? paginatedData?.TotalPages ?? (Math.ceil(totalCount / pageSize) || 1)
   const schools = schoolsList
   const editingFs = feeStructures?.find((f) => (f.id || f.Id) === editingId)
   const editingSchoolId = editingFs?.schoolId || editingFs?.SchoolId || schoolIdForClasses
@@ -520,6 +535,27 @@ const FeeStructures = () => {
             </tbody>
           </table>
         </div>
+        {totalPages > 1 && (
+          <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+            <button
+              className="btn btn-outline"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </button>
+            <span style={{ padding: '0 1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+              Page {page} of {totalPages} ({totalCount} total)
+            </span>
+            <button
+              className="btn btn-outline"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
