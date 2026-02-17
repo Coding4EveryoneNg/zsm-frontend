@@ -121,6 +121,12 @@ const Sidebar = () => {
       roles: ['Teacher', 'Admin', 'Principal'],
     },
     {
+      title: 'Class Attendance (Term)',
+      icon: ClipboardCheck,
+      path: '/attendance/term',
+      roles: ['Teacher', 'Admin', 'Principal'],
+    },
+    {
       title: 'Examinations',
       icon: ClipboardList,
       path: '/examinations',

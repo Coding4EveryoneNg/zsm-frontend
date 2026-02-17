@@ -76,6 +76,7 @@ export const teachersService = {
   getTeacher: (id) => api.get(`/teachers/${id}`),
   getMe: () => api.get('/teachers/me'),
   getMyClasses: () => api.get('/teachers/me/classes'),
+  getMyClassesAsClassTeacher: () => api.get('/teachers/me/classes-as-class-teacher'),
   getMySubjects: () => api.get('/teachers/me/subjects'),
   createTeacher: (data) => api.post('/teachers', data),
   updateTeacher: (id, data) => api.put(`/teachers/${id}`, data),
@@ -133,6 +134,8 @@ export const attendanceService = {
     const isoDate = date && date.length >= 10 ? `${date.substring(0, 10)}T00:00:00` : date
     return api.get(`/attendance/class/${classId}/date/${encodeURIComponent(isoDate)}`)
   },
+  getClassAttendanceForTerm: (classId, termId) =>
+    api.get(`/attendance/class/${classId}/term`, { params: termId ? { termId } : {} }),
   markAttendance: (data) => api.post('/attendance/mark', data),
 }
 

@@ -140,7 +140,7 @@ const ClassDetails = () => {
                     value={classTeacherId}
                     onChange={(e) => setClassTeacherId(e.target.value)}
                   >
-                    <option value="">No class teacher</option>
+                    <option value="">No class teacher (remove)</option>
                     {teachers.map((t) => (
                       <option key={t.id ?? t.Id} value={t.id ?? t.Id}>
                         {t.name ?? t.Name ?? `${t.firstName ?? t.FirstName ?? ''} ${t.lastName ?? t.LastName ?? ''}`.trim()}
