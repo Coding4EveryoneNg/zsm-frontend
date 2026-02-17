@@ -59,6 +59,7 @@ const ExaminationDetails = lazy(() => import('./pages/Academic/ExaminationDetail
 const CreateExamination = lazy(() => import('./pages/Academic/CreateExamination'))
 const TakeExamination = lazy(() => import('./pages/Academic/TakeExamination'))
 const MarkAttendance = lazy(() => import('./pages/Academic/MarkAttendance'))
+const ClassAttendanceList = lazy(() => import('./pages/Academic/ClassAttendanceList'))
 const CATests = lazy(() => import('./pages/Academic/CATests'))
 const CreateCATest = lazy(() => import('./pages/Academic/CreateCATest'))
 const CATestDetails = lazy(() => import('./pages/Academic/CATestDetails'))
@@ -289,6 +290,7 @@ function App() {
         <Route path="/assignments/:id" element={<ProtectedRoute><LazyRoute><ErrorBoundary fallback={({ resetError }) => (<div className="page-container" style={{ padding: '2rem' }}><div className="card" style={{ maxWidth: '500px', margin: '0 auto' }}><div className="card-header"><h2 className="card-title">Assignment</h2></div><div className="card-body"><p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>Something went wrong while loading this assignment. Please try again.</p><button type="button" className="btn btn-primary" onClick={resetError}>Try again</button></div></div></div>)}><AssignmentDetails /></ErrorBoundary></LazyRoute></ProtectedRoute>} />
         <Route path="/assignments/submissions" element={<ProtectedRoute allowedRoles={['Teacher']}><LazyRoute><TeacherSubmissions /></LazyRoute></ProtectedRoute>} />
         <Route path="/attendance/mark" element={<ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}><LazyRoute><MarkAttendance /></LazyRoute></ProtectedRoute>} />
+        <Route path="/attendance/term" element={<ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}><LazyRoute><ClassAttendanceList /></LazyRoute></ProtectedRoute>} />
         <Route path="/catests" element={<ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}><LazyRoute><CATests /></LazyRoute></ProtectedRoute>} />
         <Route path="/catests/create" element={<ProtectedRoute allowedRoles={['Teacher']}><LazyRoute><CreateCATest /></LazyRoute></ProtectedRoute>} />
         <Route path="/catests/:id" element={<ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}><LazyRoute><CATestDetails /></LazyRoute></ProtectedRoute>} />

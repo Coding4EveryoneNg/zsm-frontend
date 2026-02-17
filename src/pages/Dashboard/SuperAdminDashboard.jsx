@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useQuery } from 'react-query'
+import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { useNavigate } from 'react-router-dom'
 import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
 import { dashboardService, examinationsService, schoolApplicationsService, schoolsService, tenantsService, notificationsService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
+import ConfirmDialog from '../../components/Common/ConfirmDialog'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import { 
   Building2, Users, School, TrendingUp, Zap, Eye, Settings, Plus, 
@@ -25,8 +26,10 @@ const SuperAdminDashboard = () => {
   const [showSchoolDropdown, setShowSchoolDropdown] = useState(false)
   const [showUserCountDropdown, setShowUserCountDropdown] = useState(false)
   const [schoolSearchTerm, setSchoolSearchTerm] = useState('')
+  const [approveConfirm, setApproveConfirm] = useState(null)
   const dropdownRef = useRef(null)
   const userCountDropdownRef = useRef(null)
+  const queryClient = useQueryClient()
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -295,14 +298,29 @@ const SuperAdminDashboard = () => {
     toast.success('Dashboard refreshed')
   }
 
-  const handleApproveApplication = async (applicationId) => {
-    try {
-      await schoolApplicationsService.approveApplication(applicationId)
-      toast.success('Application approved successfully')
-      refetch()
-    } catch (error) {
-      toast.error('Failed to approve application')
-      logger.error('Approve application error:', error)
+  const approveMutation = useMutation(
+    ({ applicationId, notes }) => schoolApplicationsService.approveApplication(applicationId, notes),
+    {
+      onSuccess: () => {
+        toast.success('Application approved successfully')
+        setApproveConfirm(null)
+        refetch()
+        queryClient.invalidateQueries(['superAdminDashboard'])
+      },
+      onError: (error) => {
+        toast.error('Failed to approve application')
+        logger.error('Approve application error:', error)
+      }
+    }
+  )
+
+  const handleApproveApplication = (application) => {
+    setApproveConfirm(application)
+  }
+
+  const confirmApprove = () => {
+    if (approveConfirm) {
+      approveMutation.mutate({ applicationId: approveConfirm.id, notes: null })
     }
   }
 
@@ -881,6 +899,20 @@ const SuperAdminDashboard = () => {
         </div>
       )}
 
+      {/* Approve Confirmation Modal - approval only happens when user clicks Approve in this second modal */}
+      {approveConfirm && (
+        <ConfirmDialog
+          isOpen={!!approveConfirm}
+          onClose={() => setApproveConfirm(null)}
+          onConfirm={confirmApprove}
+          title="Approve Application"
+          message={`Are you sure you want to approve the application for "${approveConfirm.schoolName}"? This will create a new tenant and school.`}
+          confirmText="Approve"
+          cancelText="Cancel"
+          variant="info"
+        />
+      )}
+
       {/* Pending School Applications */}
       {pendingApplications.length > 0 && (
         <div className="card" style={{ marginBottom: '2rem', border: '2px solid var(--warning)' }}>
@@ -923,7 +955,8 @@ const SuperAdminDashboard = () => {
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <button
                             className="btn btn-sm btn-success"
-                            onClick={() => handleApproveApplication(app.id)}
+                            onClick={() => handleApproveApplication(app)}
+                            disabled={approveMutation.isLoading}
                           >
                             Approve
                           </button>

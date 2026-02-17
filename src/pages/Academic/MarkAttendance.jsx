@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { attendanceService, commonService, teachersService, dashboardService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
@@ -47,21 +48,22 @@ const MarkAttendance = () => {
     }
   }, [isAdmin, schoolsList, teacherSchoolId, defaultSchoolId, selectedSchoolId])
 
-  const { data: teacherClassesRes } = useQuery(
-    ['teacher-assigned-classes', user?.id ?? user?.Id],
-    () => teachersService.getMyClasses(),
+  // Teachers see only classes where they are class teacher (for attendance). Admin/Principal see all.
+  const { data: teacherClassTeacherClassesRes } = useQuery(
+    ['teacher-class-teacher-classes', user?.id ?? user?.Id],
+    () => teachersService.getMyClassesAsClassTeacher(),
     { enabled: isTeacher }
   )
-  const teacherAssignedClasses = teacherClassesRes?.data ?? teacherClassesRes ?? []
+  const teacherClassTeacherClasses = teacherClassTeacherClassesRes?.data?.data ?? teacherClassTeacherClassesRes?.data ?? teacherClassTeacherClassesRes ?? []
   const { data: classesRes } = useQuery(
     ['classes-dropdown', effectiveSchoolId, isTeacher],
     () => commonService.getClassesDropdown({ schoolId: effectiveSchoolId }),
-    { enabled: !!effectiveSchoolId }
+    { enabled: !!effectiveSchoolId && !isTeacher }
   )
   const classes = useMemo(() => {
     if (!isTeacher) return (classesRes?.data ?? classesRes ?? [])
-    return teacherAssignedClasses
-  }, [isTeacher, classesRes, teacherAssignedClasses])
+    return teacherClassTeacherClasses
+  }, [isTeacher, classesRes, teacherClassTeacherClasses])
 
   const dateObj = selectedDate ? new Date(selectedDate + 'T12:00:00') : null
   const isWeekday = dateObj && !isWeekend(dateObj)
@@ -147,16 +149,21 @@ const MarkAttendance = () => {
   return (
     <div className="page-container">
       <div className="card">
-        <div className="card-header" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => window.history.back()}
-            style={{ padding: '0.5rem' }}
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <h1 className="card-title">Mark Attendance</h1>
+        <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => window.history.back()}
+              style={{ padding: '0.5rem' }}
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <h1 className="card-title">Mark Attendance</h1>
+          </div>
+          <Link to="/attendance/term" className="btn btn-outline btn-sm">
+            View Term Attendance
+          </Link>
         </div>
         <div className="card-body">
           <form onSubmit={handleSubmit}>
