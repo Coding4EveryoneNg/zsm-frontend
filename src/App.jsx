@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
+import { getUserRole } from './utils/safeUtils'
 import Layout from './components/Layout/Layout'
 import Loading from './components/Common/Loading'
 import ErrorBoundary from './components/Common/ErrorBoundary'
@@ -99,7 +100,7 @@ const LazyRoute = ({ children }) => (
 // Redirect /dashboard to role-specific dashboard
 const DashboardRedirect = () => {
   const { user } = useAuth()
-  const roleLower = String(user?.role ?? '').toLowerCase()
+  const roleLower = getUserRole(user).toLowerCase()
   const routes = { student: '/dashboard/student', teacher: '/dashboard/teacher', admin: '/dashboard/admin', principal: '/dashboard/principal', superadmin: '/dashboard/superadmin', parent: '/dashboard/parent' }
   return <Navigate to={routes[roleLower] || '/dashboard/student'} replace />
 }
@@ -116,7 +117,8 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/login" replace />
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.some((r) => String(r).toLowerCase() === String(user?.role ?? '').toLowerCase())) {
+  const userRole = getUserRole(user)
+  if (allowedRoles.length > 0 && !allowedRoles.some((r) => String(r).toLowerCase() === userRole.toLowerCase())) {
     return <Navigate to="/unauthorized" replace />
   }
 
@@ -141,7 +143,7 @@ const PublicRoute = ({ children }) => {
       SuperAdmin: '/dashboard/superadmin',
       Parent: '/dashboard/parent',
     }
-    const roleKey = Object.keys(roleRoutes).find((k) => k.toLowerCase() === String(user?.role ?? '').toLowerCase())
+    const roleKey = Object.keys(roleRoutes).find((k) => k.toLowerCase() === getUserRole(user).toLowerCase())
     const redirectTo = roleKey ? roleRoutes[roleKey] : '/dashboard'
     return <Navigate to={redirectTo} replace />
   }

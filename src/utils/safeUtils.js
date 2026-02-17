@@ -49,6 +49,18 @@ export function safeStrLower(val, fallback = '') {
 }
 
 /**
+ * Get user role from user object. Handles both camelCase (role) and PascalCase (Role) from API.
+ * @param {object|null} user - User object from auth
+ * @param {string} fallback
+ * @returns {string}
+ */
+export function getUserRole(user, fallback = '') {
+  if (!user || typeof user !== 'object') return fallback
+  const role = user.role ?? user.Role ?? fallback
+  return safeStr(role, fallback)
+}
+
+/**
  * Safely format a date. Returns fallback for invalid/missing values.
  * @param {any} dateVal - Date, string, or timestamp
  * @param {string} fmt - 'short' | 'long' | 'iso' (default 'short')
@@ -100,6 +112,7 @@ export default {
   ensureArray,
   safeStr,
   safeStrLower,
+  getUserRole,
   safeFormatDate,
   formatDecimal,
   roundDecimal

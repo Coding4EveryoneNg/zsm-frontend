@@ -1,6 +1,13 @@
 import api from './api'
 import logger from '../utils/logger'
 
+/** Normalize user: ensure role exists (handles API returning role or Role) */
+function normalizeUser(user) {
+  if (!user || typeof user !== 'object') return user
+  const role = user.role ?? user.Role ?? ''
+  return { ...user, role: role || user.role || user.Role }
+}
+
 export const authService = {
   login: async (email, password, rememberMe = false) => {
   try {
@@ -10,10 +17,14 @@ export const authService = {
       rememberMe,
     });
 
-    const data = response.data;
+    const data = response.data ?? response;
+    const rawUser = data?.user ?? data?.User ?? data?.data?.user ?? data?.data?.User;
+    const user = rawUser ? normalizeUser(rawUser) : rawUser;
 
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    localStorage.setItem('token', data.token ?? data.Token ?? '');
+    if (user ?? rawUser) {
+      localStorage.setItem('user', JSON.stringify(user ?? rawUser));
+    }
 
     if (data.expiresAt) {
       localStorage.setItem('tokenExpiry', data.expiresAt);

@@ -5,6 +5,13 @@ import logger from '../utils/logger'
 
 const AuthContext = createContext(null)
 
+/** Normalize user object: ensure role is always set (handles API returning role or Role) */
+function normalizeUser(user) {
+  if (!user || typeof user !== 'object') return user
+  const role = user.role ?? user.Role ?? ''
+  return { ...user, role: role || user.role || user.Role }
+}
+
 export const useAuth = () => {
   const context = useContext(AuthContext)
   if (!context) {
@@ -25,7 +32,7 @@ export const AuthProvider = ({ children }) => {
 
       if (token && storedUser) {
         try {
-          const userData = JSON.parse(storedUser)
+          const userData = normalizeUser(JSON.parse(storedUser))
           setUser(userData)
           setIsAuthenticated(true)
           
@@ -33,10 +40,11 @@ export const AuthProvider = ({ children }) => {
           try {
             const currentUser = await authService.getCurrentUser()
             const userFromApi = currentUser?.data ?? currentUser
-            const isValidUser = userFromApi && (userFromApi.id || userFromApi.role)
+            const isValidUser = userFromApi && (userFromApi.id || userFromApi.Id || userFromApi.role || userFromApi.Role)
             if (isValidUser) {
-              setUser(userFromApi)
-              localStorage.setItem('user', JSON.stringify(userFromApi))
+              const normalized = normalizeUser(userFromApi)
+              setUser(normalized)
+              localStorage.setItem('user', JSON.stringify(normalized))
             }
           } catch (error) {
             // Interceptor already clears auth and redirects on 401; don't clear on other errors so stored user stays valid
@@ -67,13 +75,14 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.login(email, password, rememberMe)
       if (response.success) {
-        const user = response.data?.user || response.user
-        if (user) {
+        const rawUser = response.data?.user ?? response.data?.User ?? response.user ?? response.User
+        if (rawUser) {
+          const user = normalizeUser(rawUser)
           setUser(user)
           setIsAuthenticated(true)
         }
         toast.success('Login successful!')
-        return { success: true, user }
+        return { success: true, user: rawUser ? normalizeUser(rawUser) : null }
       } else {
         toast.error(response.message || 'Login failed')
         return { success: false, errors: response.errors }
