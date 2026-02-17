@@ -40,10 +40,20 @@ const Login = () => {
     return
   }
 
-  const userStr = localStorage.getItem('user');
-  if (!userStr) return;
+  // Use user from login result (more reliable than localStorage in case of race)
+  const user = result.user ?? (() => {
+    try {
+      const userStr = localStorage.getItem('user')
+      return userStr ? JSON.parse(userStr) : null
+    } catch {
+      return null
+    }
+  })()
 
-  const user = JSON.parse(userStr);
+  if (!user) {
+    setLoading(false)
+    return
+  }
 
   const roleRoutes = {
     Student: '/dashboard/student',
