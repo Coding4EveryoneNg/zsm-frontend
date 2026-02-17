@@ -75,7 +75,8 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.login(email, password, rememberMe)
       if (response.success) {
-        const rawUser = response.data?.user ?? response.data?.User ?? response.user ?? response.User
+        const data = response.data ?? response
+        const rawUser = data?.user ?? data?.User ?? data?.data?.user ?? data?.data?.User ?? response.user ?? response.User
         if (rawUser) {
           const user = normalizeUser(rawUser)
           setUser(user)
