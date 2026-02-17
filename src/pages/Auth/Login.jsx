@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { getUserRole } from '../../utils/safeUtils'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { LogIn, Mail, Lock } from 'lucide-react'
@@ -52,7 +53,7 @@ const Login = () => {
     SuperAdmin: '/dashboard/superadmin',
     Parent: '/dashboard/parent',
   };
-  const roleKey = Object.keys(roleRoutes).find((k) => k.toLowerCase() === String(user.role ?? '').toLowerCase());
+  const roleKey = Object.keys(roleRoutes).find((k) => k.toLowerCase() === getUserRole(user).toLowerCase());
   navigate(roleKey ? roleRoutes[roleKey] : '/dashboard');
   setLoading(false);
 };
