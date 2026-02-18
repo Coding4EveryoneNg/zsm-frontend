@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { subscriptionService, commonService, dashboardService } from '../../services/apiServices'
+import { subscriptionService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSchool, useSwitchSchool } from '../../contexts/SchoolContext'
 import Loading from '../../components/Common/Loading'
 import { CreditCard, Building2, Calendar, CheckCircle, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { handleError } from '../../utils/errorHandler'
 
 const PAYMENT_METHODS = [
   { value: 'Flutterwave', label: 'Flutterwave' },
@@ -14,6 +16,8 @@ const PAYMENT_METHODS = [
 
 const SchoolSubscription = () => {
   const { user } = useAuth()
+  const { effectiveSchoolId, selectedSchoolId, setSelectedSchoolId, availableSchools, canUseSchoolSwitching, canSwitchSchools } = useSchool()
+  const switchSchoolMutation = useSwitchSchool()
   const queryClient = useQueryClient()
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentForm, setPaymentForm] = useState({
@@ -24,21 +28,12 @@ const SchoolSubscription = () => {
     chequeNumber: '',
   })
 
-  const { data: schoolsData } = useQuery(
-    'schools-dropdown',
-    () => commonService.getSchoolsDropdown(),
-    { enabled: user?.role === 'Admin' }
-  )
-  const { data: schoolSwitchingData } = useQuery(
-    ['dashboard', 'school-switching'],
-    () => dashboardService.getSchoolSwitchingData(),
-    { enabled: user?.role === 'Principal' || user?.role === 'Admin' }
-  )
-  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
-  const currentSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId ?? user?.schoolId ?? user?.SchoolId ?? schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id
-  const [selectedSchoolId, setSelectedSchoolId] = useState(currentSchoolId || '')
+  const schoolsList = canUseSchoolSwitching ? availableSchools : []
 
-  const effectiveSchoolId = selectedSchoolId || currentSchoolId
+  const handleSchoolChange = (schoolId) => {
+    setSelectedSchoolId(schoolId)
+    if (canSwitchSchools && schoolId) switchSchoolMutation.mutate(schoolId)
+  }
 
   const { data: subResponse, isLoading: subLoading } = useQuery(
     ['subscription-school', effectiveSchoolId],
@@ -69,10 +64,7 @@ const SchoolSubscription = () => {
           toast.error(body?.errors?.[0] ?? body?.message ?? 'Failed to initiate payment.')
         }
       },
-      onError: (err) => {
-        const msg = err?.errors?.[0] ?? err?.message ?? err?.response?.data?.errors?.[0] ?? err?.response?.data?.message ?? 'Failed to initiate payment.'
-        toast.error(msg)
-      },
+      onError: (err) => handleError(err, 'Failed to initiate payment'),
     }
   )
 
@@ -127,8 +119,9 @@ const SchoolSubscription = () => {
           <label className="form-label">School</label>
           <select
             className="form-input"
-            value={selectedSchoolId}
-            onChange={(e) => setSelectedSchoolId(e.target.value)}
+            value={selectedSchoolId || effectiveSchoolId || ''}
+            onChange={(e) => handleSchoolChange(e.target.value)}
+            disabled={switchSchoolMutation.isLoading}
             style={{ maxWidth: '320px' }}
           >
             {schoolsList.map((s) => {

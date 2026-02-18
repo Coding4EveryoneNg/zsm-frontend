@@ -1,44 +1,35 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { assignmentsService, commonService, dashboardService } from '../../services/apiServices'
+import { assignmentsService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSchool, useSwitchSchool } from '../../contexts/SchoolContext'
 import { FileText, Clock, CheckCircle, XCircle, Calendar, User, BookOpen, PlayCircle, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { handleError } from '../../utils/errorHandler'
 
 const Assignments = () => {
   const { user } = useAuth()
+  const { effectiveSchoolId, selectedSchoolId, setSelectedSchoolId, availableSchools, canUseSchoolSwitching, canSwitchSchools } = useSchool()
+  const switchSchoolMutation = useSwitchSchool()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState('all') // all, pending, submitted
-  const [selectedSchoolId, setSelectedSchoolId] = useState('')
   const pageSize = 20
 
   const isAdmin = user?.role === 'Admin'
+  const schoolsList = canUseSchoolSwitching ? availableSchools : []
+  const displaySchoolId = effectiveSchoolId || null
 
-  const { data: schoolsData } = useQuery(
-    'schools-dropdown',
-    () => commonService.getSchoolsDropdown(),
-    { enabled: isAdmin }
-  )
-  const { data: schoolSwitchingData } = useQuery(
-    ['dashboard', 'school-switching'],
-    () => dashboardService.getSchoolSwitchingData(),
-    { enabled: isAdmin }
-  )
-  const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
-  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
-  const defaultSchoolId = schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id ?? ''
-
-  useEffect(() => {
-    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
-      setSelectedSchoolId(principalOrAdminSchoolId || defaultSchoolId || '')
+  const handleSchoolChange = (schoolId) => {
+    setSelectedSchoolId(schoolId)
+    setPage(1)
+    if (canSwitchSchools && schoolId) {
+      switchSchoolMutation.mutate(schoolId)
     }
-  }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
-
-  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : null
+  }
 
   // Get studentId from URL params for parent view
   const urlParams = new URLSearchParams(window.location.search)
@@ -53,21 +44,21 @@ const Assignments = () => {
         queryClient.invalidateQueries('assignments')
         toast.success('Assignment approved and published.')
       },
-      onError: (err) => toast.error(err?.response?.data?.message || err?.response?.data?.errors?.[0] || 'Failed to approve assignment')
+      onError: (err) => handleError(err, 'Failed to approve assignment')
     }
   )
   const { data, isLoading, error } = useQuery(
-    ['assignments', page, user?.role, studentId, effectiveSchoolId],
+    ['assignments', page, user?.role, studentId, displaySchoolId],
     () => {
       const params = { page, pageSize }
       if (user?.role === 'Parent') {
         if (studentId) params.studentId = studentId
         return assignmentsService.getParentAssignments(params)
       }
-      if (isAdmin && effectiveSchoolId) params.schoolId = effectiveSchoolId
+      if (isAdmin && displaySchoolId) params.schoolId = displaySchoolId
       return assignmentsService.getAssignments(params)
     },
-    { keepPreviousData: true, enabled: user?.role === 'Parent' ? !!user : (isTeacher ? !!user : (!isAdmin || !!effectiveSchoolId)) }
+    { keepPreviousData: true, enabled: user?.role === 'Parent' ? !!user : (isTeacher ? !!user : (!isAdmin || !!displaySchoolId)) }
   )
 
   if (isLoading) return <Loading />
@@ -154,8 +145,9 @@ const Assignments = () => {
               <label className="form-label" style={{ marginBottom: '0.25rem', display: 'block', fontSize: '0.875rem' }}>School</label>
               <select
                 className="form-input"
-                value={selectedSchoolId || effectiveSchoolId || ''}
-                onChange={(e) => { setSelectedSchoolId(e.target.value); setPage(1) }}
+                value={selectedSchoolId || displaySchoolId || ''}
+                onChange={(e) => handleSchoolChange(e.target.value)}
+                disabled={switchSchoolMutation.isLoading}
               >
                 <option value="">Select school</option>
                 {schoolsList.map((s) => (

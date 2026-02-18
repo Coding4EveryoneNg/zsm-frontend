@@ -1,46 +1,34 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { booksService, commonService, dashboardService } from '../../services/apiServices'
+import { booksService, commonService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSchool, useSwitchSchool } from '../../contexts/SchoolContext'
 import Loading from '../../components/Common/Loading'
 import { BookOpen, User, Calendar, Plus, BookMarked, X } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { handleError } from '../../utils/errorHandler'
 
 const Books = () => {
   const { user } = useAuth()
+  const { effectiveSchoolId, selectedSchoolId, setSelectedSchoolId, availableSchools, canUseSchoolSwitching, canSwitchSchools } = useSchool()
+  const switchSchoolMutation = useSwitchSchool()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedSchoolId, setSelectedSchoolId] = useState('')
   const [assignModal, setAssignModal] = useState({ open: false, book: null })
   const [assignClassId, setAssignClassId] = useState('')
   const pageSize = 20
 
   const isAdmin = user?.role === 'Admin'
+  const schoolsList = canUseSchoolSwitching ? availableSchools : []
 
-  const { data: schoolsData } = useQuery(
-    'schools-dropdown',
-    () => commonService.getSchoolsDropdown(),
-    { enabled: isAdmin }
-  )
-  const { data: schoolSwitchingData } = useQuery(
-    ['dashboard', 'school-switching'],
-    () => dashboardService.getSchoolSwitchingData(),
-    { enabled: isAdmin || user?.role === 'Principal' }
-  )
-  const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
-  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
-  const defaultSchoolId = schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id ?? ''
-
-  useEffect(() => {
-    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
-      setSelectedSchoolId(principalOrAdminSchoolId || defaultSchoolId || '')
-    }
-  }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
-
-  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : (user?.role === 'Principal' ? principalOrAdminSchoolId : null)
+  const handleSchoolChange = (schoolId) => {
+    setSelectedSchoolId(schoolId)
+    setPage(1)
+    if (canSwitchSchools && schoolId) switchSchoolMutation.mutate(schoolId)
+  }
 
   // Get studentId from URL params for parent view
   const urlParams = new URLSearchParams(window.location.search)
@@ -85,9 +73,7 @@ const Books = () => {
         queryClient.invalidateQueries('books')
         queryClient.invalidateQueries(['book-classes', bookIdForClasses])
       },
-      onError: (err) => {
-        toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to assign book to class')
-      }
+      onError: (err) => handleError(err, 'Failed to assign book to class')
     }
   )
 
@@ -99,9 +85,7 @@ const Books = () => {
         queryClient.invalidateQueries('books')
         queryClient.invalidateQueries(['book-classes', bookIdForClasses])
       },
-      onError: (err) => {
-        toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to remove book from class')
-      }
+      onError: (err) => handleError(err, 'Failed to remove book from class')
     }
   )
 
@@ -172,7 +156,8 @@ const Books = () => {
               <select
                 className="form-input"
                 value={selectedSchoolId || effectiveSchoolId || ''}
-                onChange={(e) => { setSelectedSchoolId(e.target.value); setPage(1) }}
+                onChange={(e) => handleSchoolChange(e.target.value)}
+                disabled={switchSchoolMutation.isLoading}
               >
                 <option value="">Select school</option>
                 {schoolsList.map((s) => (

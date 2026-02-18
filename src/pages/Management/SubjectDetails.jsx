@@ -6,6 +6,7 @@ import { ArrowLeft, BookOpen, GraduationCap, Save } from 'lucide-react'
 import { subjectsService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
+import { handleError } from '../../utils/errorHandler'
 
 const SubjectDetails = () => {
   const { id } = useParams()
@@ -50,7 +51,7 @@ const SubjectDetails = () => {
         queryClient.invalidateQueries(['subject', id, isStudent])
         setEditWeights(false)
       },
-      onError: (err) => toast.error(err?.response?.data?.message || err?.message || 'Failed to update'),
+      onError: (err) => handleError(err, 'Failed to update'),
     }
   )
 

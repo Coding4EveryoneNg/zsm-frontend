@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { principalsService } from '../../services/apiServices'
+import { principalsService, userManagementService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
-import { ArrowLeft, User, Mail, Phone, Calendar, CheckCircle, XCircle, Edit2, Trash2 } from 'lucide-react'
+import { ArrowLeft, User, Mail, Phone, Calendar, CheckCircle, XCircle, Edit2, Power } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
+import { handleError } from '../../utils/errorHandler'
 import ConfirmDialog from '../../components/Common/ConfirmDialog'
 
 const PrincipalDetails = () => {
@@ -13,7 +14,7 @@ const PrincipalDetails = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [isEditing, setIsEditing] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [toggleConfirm, setToggleConfirm] = useState(null)
 
   const { data, isLoading, error } = useQuery(
     ['principal', id],
@@ -35,30 +36,28 @@ const PrincipalDetails = () => {
           toast.error(body?.errors?.[0] || body?.message || 'Failed to update principal')
         }
       },
-      onError: (err) => {
-        const msg = err.response?.data?.errors?.[0] || err.response?.data?.message || err.message
-        toast.error(msg || 'Failed to update principal')
-      },
+      onError: (err) => handleError(err, 'Failed to update principal'),
     }
   )
 
-  const deleteMutation = useMutation(
-    () => principalsService.deletePrincipal(id),
+  const toggleMutation = useMutation(
+    (userId) => userManagementService.toggleUserStatus(userId),
     {
       onSuccess: (response) => {
         const body = response?.data
         const success = body?.success ?? response?.success
         if (success) {
-          toast.success(body?.message || 'Principal deactivated successfully')
-          setShowDeleteConfirm(false)
-          navigate('/principals')
+          toast.success(body?.message || 'Status updated successfully')
+          setToggleConfirm(null)
+          queryClient.invalidateQueries(['principal', id])
+          queryClient.invalidateQueries('principals')
         } else {
-          toast.error(body?.errors?.[0] || body?.message || 'Failed to deactivate principal')
+          toast.error(body?.errors?.[0] || body?.message || 'Failed to update status')
         }
       },
       onError: (err) => {
-        const msg = err.response?.data?.errors?.[0] || err.response?.data?.message || err.message
-        toast.error(msg || 'Failed to deactivate principal')
+        handleError(err, 'Failed to update status')
+        setToggleConfirm(null)
       },
     }
   )
@@ -127,7 +126,10 @@ const PrincipalDetails = () => {
     })
   }
 
-  const handleDelete = () => deleteMutation.mutate()
+  const handleToggle = () => {
+    const userId = principal.userId ?? principal.UserId
+    if (userId) toggleMutation.mutate(userId)
+  }
 
   const firstName = principal.firstName ?? principal.FirstName ?? ''
   const lastName = principal.lastName ?? principal.LastName ?? ''
@@ -154,16 +156,15 @@ const PrincipalDetails = () => {
               <Edit2 size={16} />
               Edit
             </button>
-            {isActive && (
-              <button
-                className="btn btn-danger"
-                onClick={() => setShowDeleteConfirm(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-              >
-                <Trash2 size={16} />
-                Deactivate
-              </button>
-            )}
+            <button
+              className={isActive ? 'btn btn-warning' : 'btn btn-info'}
+              onClick={() => setToggleConfirm(principal)}
+              disabled={toggleMutation.isLoading}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Power size={16} />
+              {isActive ? 'Deactivate' : 'Activate'}
+            </button>
           </div>
         )}
       </div>
@@ -301,14 +302,13 @@ const PrincipalDetails = () => {
       </div>
 
       <ConfirmDialog
-        isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
-        onConfirm={handleDelete}
-        title="Deactivate Principal"
-        message="Are you sure you want to deactivate this principal? They will no longer be able to access the system."
-        confirmText="Deactivate"
-        cancelText="Cancel"
-        variant="danger"
+        isOpen={!!toggleConfirm}
+        onClose={() => setToggleConfirm(null)}
+        onConfirm={handleToggle}
+        title={toggleConfirm && (toggleConfirm.isActive !== false) ? 'Deactivate Principal' : 'Activate Principal'}
+        message={toggleConfirm ? `Are you sure you want to ${(toggleConfirm.isActive !== false) ? 'deactivate' : 'activate'} ${toggleConfirm.firstName ?? toggleConfirm.FirstName} ${toggleConfirm.lastName ?? toggleConfirm.LastName}?` : ''}
+        confirmText={toggleConfirm && (toggleConfirm.isActive !== false) ? 'Deactivate' : 'Activate'}
+        variant={toggleConfirm && (toggleConfirm.isActive !== false) ? 'warning' : 'info'}
       />
     </div>
   )

@@ -328,6 +328,7 @@ export const adminsService = {
   getAdmins: (params) => api.get('/admins', { params }),
   getAdmin: (id) => api.get(`/admins/${id}`),
   createAdmin: (data) => api.post('/admins', data),
+  updateAdmin: (id, data) => api.put(`/admins/${id}`, data),
 }
 
 // Principals Services (Admin manages principals for all schools in tenant)
@@ -418,6 +419,8 @@ export const userManagementService = {
   getClassesBySchool: (schoolId) => api.get(`/userManagement/schools/${schoolId}/classes`),
   getSchoolsByTenant: (tenantId) => api.get(`/userManagement/tenants/${tenantId}/schools`),
   createParent: (data) => api.post('/userManagement/parents', data),
+  /** Toggle user active status (Admin only - for any user in tenant) */
+  toggleUserStatus: (userId) => api.post(`/userManagement/users/${userId}/toggle-status`),
 }
 
 // Contact Sales (public - landing page inquiries)

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { formatDecimal } from '../../utils/safeUtils'
+import logger from '../../utils/logger'
 
 const PaymentDetails = () => {
   const { paymentId } = useParams()
@@ -60,7 +61,7 @@ const PaymentDetails = () => {
     {
       onSuccess: (blob) => {
         if (!(blob instanceof Blob)) {
-          console.error('Invalid response format:', blob)
+          logger.error('Invalid response format:', blob)
           toast.error('Invalid response format')
           return
         }
@@ -75,7 +76,7 @@ const PaymentDetails = () => {
         toast.success('Receipt downloaded successfully!')
       },
       onError: (error) => {
-        console.error('Receipt download error:', error)
+        logger.error('Receipt download error:', error)
         const errorMessage = error?.response?.data?.message || 
                            error?.response?.data?.errors?.[0] || 
                            error?.message || 

@@ -2,14 +2,18 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { useQuery } from 'react-query'
-import { booksService, commonService, dashboardService } from '../../services/apiServices'
+import { booksService, commonService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSchool, useSwitchSchool } from '../../contexts/SchoolContext'
 import { ArrowLeft, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
+import logger from '../../utils/logger'
 
 const CreateBook = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { effectiveSchoolId, selectedSchoolId, setSelectedSchoolId, availableSchools, canUseSchoolSwitching, canSwitchSchools } = useSchool()
+  const switchSchoolMutation = useSwitchSchool()
   const [loading, setLoading] = useState(false)
   const {
     register,
@@ -20,13 +24,11 @@ const CreateBook = () => {
   } = useForm()
 
   const [selectedClassIds, setSelectedClassIds] = useState([])
-  const isAdmin = (user?.role || user?.Role || '').toString().toLowerCase() === 'admin'
-  const selectedSchoolId = watch('schoolId')
-  const { data: schoolsData } = useQuery('schools-dropdown', () => commonService.getSchoolsDropdown(), { enabled: isAdmin })
-  const { data: schoolSwitchingData } = useQuery(['dashboard', 'school-switching'], () => dashboardService.getSchoolSwitchingData(), { enabled: !isAdmin })
-  const schools = schoolsData?.data ?? schoolsData?.Data ?? []
-  const principalSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId
-  const schoolId = isAdmin ? (selectedSchoolId || schools?.[0]?.id || schools?.[0]?.Id || '') : (user?.schoolId || user?.SchoolId || principalSchoolId || '')
+  const roleLower = String(user?.role ?? user?.Role ?? '').toLowerCase()
+  const isAdmin = roleLower === 'admin'
+  const formSchoolId = watch('schoolId')
+  const schools = canUseSchoolSwitching ? availableSchools : []
+  const schoolId = isAdmin ? (formSchoolId || selectedSchoolId || effectiveSchoolId || schools?.[0]?.id || schools?.[0]?.Id || '') : (user?.schoolId || user?.SchoolId || effectiveSchoolId || '')
 
   const { data: subjectsData } = useQuery(
     ['subjects-dropdown', schoolId],
@@ -42,11 +44,11 @@ const CreateBook = () => {
   const classes = classesData?.data ?? classesData?.Data ?? []
 
   useEffect(() => {
-    if (isAdmin && schools?.length > 0 && !selectedSchoolId) {
-      const firstId = schools[0]?.id || schools[0]?.Id
+    if (isAdmin && (availableSchools?.length > 0 || schools?.length > 0) && !formSchoolId) {
+      const firstId = effectiveSchoolId || selectedSchoolId || availableSchools?.[0]?.id || availableSchools?.[0]?.Id || schools?.[0]?.id || schools?.[0]?.Id
       if (firstId) setValue('schoolId', firstId)
     }
-  }, [isAdmin, schools, selectedSchoolId, setValue])
+  }, [isAdmin, availableSchools, schools, formSchoolId, effectiveSchoolId, selectedSchoolId, setValue])
 
   const onSubmit = async (data) => {
     if (!schoolId) {
@@ -94,7 +96,7 @@ const CreateBook = () => {
       }
       
       toast.error(errorMessage)
-      console.error('Create book error:', error)
+      logger.error('Create book error:', error)
     } finally {
       setLoading(false)
     }
@@ -152,7 +154,17 @@ const CreateBook = () => {
           {isAdmin && (
             <div style={{ marginBottom: '1.5rem' }}>
               <label className="form-label">School <span style={{ color: '#ef4444' }}>*</span></label>
-              <select {...register('schoolId', { required: isAdmin ? 'Please select a school' : false })} className="form-input">
+              <select
+                {...register('schoolId', {
+                  required: isAdmin ? 'Please select a school' : false,
+                  onChange: (e) => {
+                    setSelectedSchoolId(e.target.value)
+                    if (canSwitchSchools && e.target.value) switchSchoolMutation.mutate(e.target.value)
+                  },
+                })}
+                className="form-input"
+                disabled={switchSchoolMutation.isLoading}
+              >
                 <option value="">Select school</option>
                 {Array.isArray(schools) && schools.map((s) => (
                   <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name}</option>

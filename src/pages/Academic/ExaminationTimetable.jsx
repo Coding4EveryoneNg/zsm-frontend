@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
 import { ClipboardList, Plus, BookOpen, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { handleError } from '../../utils/errorHandler'
 
 const ExaminationTimetable = () => {
   const { user } = useAuth()
@@ -46,9 +47,9 @@ const ExaminationTimetable = () => {
     { enabled: (showCreate || showAddEntry) && !!schoolIdForTerms }
   )
   const { data: sessionsData } = useQuery(
-    'sessions-dropdown',
+    ['sessions-dropdown'],
     () => commonService.getSessionsDropdown(),
-    { enabled: showCreate || showAddEntry }
+    { enabled: showCreate || showAddEntry, staleTime: 5 * 60 * 1000 }
   )
   const classIdForSubjects = detailData?.data?.data?.classId ?? detailData?.data?.classId ?? createForm.classId
   const { data: subjectsData } = useQuery(
@@ -66,7 +67,7 @@ const ExaminationTimetable = () => {
         setShowCreate(false)
         setCreateForm({ classId: '', termId: '', sessionId: '' })
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to create')
+      onError: (err) => handleError(err, 'Failed to create')
     }
   )
   const addEntryMutation = useMutation(
@@ -78,7 +79,7 @@ const ExaminationTimetable = () => {
         setShowAddEntry(false)
         setEntryForm({ subjectId: '', scheduledStart: '', durationMinutes: 60, sortOrder: 0 })
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to add entry')
+      onError: (err) => handleError(err, 'Failed to add entry')
     }
   )
   const deleteTimetableMutation = useMutation(
@@ -89,7 +90,7 @@ const ExaminationTimetable = () => {
         queryClient.invalidateQueries('examination-timetable')
         setSelectedId(null)
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to delete')
+      onError: (err) => handleError(err, 'Failed to delete')
     }
   )
 

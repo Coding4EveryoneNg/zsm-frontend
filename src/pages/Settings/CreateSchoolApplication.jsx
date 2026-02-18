@@ -5,6 +5,7 @@ import { useQuery } from 'react-query'
 import { schoolApplicationsService, subscriptionService } from '../../services/apiServices'
 import { ArrowLeft, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
+import logger from '../../utils/logger'
 
 const CreateSchoolApplication = () => {
   const navigate = useNavigate()
@@ -53,7 +54,7 @@ const CreateSchoolApplication = () => {
     } catch (error) {
       const msg = error.response?.data?.message || error.response?.data?.errors?.[0] || error.message || 'Failed to create application.'
       toast.error(msg)
-      console.error('Create school application error:', error)
+      logger.error('Create school application error:', error)
     } finally {
       setLoading(false)
     }

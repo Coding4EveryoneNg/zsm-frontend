@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { adminsService } from '../../services/apiServices'
 import { ArrowLeft, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
+import logger from '../../utils/logger'
 
 const CreateAdmin = () => {
   const navigate = useNavigate()
@@ -51,7 +52,7 @@ const CreateAdmin = () => {
       }
       
       toast.error(errorMessage)
-      console.error('Create admin error:', error)
+      logger.error('Create admin error:', error)
     } finally {
       setLoading(false)
     }

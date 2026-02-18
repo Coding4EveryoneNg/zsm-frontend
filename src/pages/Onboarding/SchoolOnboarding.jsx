@@ -8,6 +8,7 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { Rocket, GraduationCap, BookOpen, BarChart3, ArrowLeft, Check } from 'lucide-react'
 import logo from '../../assets/logo2.jpg'
 import { formatDecimal } from '../../utils/safeUtils'
+import logger from '../../utils/logger'
 
 const SchoolOnboarding = () => {
   const navigate = useNavigate()
@@ -33,7 +34,7 @@ const SchoolOnboarding = () => {
     theme = themeContext.theme
     isDark = themeContext.isDark
   } catch (error) {
-    console.warn('ThemeContext not available, using default theme', error)
+    logger.warn('ThemeContext not available, using default theme', error)
     theme = 'light'
     isDark = false
   }
@@ -115,7 +116,7 @@ const SchoolOnboarding = () => {
       }
       
       toast.error(errorMessage)
-      console.error('School onboarding error:', error)
+      logger.error('School onboarding error:', error)
     } finally {
       setLoading(false)
     }

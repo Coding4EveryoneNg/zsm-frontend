@@ -1,44 +1,56 @@
-import React, { useState, useEffect } from 'react'
-import { useQuery } from 'react-query'
+import React, { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { userManagementService, commonService, dashboardService } from '../../services/apiServices'
+import { userManagementService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
+import ConfirmDialog from '../../components/Common/ConfirmDialog'
+import toast from 'react-hot-toast'
+import { handleError } from '../../utils/errorHandler'
 import { useAuth } from '../../contexts/AuthContext'
-import { Users, ChevronRight } from 'lucide-react'
+import { useSchool, useSwitchSchool } from '../../contexts/SchoolContext'
+import { Users, ChevronRight, Power } from 'lucide-react'
 
 const Parents = () => {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { user } = useAuth()
-  const [selectedSchoolId, setSelectedSchoolId] = useState('')
+  const { effectiveSchoolId, selectedSchoolId, setSelectedSchoolId, availableSchools, canUseSchoolSwitching, canSwitchSchools } = useSchool()
+  const switchSchoolMutation = useSwitchSchool()
+  const [toggleConfirm, setToggleConfirm] = useState(null)
 
-  const isAdmin = user?.role === 'Admin'
+  const roleLower = String(user?.role ?? user?.Role ?? '').toLowerCase()
+  const isAdmin = roleLower === 'admin'
+  const schoolsList = canUseSchoolSwitching ? availableSchools : []
 
-  const { data: schoolsData } = useQuery(
-    'schools-dropdown',
-    () => commonService.getSchoolsDropdown(),
-    { enabled: isAdmin }
-  )
-  const { data: schoolSwitchingData } = useQuery(
-    ['dashboard', 'school-switching'],
-    () => dashboardService.getSchoolSwitchingData(),
-    { enabled: !isAdmin }
-  )
-  const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
-  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
-  const defaultSchoolId = schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id ?? ''
-
-  useEffect(() => {
-    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
-      setSelectedSchoolId(principalOrAdminSchoolId || defaultSchoolId || '')
-    }
-  }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
-
-  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : (principalOrAdminSchoolId || user?.schoolId || user?.SchoolId)
+  const handleSchoolChange = (schoolId) => {
+    setSelectedSchoolId(schoolId)
+    if (canSwitchSchools && schoolId) switchSchoolMutation.mutate(schoolId)
+  }
 
   const { data, isLoading } = useQuery(
     ['parents-by-school', effectiveSchoolId],
     () => userManagementService.getParentsBySchool(effectiveSchoolId),
     { enabled: !!effectiveSchoolId }
+  )
+
+  const toggleMutation = useMutation(
+    (userId) => userManagementService.toggleUserStatus(userId),
+    {
+      onSuccess: (res) => {
+        const success = res?.data?.success ?? res?.success
+        if (success) {
+          toast.success(res?.data?.message || 'Status updated successfully')
+          queryClient.invalidateQueries(['parents-by-school', effectiveSchoolId])
+          setToggleConfirm(null)
+        } else {
+          toast.error(res?.data?.errors?.[0] || res?.data?.message || 'Failed to update status')
+        }
+      },
+      onError: (err) => {
+        handleError(err, 'Failed to update status')
+        setToggleConfirm(null)
+      },
+    }
   )
 
   if (isLoading) return <Loading />
@@ -55,7 +67,8 @@ const Parents = () => {
             <select
               className="form-control"
               value={selectedSchoolId || effectiveSchoolId || ''}
-              onChange={(e) => setSelectedSchoolId(e.target.value)}
+              onChange={(e) => handleSchoolChange(e.target.value)}
+              disabled={switchSchoolMutation.isLoading}
             >
               <option value="">Select school</option>
               {schoolsList.map((s) => (
@@ -86,18 +99,27 @@ const Parents = () => {
                   <th>Name</th>
                   <th>Email</th>
                   <th>Phone</th>
+                  <th>Status</th>
                   <th>Children</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {parents.map((parent) => (
+                {parents.map((parent) => {
+                  const isActive = parent.isActive !== false
+                  const userId = parent.userId ?? parent.UserId
+                  return (
                   <tr key={parent.id ?? parent.Id}>
                     <td>
                       {(parent.firstName ?? parent.FirstName) ?? ''} {(parent.lastName ?? parent.LastName) ?? ''}
                     </td>
                     <td>{parent.email ?? parent.Email ?? '—'}</td>
                     <td>{parent.phoneNumber ?? parent.PhoneNumber ?? '—'}</td>
+                    <td>
+                      <span className={`badge ${isActive ? 'badge-success' : 'badge-danger'}`}>
+                        {isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
                     <td>
                       {(parent.students ?? parent.Students ?? []).length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -127,13 +149,41 @@ const Parents = () => {
                         </button>
                       )}
                     </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {userId && (
+                          <button
+                            type="button"
+                            className={`btn btn-sm ${isActive ? 'btn-warning' : 'btn-info'}`}
+                            onClick={() => setToggleConfirm({ ...parent, userId, isActive })}
+                            disabled={toggleMutation.isLoading}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                          >
+                            <Power size={14} />
+                            {isActive ? 'Deactivate' : 'Activate'}
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {toggleConfirm && (
+        <ConfirmDialog
+          isOpen={!!toggleConfirm}
+          onClose={() => setToggleConfirm(null)}
+          onConfirm={() => toggleMutation.mutate(toggleConfirm.userId)}
+          title={toggleConfirm.isActive ? 'Deactivate Parent' : 'Activate Parent'}
+          message={`Are you sure you want to ${toggleConfirm.isActive ? 'deactivate' : 'activate'} ${(toggleConfirm.firstName ?? toggleConfirm.FirstName) ?? ''} ${(toggleConfirm.lastName ?? toggleConfirm.LastName) ?? ''}?`}
+          confirmText={toggleConfirm.isActive ? 'Deactivate' : 'Activate'}
+          variant={toggleConfirm.isActive ? 'warning' : 'info'}
+        />
+      )}
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { useQuery } from 'react-query'
 import { principalsService, commonService } from '../../services/apiServices'
 import { ArrowLeft, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
+import logger from '../../utils/logger'
 
 const CreatePrincipal = () => {
   const navigate = useNavigate()
@@ -15,7 +16,7 @@ const CreatePrincipal = () => {
     formState: { errors },
   } = useForm()
 
-  const { data: schoolsData } = useQuery('schools-dropdown', () => commonService.getSchoolsDropdown())
+  const { data: schoolsData } = useQuery(['schools-dropdown'], () => commonService.getSchoolsDropdown(), { staleTime: 5 * 60 * 1000 })
   const schools = schoolsData?.data?.data ?? schoolsData?.data ?? []
 
   const onSubmit = async (data) => {
@@ -53,7 +54,7 @@ const CreatePrincipal = () => {
         else if (d.errors?.length) errorMessage = d.errors[0]
       } else if (error.message) errorMessage = error.message
       toast.error(errorMessage)
-      console.error('Create principal error:', error)
+      logger.error('Create principal error:', error)
     } finally {
       setLoading(false)
     }

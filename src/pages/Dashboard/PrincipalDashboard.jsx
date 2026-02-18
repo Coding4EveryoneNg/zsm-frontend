@@ -1,12 +1,12 @@
-import React from 'react'
+import React, { useMemo, useCallback } from 'react'
 import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
+import LazyChart from '../../components/Charts/LazyChart'
 import { dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import { Users, GraduationCap, TrendingUp, CreditCard, Zap, Eye, FileText, Settings, BarChart3 } from 'lucide-react'
-import { defaultChartOptions } from '../../utils/chartConfig'
+import { defaultChartOptions } from '../../utils/chartHelpers'
 import { safeStrLower, formatDecimal } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 
@@ -17,12 +17,12 @@ const PrincipalDashboard = () => {
   const { data: summaryRes, isLoading: summaryLoading, error: summaryError } = useQuery(
     'principalDashboardSummary',
     () => dashboardService.getPrincipalSummary(),
-    { refetchInterval: 30000, retry: 1, onError: (err) => logger.error('Principal dashboard summary error:', err) }
+    { refetchInterval: 30000, refetchOnError: false, retry: 1, onError: (err) => logger.error('Principal dashboard summary error:', err) }
   )
   const { data: activitiesRes, isLoading: activitiesLoading, error: activitiesError } = useQuery(
     'principalDashboardActivities',
     () => dashboardService.getPrincipalActivities(),
-    { refetchInterval: 30000, retry: 1, onError: (err) => logger.error('Principal dashboard activities error:', err) }
+    { refetchInterval: 30000, refetchOnError: false, retry: 1, onError: (err) => logger.error('Principal dashboard activities error:', err) }
   )
 
   if (summaryLoading) return <Loading />
@@ -35,15 +35,14 @@ const PrincipalDashboard = () => {
   const charts = activitiesPayload.charts ?? activitiesPayload.Charts ?? []
   const recentActivities = activitiesPayload.recentActivities ?? activitiesPayload.RecentActivities ?? []
 
-  const statCards = [
+  const statCards = useMemo(() => [
     { title: 'Total Students', value: stats.totalStudents || 0, icon: Users, color: 'var(--primary-yellow)' },
     { title: 'Total Teachers', value: stats.totalTeachers || 0, icon: GraduationCap, color: 'var(--info)' },
     { title: 'Average Performance', value: `${formatDecimal(stats.averagePerformance ?? 0)}%`, icon: TrendingUp, color: 'var(--success)' },
     { title: 'Total Revenue', value: `$${formatDecimal(stats.totalRevenue ?? 0)}`, icon: CreditCard, color: 'var(--warning)' },
-  ]
+  ], [stats.totalStudents, stats.totalTeachers, stats.averagePerformance, stats.totalRevenue])
 
-  // Render chart based on chart data from API
-  const renderChart = (chart) => {
+  const renderChart = useCallback((chart) => {
     if (!chart || !chart.labels || !chart.datasets) return null
 
     const chartOptions = {
@@ -58,20 +57,9 @@ const PrincipalDashboard = () => {
       }
     }
 
-    const chartType = safeStrLower(chart.type)
-    switch (chartType) {
-      case 'bar':
-        return <Bar data={chart} options={chartOptions} />
-      case 'line':
-        return <Line data={chart} options={chartOptions} />
-      case 'pie':
-        return <Pie data={chart} options={chartOptions} />
-      case 'doughnut':
-        return <Doughnut data={chart} options={chartOptions} />
-      default:
-        return null
-    }
-  }
+    const chartType = safeStrLower(chart.type) || 'bar'
+    return <LazyChart type={chartType} data={chart} options={chartOptions} />
+  }, [])
 
   return (
     <div className="page-container">
@@ -157,9 +145,12 @@ const PrincipalDashboard = () => {
         {statCards.map((stat, index) => {
           const Icon = stat.icon
           return (
-            <div 
-              key={index} 
-              className="card" 
+            <div
+              key={stat.title || index}
+              role="button"
+              tabIndex={0}
+              aria-label={`${stat.title}: ${stat.value}. Click to view`}
+              className="card"
               style={{ textAlign: 'center', cursor: 'pointer' }}
               onClick={() => {
                 if (stat.title === 'Total Students') navigate('/students')
@@ -167,6 +158,7 @@ const PrincipalDashboard = () => {
                 else if (stat.title === 'Average Performance') navigate('/reports')
                 else if (stat.title === 'Total Revenue') navigate('/payments')
               }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (stat.title === 'Total Students') navigate('/students'); else if (stat.title === 'Total Teachers') navigate('/teachers'); else if (stat.title === 'Average Performance') navigate('/reports'); else if (stat.title === 'Total Revenue') navigate('/payments') } }}
             >
               <Icon size={32} color={stat.color} style={{ marginBottom: '1rem' }} />
               <h3 style={{ fontSize: '2rem', fontWeight: 'bold', color: stat.color, marginBottom: '0.5rem' }}>

@@ -80,7 +80,7 @@ const CreateAssignment = () => {
     if (!isTeacher) return (subjectsRes?.data ?? subjectsRes ?? [])
     return teacherAssignedSubjects
   }, [isTeacher, subjectsRes, teacherAssignedSubjects])
-  const { data: sessionsData } = useQuery('sessions-dropdown', () => commonService.getSessionsDropdown())
+  const { data: sessionsData } = useQuery(['sessions-dropdown'], () => commonService.getSessionsDropdown(), { staleTime: 5 * 60 * 1000 })
   const sessions = sessionsData?.data ?? sessionsData?.Data ?? []
   const selectedSession = formData.session && formData.session.length === 36
     ? sessions.find((s) => (s.id || s.Id) === formData.session)

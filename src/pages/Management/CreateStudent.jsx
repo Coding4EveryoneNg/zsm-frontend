@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from 'react-query'
 import { useForm } from 'react-hook-form'
-import { studentsService, userManagementService, commonService, dashboardService } from '../../services/apiServices'
+import { studentsService, userManagementService, commonService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSchool, useSwitchSchool } from '../../contexts/SchoolContext'
 import Loading from '../../components/Common/Loading'
 import { ArrowLeft, Save, Plus, X } from 'lucide-react'
 import toast from 'react-hot-toast'
+import logger from '../../utils/logger'
 
 const DEFAULT_PASSWORD = 'Welcome2ZSM'
 
@@ -14,6 +16,8 @@ const CreateStudent = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user } = useAuth()
+  const { effectiveSchoolId, selectedSchoolId, setSelectedSchoolId, availableSchools, canUseSchoolSwitching, canSwitchSchools } = useSchool()
+  const switchSchoolMutation = useSwitchSchool()
   const [loading, setLoading] = useState(false)
   const [showAddParent, setShowAddParent] = useState(false)
   const [creatingParent, setCreatingParent] = useState(false)
@@ -29,22 +33,12 @@ const CreateStudent = () => {
 
   const selectedParentId = watch('parentId')
   const selectedClassId = watch('classId')
-  const selectedSchoolId = watch('schoolId')
+  const formSchoolId = watch('schoolId')
 
-  const isAdmin = (user?.role || user?.Role || '').toString().toLowerCase() === 'admin'
-  const { data: schoolsData } = useQuery(
-    'schools-dropdown',
-    () => commonService.getSchoolsDropdown(),
-    { enabled: isAdmin }
-  )
-  const { data: schoolSwitchingData } = useQuery(
-    ['dashboard', 'school-switching'],
-    () => dashboardService.getSchoolSwitchingData(),
-    { enabled: !isAdmin }
-  )
-  const schools = schoolsData?.data ?? schoolsData?.Data ?? []
-  const principalSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId
-  const schoolId = isAdmin ? (selectedSchoolId || schools?.[0]?.id || schools?.[0]?.Id || '') : (user?.schoolId || user?.SchoolId || principalSchoolId || '')
+  const roleLower = String(user?.role ?? user?.Role ?? '').toLowerCase()
+  const isAdmin = roleLower === 'admin'
+  const schools = canUseSchoolSwitching ? availableSchools : []
+  const schoolId = isAdmin ? (formSchoolId || selectedSchoolId || effectiveSchoolId || schools?.[0]?.id || schools?.[0]?.Id || '') : (user?.schoolId || user?.SchoolId || effectiveSchoolId || '')
 
   // Fetch classes for the school
   const { data: classesData, isLoading: classesLoading } = useQuery(
@@ -54,7 +48,7 @@ const CreateStudent = () => {
       enabled: !!schoolId,
       retry: false,
       onError: (error) => {
-        console.error('Error fetching classes:', error)
+        logger.error('Error fetching classes:', error)
         // Don't show toast on initial load if schoolId is missing
         if (schoolId) {
           toast.error('Failed to load classes')
@@ -71,7 +65,7 @@ const CreateStudent = () => {
       enabled: !!schoolId,
       retry: false,
       onError: (error) => {
-        console.error('Error fetching parents:', error)
+        logger.error('Error fetching parents:', error)
         if (schoolId) {
           toast.error('Failed to load parents')
         }
@@ -89,16 +83,15 @@ const CreateStudent = () => {
     }
   }, [selectedParentId, setValue])
 
-  // Set default school for Admin: prefer current user's assigned school (when tenant has multiple schools)
   useEffect(() => {
-    if (isAdmin && schools?.length > 0 && !selectedSchoolId) {
+    if (isAdmin && (availableSchools?.length > 0 || schools?.length > 0) && !formSchoolId) {
       const userSchoolId = user?.schoolId || user?.SchoolId
-      const preferredId = userSchoolId && schools.some((s) => (s.id || s.Id) === userSchoolId)
+      const preferredId = userSchoolId && (availableSchools || schools).some((s) => (s.id || s.Id) === userSchoolId)
         ? userSchoolId
-        : schools[0]?.id || schools[0]?.Id
+        : effectiveSchoolId || selectedSchoolId || availableSchools?.[0]?.id || availableSchools?.[0]?.Id || schools?.[0]?.id || schools?.[0]?.Id
       if (preferredId) setValue('schoolId', preferredId)
     }
-  }, [isAdmin, schools, selectedSchoolId, setValue, user?.schoolId, user?.SchoolId])
+  }, [isAdmin, availableSchools, schools, formSchoolId, effectiveSchoolId, selectedSchoolId, setValue, user?.schoolId, user?.SchoolId])
 
   // Create parent mutation
   const createParentMutation = useMutation(
@@ -158,7 +151,7 @@ const CreateStudent = () => {
         setValue('parentId', newParent.id || newParent.Id)
       }
     } catch (error) {
-      console.error('Error creating parent:', error)
+      logger.error('Error creating parent:', error)
     } finally {
       setCreatingParent(false)
     }
@@ -212,7 +205,7 @@ const CreateStudent = () => {
       }
       
       toast.error(errorMessage)
-      console.error('Create student error:', error)
+      logger.error('Create student error:', error)
     } finally {
       setLoading(false)
     }
@@ -277,8 +270,15 @@ const CreateStudent = () => {
             <div style={{ marginBottom: '1.5rem' }}>
               <label className="form-label">School <span style={{ color: '#ef4444' }}>*</span></label>
               <select
-                {...register('schoolId', { required: isAdmin ? 'Please select a school' : false })}
+                {...register('schoolId', {
+                  required: isAdmin ? 'Please select a school' : false,
+                  onChange: (e) => {
+                    setSelectedSchoolId(e.target.value)
+                    if (canSwitchSchools && e.target.value) switchSchoolMutation.mutate(e.target.value)
+                  },
+                })}
                 className="form-input"
+                disabled={switchSchoolMutation.isLoading}
               >
                 <option value="">Select school</option>
                 {Array.isArray(schools) && schools.map((s) => (

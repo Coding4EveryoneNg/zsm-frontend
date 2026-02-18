@@ -2,9 +2,11 @@ import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { classTimetableService, commonService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSchool } from '../../contexts/SchoolContext'
 import Loading from '../../components/Common/Loading'
 import { Calendar, Plus, BookOpen, Trash2, CheckCircle, XCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { handleError } from '../../utils/errorHandler'
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -39,9 +41,10 @@ const ClassTimetable = () => {
     () => classTimetableService.getSlots(selectedId),
     { enabled: !!selectedId }
   )
+  const { effectiveSchoolId } = useSchool()
   const { data: classesData } = useQuery(
-    ['common', 'classes'],
-    () => commonService.getClassesDropdown(),
+    ['classes-dropdown', effectiveSchoolId],
+    () => commonService.getClassesDropdown(effectiveSchoolId ? { schoolId: effectiveSchoolId } : {}),
     { enabled: (showCreate || showAddSlot) && canManage }
   )
   const classes = classesData?.data ?? classesData?.Data ?? []
@@ -53,9 +56,9 @@ const ClassTimetable = () => {
     { enabled: (showCreate || showAddSlot) && !!schoolIdForTerms && canManage }
   )
   const { data: sessionsData } = useQuery(
-    'sessions-dropdown',
+    ['sessions-dropdown'],
     () => commonService.getSessionsDropdown(),
-    { enabled: (showCreate || showAddSlot) && canManage }
+    { enabled: (showCreate || showAddSlot) && canManage, staleTime: 5 * 60 * 1000 }
   )
   const classIdForSubjects = detailData?.data?.data?.classId ?? detailData?.data?.classId ?? createForm.classId
   const schoolIdForTeachers = detailData?.data?.data?.schoolId ?? detailData?.data?.schoolId
@@ -79,7 +82,7 @@ const ClassTimetable = () => {
         setShowCreate(false)
         setCreateForm({ classId: '', termId: '', sessionId: '' })
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to create')
+      onError: (err) => handleError(err, 'Failed to create')
     }
   )
   const approveMutation = useMutation(
@@ -89,7 +92,7 @@ const ClassTimetable = () => {
         toast.success(approve ? 'Class timetable approved.' : 'Class timetable unapproved.')
         queryClient.invalidateQueries('class-timetable')
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to update approval')
+      onError: (err) => handleError(err, 'Failed to update approval')
     }
   )
   const addSlotMutation = useMutation(
@@ -101,7 +104,7 @@ const ClassTimetable = () => {
         setShowAddSlot(false)
         setSlotForm({ dayOfWeek: 0, periodNumber: 1, startTime: '08:00', endTime: '09:00', subjectId: '', teacherId: '' })
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to add slot')
+      onError: (err) => handleError(err, 'Failed to add slot')
     }
   )
   const deleteTimetableMutation = useMutation(
@@ -112,7 +115,7 @@ const ClassTimetable = () => {
         queryClient.invalidateQueries('class-timetable')
         setSelectedId(null)
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to delete')
+      onError: (err) => handleError(err, 'Failed to delete')
     }
   )
   const deleteSlotMutation = useMutation(
@@ -122,7 +125,7 @@ const ClassTimetable = () => {
         toast.success('Slot deleted.')
         queryClient.invalidateQueries('class-timetable')
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to delete slot')
+      onError: (err) => handleError(err, 'Failed to delete slot')
     }
   )
 

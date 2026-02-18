@@ -1,17 +1,44 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from 'react-query'
-import { adminsService } from '../../services/apiServices'
+import { useQuery, useMutation, useQueryClient } from 'react-query'
+import { adminsService, userManagementService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
-import { ArrowLeft, User, Mail, Phone, Calendar, CheckCircle, XCircle } from 'lucide-react'
+import ConfirmDialog from '../../components/Common/ConfirmDialog'
+import toast from 'react-hot-toast'
+import { handleError } from '../../utils/errorHandler'
+import { ArrowLeft, User, Mail, Phone, Calendar, CheckCircle, XCircle, Power } from 'lucide-react'
 
 const AdminDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [toggleConfirm, setToggleConfirm] = useState(null)
+
   const { data, isLoading, error } = useQuery(
     ['admin', id],
     () => adminsService.getAdmin(id),
     { enabled: !!id }
+  )
+
+  const toggleMutation = useMutation(
+    (userId) => userManagementService.toggleUserStatus(userId),
+    {
+      onSuccess: (res) => {
+        const success = res?.data?.success ?? res?.success
+        if (success) {
+          toast.success(res?.data?.message || 'Status updated successfully')
+          queryClient.invalidateQueries(['admin', id])
+          queryClient.invalidateQueries('admins')
+          setToggleConfirm(null)
+        } else {
+          toast.error(res?.data?.errors?.[0] || res?.data?.message || 'Failed to update status')
+        }
+      },
+      onError: (err) => {
+        handleError(err, 'Failed to update status')
+        setToggleConfirm(null)
+      },
+    }
   )
 
   if (isLoading) return <Loading />
@@ -71,11 +98,20 @@ const AdminDetails = () => {
       </button>
 
       <div className="card">
-        <div className="card-header">
+        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <User size={24} />
             Admin Details
           </h2>
+          <button
+            className="btn btn-warning"
+            onClick={() => setToggleConfirm(admin)}
+            disabled={toggleMutation.isLoading}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <Power size={16} />
+            {(admin.isActive !== false) ? 'Deactivate' : 'Activate'}
+          </button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
           <div>
@@ -147,6 +183,21 @@ const AdminDetails = () => {
           )}
         </div>
       </div>
+
+      {toggleConfirm && (
+        <ConfirmDialog
+          isOpen={!!toggleConfirm}
+          onClose={() => setToggleConfirm(null)}
+          onConfirm={() => {
+            const userId = toggleConfirm.id || toggleConfirm.Id
+            if (userId) toggleMutation.mutate(userId)
+          }}
+          title={(toggleConfirm.isActive !== false) ? 'Deactivate Admin' : 'Activate Admin'}
+          message={`Are you sure you want to ${(toggleConfirm.isActive !== false) ? 'deactivate' : 'activate'} ${toggleConfirm.firstName || toggleConfirm.FirstName} ${toggleConfirm.lastName || toggleConfirm.LastName}?`}
+          confirmText={(toggleConfirm.isActive !== false) ? 'Deactivate' : 'Activate'}
+          variant={(toggleConfirm.isActive !== false) ? 'warning' : 'info'}
+        />
+      )}
     </div>
   )
 }

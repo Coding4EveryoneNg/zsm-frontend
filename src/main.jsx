@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from 'react-query'
 import { Toaster } from 'react-hot-toast'
 import App from './App'
 import { AuthProvider } from './contexts/AuthContext'
+import { SchoolProvider } from './contexts/SchoolContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import './index.css'
 
@@ -39,7 +40,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <ThemeProvider>
           <AuthProvider>
-            <App />
+            <SchoolProvider>
+              <App />
             <Toaster 
               position="top-right"
               toastOptions={{
@@ -63,6 +65,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                 },
               }}
             />
+          </SchoolProvider>
           </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>

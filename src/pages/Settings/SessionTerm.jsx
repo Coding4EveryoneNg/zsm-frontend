@@ -6,6 +6,7 @@ import Loading from '../../components/Common/Loading'
 import ConfirmDialog from '../../components/Common/ConfirmDialog'
 import { Calendar, Plus, BookMarked, Eye, Edit2, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { handleError } from '../../utils/errorHandler'
 import { safeStrLower } from '../../utils/safeUtils'
 
 const SessionTerm = () => {
@@ -69,7 +70,7 @@ const SessionTerm = () => {
         setShowSessionForm(false)
         setSessionForm({ name: '', startDate: '', endDate: '', isCurrent: false })
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to create session')
+      onError: (err) => handleError(err, 'Failed to create session')
     }
   )
 
@@ -82,7 +83,7 @@ const SessionTerm = () => {
         setAddTermSessionId(null)
         setTermForm({ name: '', termNumber: 1, startDate: '', endDate: '', isCurrent: false })
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to create term')
+      onError: (err) => handleError(err, 'Failed to create term')
     }
   )
 
@@ -93,7 +94,7 @@ const SessionTerm = () => {
         toast.success('Current session updated. School members have been notified.')
         queryClient.invalidateQueries('sessionterm')
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to set current session')
+      onError: (err) => handleError(err, 'Failed to set current session')
     }
   )
 
@@ -104,7 +105,7 @@ const SessionTerm = () => {
         toast.success('Current term updated. School members have been notified.')
         queryClient.invalidateQueries('sessionterm')
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to set current term')
+      onError: (err) => handleError(err, 'Failed to set current term')
     }
   )
 
@@ -116,7 +117,7 @@ const SessionTerm = () => {
         queryClient.invalidateQueries('sessionterm')
         setEditingSessionId(null)
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to update session')
+      onError: (err) => handleError(err, 'Failed to update session')
     }
   )
 
@@ -128,7 +129,7 @@ const SessionTerm = () => {
         queryClient.invalidateQueries('sessionterm')
         setDeletingSessionId(null)
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to delete session')
+      onError: (err) => handleError(err, 'Failed to delete session')
     }
   )
 
@@ -140,7 +141,7 @@ const SessionTerm = () => {
         queryClient.invalidateQueries('sessionterm')
         setEditingTermId(null)
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to update term')
+      onError: (err) => handleError(err, 'Failed to update term')
     }
   )
 
@@ -152,7 +153,7 @@ const SessionTerm = () => {
         queryClient.invalidateQueries('sessionterm')
         setDeletingTermId(null)
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to delete term')
+      onError: (err) => handleError(err, 'Failed to delete term')
     }
   )
 
@@ -214,7 +215,7 @@ const SessionTerm = () => {
         toast.success('Term format updated.')
         queryClient.invalidateQueries('sessionterm')
       },
-      onError: (err) => toast.error(err?.response?.data?.errors?.[0] || err?.message || 'Failed to update term format')
+      onError: (err) => handleError(err, 'Failed to update term format')
     }
   )
 

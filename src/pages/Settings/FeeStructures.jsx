@@ -1,16 +1,20 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { feeStructuresService, commonService, dashboardService } from '../../services/apiServices'
+import { feeStructuresService, commonService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSchool, useSwitchSchool } from '../../contexts/SchoolContext'
 import Loading from '../../components/Common/Loading'
 import { ArrowLeft, Plus, Save, Edit2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { handleError } from '../../utils/errorHandler'
 import { formatDecimal } from '../../utils/safeUtils'
 
 const FeeStructures = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { effectiveSchoolId, selectedSchoolId, setSelectedSchoolId, availableSchools, canUseSchoolSwitching, canSwitchSchools } = useSchool()
+  const switchSchoolMutation = useSwitchSchool()
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -18,7 +22,6 @@ const FeeStructures = () => {
   const [pageSize] = useState(50)
   const [editForm, setEditForm] = useState({ name: '', description: '', amount: '', feeType: 'Yearly', classId: '', termId: '', feeCategory: 'Other' })
   const [formData, setFormData] = useState({ schoolId: '', classId: '', termId: '', feeCategory: 'Other', name: '', description: '', amount: '', feeType: 'Yearly' })
-  const [selectedSchoolId, setSelectedSchoolId] = useState('') // Page-level school for Admin: data shown is for this school
 
   const isPrincipal = String(user?.role ?? '').toLowerCase() === 'principal'
   const isAdmin = String(user?.role ?? '').toLowerCase() === 'admin'
@@ -27,24 +30,16 @@ const FeeStructures = () => {
     'schools-dropdown',
     () => commonService.getSchoolsDropdown()
   )
-  const { data: schoolSwitchingData } = useQuery(
-    ['dashboard', 'school-switching'],
-    () => dashboardService.getSchoolSwitchingData(),
-    { enabled: isPrincipal || isAdmin }
-  )
-  const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
-  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
+  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? availableSchools ?? []
   const defaultSchoolId = schoolsList?.[0]?.id || schoolsList?.[0]?.Id || ''
 
-  // Admin: default page school from switching or first school so list and dropdowns are scoped
-  React.useEffect(() => {
-    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
-      setSelectedSchoolId(principalOrAdminSchoolId || defaultSchoolId || '')
-    }
-  }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
-
   // Current school for page: Admin uses selected dropdown; Principal uses their school
-  const currentSchoolIdForPage = isPrincipal ? (principalOrAdminSchoolId || defaultSchoolId) : (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId)
+  const currentSchoolIdForPage = isPrincipal ? (effectiveSchoolId || defaultSchoolId) : (selectedSchoolId || effectiveSchoolId || defaultSchoolId)
+
+  const handleSchoolChange = (schoolId) => {
+    setSelectedSchoolId(schoolId)
+    if (canSwitchSchools && schoolId) switchSchoolMutation.mutate(schoolId)
+  }
 
   // Reset to page 1 when school filter changes
   React.useEffect(() => {
@@ -97,9 +92,7 @@ const FeeStructures = () => {
         setShowForm(false)
         setFormData({ schoolId: '', classId: '', termId: '', feeCategory: 'Other', name: '', description: '', amount: '', feeType: 'Yearly' })
       },
-      onError: (err) => {
-        toast.error(err.response?.data?.errors?.[0] || err.response?.data?.message || 'Failed to create')
-      },
+      onError: (err) => handleError(err, 'Failed to create'),
     }
   )
 
@@ -111,9 +104,7 @@ const FeeStructures = () => {
         queryClient.invalidateQueries(['fee-structures'])
         setEditingId(null)
       },
-      onError: (err) => {
-        toast.error(err.response?.data?.errors?.[0] || err.response?.data?.message || 'Failed to update')
-      },
+      onError: (err) => handleError(err, 'Failed to update'),
     }
   )
 
@@ -220,8 +211,9 @@ const FeeStructures = () => {
               <label className="form-label" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>School</label>
               <select
                 className="form-input"
-                value={selectedSchoolId || ''}
-                onChange={(e) => setSelectedSchoolId(e.target.value)}
+                value={selectedSchoolId || currentSchoolIdForPage || ''}
+                onChange={(e) => handleSchoolChange(e.target.value)}
+                disabled={switchSchoolMutation.isLoading}
                 style={{ minWidth: '200px' }}
               >
                 <option value="">Select school</option>

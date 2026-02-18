@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react'
 import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
+import LazyChart from '../../components/Charts/LazyChart'
 import { dashboardService, examinationsService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { Users, Award, CreditCard, FileText, Zap, BookOpen, TrendingUp, ClipboardList, Clock, CheckCircle } from 'lucide-react'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
-import { defaultChartOptions, chartColors, createPieChartData } from '../../utils/chartConfig'
+import { defaultChartOptions, chartColors, createPieChartData } from '../../utils/chartHelpers'
 import { safeStrLower, formatDecimal } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 
@@ -17,27 +17,27 @@ const ParentDashboard = () => {
   const { data: summaryRes, isLoading: summaryLoading, error: summaryError } = useQuery(
     'parentDashboardSummary',
     () => dashboardService.getParentSummary(),
-    { refetchInterval: 30000, retry: 1, onError: (err) => logger.error('Parent dashboard summary error:', err) }
+    { refetchInterval: 30000, refetchOnError: false, retry: 1, onError: (err) => logger.error('Parent dashboard summary error:', err) }
   )
   const { data: childrenRes, isLoading: childrenLoading } = useQuery(
     'parentDashboardChildren',
     () => dashboardService.getParentChildren(),
-    { refetchInterval: 30000, retry: 1 }
+    { refetchInterval: 30000, refetchOnError: false, retry: 1 }
   )
   const { data: paymentsRes, isLoading: paymentsLoading } = useQuery(
     'parentDashboardPayments',
     () => dashboardService.getParentPayments(),
-    { refetchInterval: 30000, retry: 1 }
+    { refetchInterval: 30000, refetchOnError: false, retry: 1 }
   )
   const { data: resultsRes, isLoading: resultsLoading } = useQuery(
     'parentDashboardResults',
     () => dashboardService.getParentResults(),
-    { refetchInterval: 30000, retry: 1 }
+    { refetchInterval: 30000, refetchOnError: false, retry: 1 }
   )
   const { data: activitiesRes, isLoading: activitiesLoading } = useQuery(
     'parentDashboardActivities',
     () => dashboardService.getParentActivities(),
-    { refetchInterval: 30000, retry: 1 }
+    { refetchInterval: 30000, refetchOnError: false, retry: 1 }
   )
 
   // Fetch examination statistics for parent's children
@@ -46,6 +46,7 @@ const ParentDashboard = () => {
     () => examinationsService.getParentExaminationStats(),
     {
       refetchInterval: 30000,
+      refetchOnError: false,
       retry: 1,
       onError: (err) => {
         logger.error('Parent exam stats error:', err)
@@ -120,19 +121,8 @@ const ParentDashboard = () => {
       }
     }
 
-    const chartType = safeStrLower(chart.type)
-    switch (chartType) {
-      case 'bar':
-        return <Bar data={chart} options={chartOptions} />
-      case 'line':
-        return <Line data={chart} options={chartOptions} />
-      case 'pie':
-        return <Pie data={chart} options={chartOptions} />
-      case 'doughnut':
-        return <Doughnut data={chart} options={chartOptions} />
-      default:
-        return null
-    }
+    const chartType = safeStrLower(chart.type) || 'bar'
+    return <LazyChart type={chartType} data={chart} options={chartOptions} />
   }
 
   const statCards = [
@@ -205,7 +195,7 @@ const ParentDashboard = () => {
           {safeStatCards.map((stat, index) => {
             const Icon = stat.icon
             return (
-              <div key={index} className="card" style={{ textAlign: 'center' }}>
+              <div key={stat.title || index} className="card" style={{ textAlign: 'center' }}>
                 <Icon size={32} color={stat.color} style={{ marginBottom: '1rem' }} />
                 <h3 style={{ fontSize: '2rem', fontWeight: 'bold', color: stat.color, marginBottom: '0.5rem' }}>
                   {stat.value}
@@ -342,8 +332,9 @@ const ParentDashboard = () => {
                 <h2 className="card-title">Payment Status</h2>
               </div>
               <div style={{ height: '350px', padding: '1rem' }}>
-                <Pie 
-                  data={paymentChart} 
+                <LazyChart
+                  type="pie"
+                  data={paymentChart}
                   options={{
                     ...defaultChartOptions,
                     plugins: {
@@ -352,7 +343,7 @@ const ParentDashboard = () => {
                         display: false
                       }
                     }
-                  }} 
+                  }}
                 />
               </div>
             </div>

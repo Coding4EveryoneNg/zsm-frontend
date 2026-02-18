@@ -1,45 +1,34 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { studentsService, commonService, dashboardService, teachersService } from '../../services/apiServices'
+import { studentsService, commonService, teachersService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSchool, useSwitchSchool } from '../../contexts/SchoolContext'
 import { Plus, Search, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const Students = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { effectiveSchoolId, selectedSchoolId, setSelectedSchoolId, availableSchools, canUseSchoolSwitching, canSwitchSchools } = useSchool()
+  const switchSchoolMutation = useSwitchSchool()
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedSchoolId, setSelectedSchoolId] = useState('')
   const [selectedClassId, setSelectedClassId] = useState('')
 
   const roleLower = String(user?.role ?? '').toLowerCase()
   const isAdmin = roleLower === 'admin'
   const isTeacher = roleLower === 'teacher'
   const isPrincipal = roleLower === 'principal'
+  const schoolsList = canUseSchoolSwitching ? availableSchools : []
 
-  const { data: schoolsData } = useQuery(
-    'schools-dropdown',
-    () => commonService.getSchoolsDropdown(),
-    { enabled: isAdmin }
-  )
-  const { data: schoolSwitchingData } = useQuery(
-    ['dashboard', 'school-switching'],
-    () => dashboardService.getSchoolSwitchingData(),
-    { enabled: isAdmin || isTeacher || isPrincipal }
-  )
-  const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
-  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
-  const defaultSchoolId = schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id ?? ''
-
-  const schoolIdForClasses = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : principalOrAdminSchoolId
+  const schoolIdForClasses = effectiveSchoolId
   const { data: classesData } = useQuery(
     ['classes-dropdown', schoolIdForClasses],
     () => commonService.getClassesDropdown({ schoolId: schoolIdForClasses }),
-    { enabled: !!schoolIdForClasses && isAdmin }
+    { enabled: !!schoolIdForClasses && (isAdmin || isPrincipal) }
   )
   const { data: teacherClassesData } = useQuery(
     'teacher-my-classes',
@@ -50,13 +39,11 @@ const Students = () => {
     ? (teacherClassesData?.data ?? teacherClassesData?.Data ?? [])
     : (classesData?.data ?? classesData?.Data ?? [])
 
-  useEffect(() => {
-    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
-      setSelectedSchoolId(principalOrAdminSchoolId || defaultSchoolId || '')
-    }
-  }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
-
-  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : (isTeacher || isPrincipal ? principalOrAdminSchoolId : null)
+  const handleSchoolChange = (schoolId) => {
+    setSelectedSchoolId(schoolId)
+    setPage(1)
+    if (canSwitchSchools && schoolId) switchSchoolMutation.mutate(schoolId)
+  }
 
   const { data, isLoading, refetch } = useQuery(
     ['students', page, pageSize, effectiveSchoolId, isTeacher ? selectedClassId : null],
@@ -66,7 +53,7 @@ const Students = () => {
       if (isTeacher && selectedClassId) params.classId = selectedClassId
       return studentsService.getStudents(params)
     },
-    { keepPreviousData: true, enabled: !!user && (isTeacher || isPrincipal || (isAdmin && !!effectiveSchoolId) || (isPrincipal && !!principalOrAdminSchoolId)) }
+    { keepPreviousData: true, enabled: !!user && (isTeacher || isPrincipal || (isAdmin && !!effectiveSchoolId)) }
   )
 
   const handleExportExcel = async () => {
@@ -141,7 +128,8 @@ const Students = () => {
               <select
                 className="form-input"
                 value={selectedSchoolId || effectiveSchoolId || ''}
-                onChange={(e) => { setSelectedSchoolId(e.target.value); setPage(1) }}
+                onChange={(e) => handleSchoolChange(e.target.value)}
+                disabled={switchSchoolMutation.isLoading}
               >
                 <option value="">Select school</option>
                 {schoolsList.map((s) => (

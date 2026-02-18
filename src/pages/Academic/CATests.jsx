@@ -1,41 +1,33 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { caTestsService, commonService, dashboardService } from '../../services/apiServices'
+import { caTestsService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSchool, useSwitchSchool } from '../../contexts/SchoolContext'
 import { ClipboardList, Calendar, BookOpen, Plus, Clock } from 'lucide-react'
 
 const CATests = () => {
   const { user } = useAuth()
+  const { effectiveSchoolId, selectedSchoolId, setSelectedSchoolId, availableSchools, canUseSchoolSwitching, canSwitchSchools } = useSchool()
+  const switchSchoolMutation = useSwitchSchool()
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
-  const [selectedSchoolId, setSelectedSchoolId] = useState('')
   const pageSize = 20
 
   const isAdmin = (user?.role ?? user?.Role ?? '').toString().toLowerCase() === 'admin'
-  const { data: schoolsData } = useQuery('schools-dropdown', () => commonService.getSchoolsDropdown(), { enabled: isAdmin })
-  const { data: schoolSwitchingData } = useQuery(
-    ['dashboard', 'school-switching'],
-    () => dashboardService.getSchoolSwitchingData(),
-    { enabled: isAdmin }
-  )
-  const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
-  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
-  const defaultSchoolId = schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id ?? ''
+  const schoolsList = canUseSchoolSwitching ? availableSchools : []
 
-  useEffect(() => {
-    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
-      setSelectedSchoolId(principalOrAdminSchoolId || defaultSchoolId || '')
-    }
-  }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
-
-  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : null
+  const handleSchoolChange = (schoolId) => {
+    setSelectedSchoolId(schoolId)
+    setPage(1)
+    if (canSwitchSchools && schoolId) switchSchoolMutation.mutate(schoolId)
+  }
 
   const isTeacher = (user?.role ?? user?.Role ?? '').toString().toLowerCase() === 'teacher'
   const isStudent = (user?.role ?? user?.Role ?? '').toString().toLowerCase() === 'student'
   const isPrincipal = (user?.role ?? user?.Role ?? '').toString().toLowerCase() === 'principal'
-  const queryEnabled = isTeacher || isStudent || isPrincipal || (isAdmin && (!!effectiveSchoolId || schoolsList?.length > 0))
+  const queryEnabled = isTeacher || isStudent || isPrincipal || (isAdmin && !!effectiveSchoolId)
 
   const { data, isLoading, error } = useQuery(
     ['catests', page, effectiveSchoolId],
@@ -73,7 +65,8 @@ const CATests = () => {
               <select
                 className="form-input"
                 value={selectedSchoolId || effectiveSchoolId || ''}
-                onChange={(e) => { setSelectedSchoolId(e.target.value); setPage(1) }}
+                onChange={(e) => handleSchoolChange(e.target.value)}
+                disabled={switchSchoolMutation.isLoading}
               >
                 {schoolsList.map((s) => (
                   <option key={s.id ?? s.Id} value={s.id ?? s.Id}>{s.name ?? s.Name}</option>

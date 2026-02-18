@@ -16,6 +16,7 @@ const GlobalFinancialDashboard = () => {
     () => dashboardService.getGlobalFinancialSummary(),
     {
       refetchInterval: 300000, // 5 minutes
+      refetchOnError: false,
       retry: 1,
       onError: (err) => {
         logger.error('Failed to fetch global financial summary:', err)
@@ -33,11 +34,6 @@ const GlobalFinancialDashboard = () => {
   // Handle both camelCase and PascalCase property names from API
   const financialData = data?.data || {}
   
-  // Debug: Log the actual response structure
-  console.log('Raw API Response:', data)
-  console.log('Financial Data:', financialData)
-  console.log('Financial Data Keys:', Object.keys(financialData))
-  
   // Map API response to component-friendly format (handle both naming conventions)
   const mappedData = {
     totalRevenue: financialData.totalGlobalRevenue || financialData.TotalGlobalRevenue || 0,
@@ -52,8 +48,6 @@ const GlobalFinancialDashboard = () => {
     topPerformingTenants: financialData.topPerformingTenants || financialData.TopPerformingTenants || []
   }
   
-  // Debug logging
-  logger.debug('Mapped Financial Data:', mappedData)
 
   return (
     <div className="page-container">
@@ -211,7 +205,7 @@ const GlobalFinancialDashboard = () => {
                 </thead>
                 <tbody>
                   {mappedData.revenueByTenant.map((item, index) => (
-                    <tr key={index}>
+                    <tr key={item.tenantId || item.tenantName || item.TenantName || index}>
                       <td><strong>{item.tenantName || item.TenantName || 'N/A'}</strong></td>
                       <td>${formatDecimal(item.revenue ?? item.Revenue)}</td>
                       <td>{item.schoolCount || item.SchoolCount || 0}</td>
@@ -249,7 +243,7 @@ const GlobalFinancialDashboard = () => {
                 </thead>
                 <tbody>
                   {mappedData.topPerformingTenants.map((item, index) => (
-                    <tr key={index}>
+                    <tr key={item.tenantId || item.tenantName || item.TenantName || index}>
                       <td><span className="badge badge-primary">{index + 1}</span></td>
                       <td><strong>{item.tenantName || item.TenantName || 'N/A'}</strong></td>
                       <td>${formatDecimal(item.revenue ?? item.Revenue)}</td>

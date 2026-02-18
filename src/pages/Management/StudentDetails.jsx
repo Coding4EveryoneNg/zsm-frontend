@@ -1,20 +1,46 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from 'react-query'
+import { useQuery, useMutation, useQueryClient } from 'react-query'
 import Loading from '../../components/Common/Loading'
-import { ArrowLeft } from 'lucide-react'
-import { studentsService } from '../../services/apiServices'
+import ConfirmDialog from '../../components/Common/ConfirmDialog'
+import toast from 'react-hot-toast'
+import { handleError } from '../../utils/errorHandler'
+import { ArrowLeft, Power } from 'lucide-react'
+import { studentsService, userManagementService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 
 const StudentDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { user } = useAuth()
+  const [toggleConfirm, setToggleConfirm] = useState(null)
 
   const { data, isLoading, isError, error, refetch } = useQuery(
     ['student', id],
     () => studentsService.getStudent(id),
     { enabled: !!id }
+  )
+
+  const toggleMutation = useMutation(
+    (userId) => userManagementService.toggleUserStatus(userId),
+    {
+      onSuccess: (res) => {
+        const success = res?.data?.success ?? res?.success
+        if (success) {
+          toast.success(res?.data?.message || 'Status updated successfully')
+          queryClient.invalidateQueries(['student', id])
+          queryClient.invalidateQueries('students')
+          setToggleConfirm(null)
+        } else {
+          toast.error(res?.data?.errors?.[0] || res?.data?.message || 'Failed to update status')
+        }
+      },
+      onError: (err) => {
+        handleError(err, 'Failed to update status')
+        setToggleConfirm(null)
+      },
+    }
   )
 
   if (isLoading) return <Loading />
@@ -49,6 +75,7 @@ const StudentDetails = () => {
     parentEmail: rawStudent.parentEmail ?? rawStudent.ParentEmail,
     parentPhone: rawStudent.parentPhone ?? rawStudent.ParentPhone,
     relationship: rawStudent.relationship ?? rawStudent.Relationship,
+    userId: rawStudent.userId ?? rawStudent.UserId,
     attendancePercentCurrentTerm: rawStudent.attendancePercentCurrentTerm ?? rawStudent.AttendancePercentCurrentTerm,
     attendanceTotalDays: rawStudent.attendanceTotalDays ?? rawStudent.AttendanceTotalDays,
     attendancePresentDays: rawStudent.attendancePresentDays ?? rawStudent.AttendancePresentDays,
@@ -109,8 +136,17 @@ const StudentDetails = () => {
       </button>
 
       <div className="card">
-        <div className="card-header">
+        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 className="card-title">Student Details</h2>
+          <button
+            className={student.isActive ? 'btn btn-warning' : 'btn btn-info'}
+            onClick={() => setToggleConfirm(student)}
+            disabled={toggleMutation.isLoading}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <Power size={16} />
+            {student.isActive ? 'Deactivate' : 'Activate'}
+          </button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
           <div>
@@ -233,6 +269,21 @@ const StudentDetails = () => {
           <p style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
             No parent or guardian information on file.
           </p>
+        )}
+
+        {toggleConfirm && (
+          <ConfirmDialog
+            isOpen={!!toggleConfirm}
+            onClose={() => setToggleConfirm(null)}
+            onConfirm={() => {
+              const userId = toggleConfirm.userId ?? toggleConfirm.UserId
+              if (userId) toggleMutation.mutate(userId)
+            }}
+            title={toggleConfirm.isActive ? 'Deactivate Student' : 'Activate Student'}
+            message={`Are you sure you want to ${toggleConfirm.isActive ? 'deactivate' : 'activate'} ${toggleConfirm.firstName} ${toggleConfirm.lastName}?`}
+            confirmText={toggleConfirm.isActive ? 'Deactivate' : 'Activate'}
+            variant={toggleConfirm.isActive ? 'warning' : 'info'}
+          />
         )}
       </div>
     </div>

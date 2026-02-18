@@ -1,15 +1,41 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from 'react-query'
+import { useQuery, useMutation, useQueryClient } from 'react-query'
 import Loading from '../../components/Common/Loading'
-import { ArrowLeft } from 'lucide-react'
-import { teachersService } from '../../services/apiServices'
+import ConfirmDialog from '../../components/Common/ConfirmDialog'
+import toast from 'react-hot-toast'
+import { handleError } from '../../utils/errorHandler'
+import { ArrowLeft, Power } from 'lucide-react'
+import { teachersService, userManagementService } from '../../services/apiServices'
 
 const TeacherDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [toggleConfirm, setToggleConfirm] = useState(null)
 
   const { data, isLoading } = useQuery(['teacher', id], () => teachersService.getTeacher(id))
+
+  const toggleMutation = useMutation(
+    (userId) => userManagementService.toggleUserStatus(userId),
+    {
+      onSuccess: (res) => {
+        const success = res?.data?.success ?? res?.success
+        if (success) {
+          toast.success(res?.data?.message || 'Status updated successfully')
+          queryClient.invalidateQueries(['teacher', id])
+          queryClient.invalidateQueries('teachers')
+          setToggleConfirm(null)
+        } else {
+          toast.error(res?.data?.errors?.[0] || res?.data?.message || 'Failed to update status')
+        }
+      },
+      onError: (err) => {
+        handleError(err, 'Failed to update status')
+        setToggleConfirm(null)
+      },
+    }
+  )
 
   if (isLoading) return <Loading />
 
@@ -53,8 +79,17 @@ const TeacherDetails = () => {
       </button>
 
       <div className="card">
-        <div className="card-header">
+        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 className="card-title">Teacher Details</h2>
+          <button
+            className={teacher.isActive ? 'btn btn-warning' : 'btn btn-info'}
+            onClick={() => setToggleConfirm(teacher)}
+            disabled={toggleMutation.isLoading}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <Power size={16} />
+            {teacher.isActive ? 'Deactivate' : 'Activate'}
+          </button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
           <div>
@@ -113,6 +148,21 @@ const TeacherDetails = () => {
           </div>
         </div>
       </div>
+
+      {toggleConfirm && (
+        <ConfirmDialog
+          isOpen={!!toggleConfirm}
+          onClose={() => setToggleConfirm(null)}
+          onConfirm={() => {
+            const userId = toggleConfirm.userId ?? toggleConfirm.UserId
+            if (userId) toggleMutation.mutate(userId)
+          }}
+          title={toggleConfirm.isActive ? 'Deactivate Teacher' : 'Activate Teacher'}
+          message={`Are you sure you want to ${toggleConfirm.isActive ? 'deactivate' : 'activate'} ${toggleConfirm.firstName} ${toggleConfirm.lastName}?`}
+          confirmText={toggleConfirm.isActive ? 'Deactivate' : 'Activate'}
+          variant={toggleConfirm.isActive ? 'warning' : 'info'}
+        />
+      )}
     </div>
   )
 }

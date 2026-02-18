@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
-import { attendanceService, commonService, teachersService, dashboardService } from '../../services/apiServices'
+import { attendanceService, commonService, teachersService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSchool, useSwitchSchool } from '../../contexts/SchoolContext'
 import Loading from '../../components/Common/Loading'
 import { ArrowLeft, Save, Check, X } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -19,34 +20,26 @@ const STATUS_OPTIONS = [
 const MarkAttendance = () => {
   const { user } = useAuth()
   const queryClient = useQueryClient()
+  const { effectiveSchoolId, selectedSchoolId, setSelectedSchoolId, availableSchools, canUseSchoolSwitching, canSwitchSchools } = useSchool()
+  const switchSchoolMutation = useSwitchSchool()
   const isTeacher = (user?.role || user?.Role || '').toString().toLowerCase() === 'teacher'
   const isAdmin = (user?.role || user?.Role || '').toString().toLowerCase() === 'admin'
   const isPrincipal = (user?.role || user?.Role || '').toString().toLowerCase() === 'principal'
 
   const [selectedClassId, setSelectedClassId] = useState('')
-  const [selectedSchoolId, setSelectedSchoolId] = useState('')
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date()
     return isWeekend(today) ? format(addDays(today, 1), 'yyyy-MM-dd') : format(today, 'yyyy-MM-dd')
   })
   const [studentStatuses, setStudentStatuses] = useState({})
 
-  const { data: schoolData } = useQuery(
-    ['dashboard', 'school-switching'],
-    () => dashboardService.getSchoolSwitchingData(),
-    { enabled: isTeacher || isAdmin || isPrincipal }
-  )
-  const teacherSchoolId = schoolData?.data?.currentSchoolId ?? schoolData?.data?.CurrentSchoolId ?? user?.schoolId ?? user?.SchoolId
-  const { data: schoolsData } = useQuery('schools-dropdown', () => commonService.getSchoolsDropdown(), { enabled: isAdmin })
-  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
-  const defaultSchoolId = schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id ?? ''
-  const effectiveSchoolId = isAdmin ? (selectedSchoolId || teacherSchoolId || defaultSchoolId) : (teacherSchoolId || user?.schoolId || user?.SchoolId)
+  const schoolsList = canUseSchoolSwitching ? availableSchools : []
 
-  React.useEffect(() => {
-    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
-      setSelectedSchoolId(teacherSchoolId || defaultSchoolId || '')
-    }
-  }, [isAdmin, schoolsList, teacherSchoolId, defaultSchoolId, selectedSchoolId])
+  const handleSchoolChange = (schoolId) => {
+    setSelectedSchoolId(schoolId)
+    setSelectedClassId('')
+    if (canSwitchSchools && schoolId) switchSchoolMutation.mutate(schoolId)
+  }
 
   // Teachers see only classes where they are class teacher (for attendance). Admin/Principal see all.
   const { data: teacherClassTeacherClassesRes } = useQuery(
@@ -174,7 +167,8 @@ const MarkAttendance = () => {
                   <select
                     className="form-select"
                     value={selectedSchoolId || effectiveSchoolId || ''}
-                    onChange={(e) => { setSelectedSchoolId(e.target.value); setSelectedClassId('') }}
+                    onChange={(e) => handleSchoolChange(e.target.value)}
+                    disabled={switchSchoolMutation.isLoading}
                   >
                     {schoolsList.map((s) => (
                       <option key={s.id ?? s.Id} value={s.id ?? s.Id}>{s.name ?? s.Name}</option>

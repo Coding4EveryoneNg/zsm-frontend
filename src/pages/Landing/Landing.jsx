@@ -7,6 +7,7 @@ import { notificationsService, contactSalesService } from '../../services/apiSer
 import { Users, BookOpen, CreditCard, BarChart3, Shield, Rocket, CheckCircle, ArrowRight, School, UserCheck, Award, TrendingUp, Clock, Globe, Sun, Moon, GraduationCap, Bell, LogOut, LayoutDashboard, X, Mail } from 'lucide-react'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
 import { safeStrLower } from '../../utils/safeUtils'
+import logger from '../../utils/logger'
 import './Landing.css'
 import logo from '../../assets/logo2.jpg'
 
@@ -53,11 +54,11 @@ const Landing = () => {
     isDark = themeContext.isDark
   } catch (error) {
     // Fallback if ThemeProvider is not available
-    console.warn('ThemeContext not available, using default theme', error)
+    logger.warn('ThemeContext not available, using default theme', error)
     theme = 'light'
     isDark = false
     toggleTheme = () => {
-      console.warn('Theme toggle not available')
+      logger.warn('Theme toggle not available')
     }
   }
 
@@ -367,7 +368,7 @@ const Landing = () => {
               }
             ].map((feature, index) => (
               <div
-                key={index}
+                key={feature.title || index}
                 className="landing-card"
                 style={{ 
                   position: 'relative', 
@@ -443,7 +444,7 @@ const Landing = () => {
               { number: '1,500+', label: 'Teachers', icon: <UserCheck className="h-6 w-6" /> },
               { number: '99.9%', label: 'Uptime', icon: <TrendingUp className="h-6 w-6" /> }
             ].map((stat, index) => (
-              <div key={index} className="landing-text-center">
+              <div key={stat.label || index} className="landing-text-center">
                 <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '4rem', height: '4rem', background: 'rgba(11, 14, 17, 0.2)', borderRadius: '9999px', marginBottom: '1rem', color: '#0b0e11' }}>
                   {stat.icon}
                 </div>
@@ -517,7 +518,7 @@ const Landing = () => {
               }
             ].map((role, index) => (
               <div
-                key={index}
+                key={role.title || index}
                 className="landing-card"
                 style={{ 
                   transition: 'all 0.3s',

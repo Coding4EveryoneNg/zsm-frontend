@@ -5,6 +5,7 @@ import { examinationsService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { Clock, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
+import logger from '../../utils/logger'
 
 const TakeExamination = () => {
   const { id } = useParams()
@@ -102,7 +103,7 @@ const TakeExamination = () => {
                            error?.message || 
                            'Failed to submit examination'
         toast.error(errorMessage)
-        console.error('Submit examination error:', error)
+        logger.error('Submit examination error:', error)
       }
     }
   )
@@ -375,7 +376,7 @@ const TakeExamination = () => {
               parsedOptions = typeof options === 'string' ? JSON.parse(options) : (Array.isArray(options) ? options : [])
             }
           } catch (e) {
-            console.error('Failed to parse options:', e)
+            logger.error('Failed to parse options:', e)
           }
           if (!Array.isArray(parsedOptions)) parsedOptions = []
 

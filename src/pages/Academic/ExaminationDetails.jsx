@@ -19,6 +19,7 @@ import {
   ThumbsUp,
   ThumbsDown
 } from 'lucide-react'
+import logger from '../../utils/logger'
 
 const ExaminationDetails = () => {
   const { id } = useParams()
@@ -319,7 +320,7 @@ const ExaminationDetails = () => {
                   parsedOptions = typeof options === 'string' ? JSON.parse(options) : options
                 }
               } catch (e) {
-                console.error('Failed to parse options:', e)
+                logger.error('Failed to parse options:', e)
               }
 
               return (
