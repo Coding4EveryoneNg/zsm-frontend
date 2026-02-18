@@ -4,7 +4,7 @@ import { useMutation, useQuery } from 'react-query'
 import { caTestsService, commonService, teachersService, dashboardService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, Save, Plus, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
 
@@ -19,8 +19,11 @@ const CreateCATest = () => {
     sessionId: '',
     termId: '',
     maxMarks: '100',
-    dueDate: ''
+    dueDate: '',
+    questions: []
   })
+  const [questionText, setQuestionText] = useState('')
+  const [questionMarks, setQuestionMarks] = useState('')
 
   const isTeacher = (user?.role || user?.Role || '').toString().toLowerCase() === 'teacher'
   const { data: schoolData } = useQuery(
@@ -115,7 +118,7 @@ const CreateCATest = () => {
       return
     }
 
-    createMutation.mutate({
+    const payload = {
       title: formData.title.trim(),
       description: formData.description?.trim() || null,
       subjectId: formData.subjectId,
@@ -123,7 +126,15 @@ const CreateCATest = () => {
       termId: formData.termId,
       maxMarks,
       dueDate: new Date(formData.dueDate).toISOString()
-    })
+    }
+    if (formData.questions?.length > 0) {
+      payload.questions = formData.questions.map((q, idx) => ({
+        questionText: q.questionText,
+        marks: parseFloat(q.marks) || 0,
+        order: idx + 1
+      }))
+    }
+    createMutation.mutate(payload)
   }
 
   return (
@@ -236,6 +247,95 @@ const CreateCATest = () => {
                   onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                 />
               </div>
+            </div>
+
+            {/* Add Questions Section */}
+            <div style={{ marginBottom: '1.5rem', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem', backgroundColor: 'var(--bg-secondary)' }}>
+              <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Questions (optional)
+              </h3>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                Add questions to structure your CA Test. Total marks will be calculated from questions if added.
+              </p>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Question text"
+                  value={questionText}
+                  onChange={(e) => setQuestionText(e.target.value)}
+                  style={{ flex: '1 1 200px' }}
+                />
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="form-input"
+                  placeholder="Marks"
+                  value={questionMarks}
+                  onChange={(e) => setQuestionMarks(e.target.value)}
+                  style={{ width: '100px' }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-primary"
+                  onClick={() => {
+                    if (!questionText.trim()) {
+                      toast.error('Please enter question text')
+                      return
+                    }
+                    const marks = parseFloat(questionMarks) || 0
+                    setFormData({
+                      ...formData,
+                      questions: [...(formData.questions || []), { questionText: questionText.trim(), marks }]
+                    })
+                    setQuestionText('')
+                    setQuestionMarks('')
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                >
+                  <Plus size={16} />
+                  Add Question
+                </button>
+              </div>
+              {formData.questions?.length > 0 && (
+                <div style={{ marginTop: '1rem' }}>
+                  <p style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                    Added questions ({formData.questions.length})
+                  </p>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                    {formData.questions.map((q, idx) => (
+                      <li
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '0.5rem',
+                          marginBottom: '0.25rem',
+                          backgroundColor: 'var(--bg-primary)',
+                          borderRadius: '0.25rem'
+                        }}
+                      >
+                        <span style={{ flex: 1, fontSize: '0.875rem' }}>
+                          {idx + 1}. {q.questionText} <span style={{ color: 'var(--text-muted)' }}>({q.marks} marks)</span>
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => setFormData({
+                            ...formData,
+                            questions: formData.questions.filter((_, i) => i !== idx)
+                          })}
+                          style={{ padding: '0.25rem' }}
+                        >
+                          <X size={16} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>

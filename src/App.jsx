@@ -88,6 +88,7 @@ const TenantManagement = lazyWithRetry(() => import('./pages/Settings/TenantMana
 const SchoolApplications = lazyWithRetry(() => import('./pages/Settings/SchoolApplications'))
 const CreateSchoolApplication = lazyWithRetry(() => import('./pages/Settings/CreateSchoolApplication'))
 const SchoolDetails = lazyWithRetry(() => import('./pages/Settings/SchoolDetails'))
+const SchoolSettings = lazyWithRetry(() => import('./pages/Settings/SchoolSettings'))
 const FeeStructures = lazyWithRetry(() => import('./pages/Settings/FeeStructures'))
 const SchoolSubscription = lazyWithRetry(() => import('./pages/Settings/SchoolSubscription'))
 const PendingSubscriptionPayments = lazyWithRetry(() => import('./pages/Settings/PendingSubscriptionPayments'))
@@ -324,6 +325,7 @@ function App() {
         <Route path="/settings/session-term" element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Admin', 'Principal']}><LazyRoute><SessionTerm /></LazyRoute></ProtectedRoute>} />
         <Route path="/school-calendar" element={<ProtectedRoute allowedRoles={['Student', 'Teacher', 'Admin', 'Principal', 'Parent']}><LazyRoute><SchoolCalendar /></LazyRoute></ProtectedRoute>} />
         <Route path="/settings/school" element={<ProtectedRoute allowedRoles={['Admin', 'SuperAdmin']}><LazyRoute><SchoolManagement /></LazyRoute></ProtectedRoute>} />
+        <Route path="/settings/school/:schoolId" element={<ProtectedRoute allowedRoles={['Admin', 'SuperAdmin']}><LazyRoute><SchoolSettings /></LazyRoute></ProtectedRoute>} />
         <Route path="/settings/fee-structures" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><FeeStructures /></LazyRoute></ProtectedRoute>} />
         <Route path="/settings/subscription" element={<ProtectedRoute allowedRoles={['Admin', 'Principal']}><LazyRoute><SchoolSubscription /></LazyRoute></ProtectedRoute>} />
         <Route path="/settings/subscription-payments" element={<ProtectedRoute allowedRoles={['SuperAdmin']}><LazyRoute><PendingSubscriptionPayments /></LazyRoute></ProtectedRoute>} />
