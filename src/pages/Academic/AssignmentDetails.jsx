@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { assignmentsService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
@@ -25,6 +25,8 @@ const safeFormatDate = (dateVal, fmt = 'MMM dd, yyyy HH:mm') => {
 const AssignmentDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const submissionIdFromUrl = searchParams.get('submissionId')
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const [answers, setAnswers] = useState({})
@@ -34,8 +36,8 @@ const AssignmentDetails = () => {
   const [checkingQuestionId, setCheckingQuestionId] = useState(null)
 
   const { data, isLoading, error } = useQuery(
-    ['assignment', id],
-    () => assignmentsService.getAssignment(id),
+    ['assignment', id, submissionIdFromUrl],
+    () => assignmentsService.getAssignment(id, submissionIdFromUrl ? { submissionId: submissionIdFromUrl } : undefined),
     { enabled: !!id }
   )
 
@@ -193,9 +195,24 @@ const AssignmentDetails = () => {
 
     const submissionTextComputed = answerLines.join('\n\n')
 
+    // Build QuestionAnswers for auto-grading (MultipleChoice, TrueFalse)
+    const questionAnswers = questions
+      .map((q, index) => {
+        const key = q.id ?? q.Id ?? index
+        const rawAnswer = (answers[key]?.text ?? '').toString().trim()
+        if (!rawAnswer) return null
+        const qId = q.id ?? q.Id
+        if (!qId) return null
+        return { questionId: qId, answerText: rawAnswer }
+      })
+      .filter(Boolean)
+
     const formData = new FormData()
     if (submissionTextComputed.trim()) {
       formData.append('SubmissionText', submissionTextComputed)
+    }
+    if (questionAnswers.length > 0) {
+      formData.append('QuestionAnswers', JSON.stringify(questionAnswers))
     }
     files.forEach((file) => {
       formData.append('SubmissionFiles', file)
