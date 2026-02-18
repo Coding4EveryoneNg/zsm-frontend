@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { caTestsService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import Loading from '../../components/Common/Loading'
-import { ArrowLeft, Save, Send } from 'lucide-react'
+import { ArrowLeft, Save, Send, Check, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
 
@@ -14,6 +14,8 @@ const CATestDetails = () => {
   const queryClient = useQueryClient()
   const { user } = useAuth()
   const [editingScores, setEditingScores] = useState({})
+  const [rejectModalOpen, setRejectModalOpen] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
 
   const { data, isLoading, isError, error } = useQuery(
     ['catest', id],
@@ -25,10 +27,34 @@ const CATestDetails = () => {
     () => caTestsService.submitCATest(id),
     {
       onSuccess: () => {
-        handleSuccess('CA Test submitted and assigned to students.')
+        handleSuccess('CA Test submitted for approval. Admin or Principal must approve.')
         queryClient.invalidateQueries(['catest', id])
       },
       onError: (err) => handleError(err, 'Failed to submit CA Test')
+    }
+  )
+
+  const approveMutation = useMutation(
+    () => caTestsService.approveCATest(id),
+    {
+      onSuccess: () => {
+        handleSuccess('CA Test approved and assigned to students.')
+        queryClient.invalidateQueries(['catest', id])
+      },
+      onError: (err) => handleError(err, 'Failed to approve CA Test')
+    }
+  )
+
+  const rejectMutation = useMutation(
+    (reason) => caTestsService.rejectCATest(id, reason),
+    {
+      onSuccess: () => {
+        handleSuccess('CA Test rejected.')
+        queryClient.invalidateQueries(['catest', id])
+        setRejectModalOpen(false)
+        setRejectReason('')
+      },
+      onError: (err) => handleError(err, 'Failed to reject CA Test')
     }
   )
 
@@ -75,9 +101,11 @@ const CATestDetails = () => {
   const className = catest.className ?? catest.ClassName
   const termName = catest.termName ?? catest.TermName
   const createdBy = catest.createdByTeacherName ?? catest.CreatedByTeacherName
-  const status = (catest.status ?? catest.Status ?? 'Active').toString()
+  const status = (catest.status ?? catest.Status ?? 'Draft').toString()
   const isDraft = status.toLowerCase() === 'draft'
+  const isAwaitingApproval = status === 'AwaitingApproval' || status === 'awaitingapproval'
   const isTeacher = (user?.role ?? user?.Role ?? '').toString().toLowerCase() === 'teacher'
+  const isAdminOrPrincipal = ['admin', 'principal'].includes((user?.role ?? user?.Role ?? '').toString().toLowerCase())
   const submissions = catest.submissions ?? catest.Submissions ?? []
 
   const handleGrade = (sub) => {
@@ -147,7 +175,7 @@ const CATestDetails = () => {
               <div>
                 <label className="form-label">Status</label>
                 <p style={{ color: 'var(--text-primary)', margin: 0 }}>
-                  <span className={`badge ${isDraft ? 'badge-outline' : 'badge-success'}`}>{status}</span>
+                  <span className={`badge ${isDraft ? 'badge-outline' : isAwaitingApproval ? 'badge-warning' : status.toLowerCase() === 'rejected' ? 'badge-danger' : 'badge-success'}`}>{status}</span>
                 </p>
               </div>
             </div>
@@ -160,11 +188,33 @@ const CATestDetails = () => {
                   disabled={submitMutation.isLoading}
                 >
                   <Send size={18} style={{ marginRight: '0.5rem' }} />
-                  {submitMutation.isLoading ? 'Submitting...' : 'Submit & Assign to Students'}
+                  {submitMutation.isLoading ? 'Submitting...' : 'Submit for Approval'}
                 </button>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
-                  Submitting will assign this CA Test to all students in the class.
+                  Admin or Principal must approve before this CA Test is assigned to students.
                 </p>
+              </div>
+            )}
+            {isAdminOrPrincipal && isAwaitingApproval && (
+              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setRejectModalOpen(true)}
+                  disabled={rejectMutation.isLoading}
+                >
+                  <X size={18} style={{ marginRight: '0.5rem' }} />
+                  {rejectMutation.isLoading ? 'Rejecting...' : 'Reject'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => approveMutation.mutate()}
+                  disabled={approveMutation.isLoading}
+                >
+                  <Check size={18} style={{ marginRight: '0.5rem' }} />
+                  {approveMutation.isLoading ? 'Approving...' : 'Approve'}
+                </button>
               </div>
             )}
             {description && (
@@ -178,7 +228,7 @@ const CATestDetails = () => {
           <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Submissions</h3>
           {submissions.length === 0 ? (
             <p style={{ color: 'var(--text-secondary)' }}>
-              {isDraft ? 'Submit the CA Test to assign it to all students in the class.' : 'No submissions yet.'}
+              {isDraft ? 'Submit the CA Test for approval.' : isAwaitingApproval ? 'Awaiting Admin/Principal approval. Once approved, submissions will be created for all students.' : 'No submissions yet.'}
             </p>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -260,6 +310,62 @@ const CATestDetails = () => {
           )}
         </div>
       </div>
+
+      {rejectModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => !rejectMutation.isLoading && setRejectModalOpen(false)}
+        >
+          <div
+            className="card"
+            style={{ maxWidth: '400px', margin: '1rem' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="card-header">
+              <h3 className="card-title">Reject CA Test</h3>
+            </div>
+            <div className="card-body">
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                Please provide a reason for rejection (required for audit).
+              </p>
+              <textarea
+                className="form-input"
+                rows={4}
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Enter rejection reason..."
+                style={{ marginBottom: '1rem', width: '100%' }}
+              />
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => !rejectMutation.isLoading && (setRejectModalOpen(false), setRejectReason(''))}
+                  disabled={rejectMutation.isLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => rejectMutation.mutate(rejectReason)}
+                  disabled={!rejectReason.trim() || rejectMutation.isLoading}
+                >
+                  {rejectMutation.isLoading ? 'Rejecting...' : 'Reject'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

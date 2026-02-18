@@ -114,6 +114,7 @@ const Classes = () => {
               <tr>
                 <th>Class Name</th>
                 <th>Section</th>
+                <th>Class Teacher</th>
                 <th>Capacity</th>
                 <th>Current Students</th>
                 <th>Status</th>
@@ -131,6 +132,7 @@ const Classes = () => {
                       </div>
                     </td>
                     <td>{cls.section || cls.Section || 'N/A'}</td>
+                    <td style={{ color: 'var(--text-secondary)' }}>{cls.classTeacherName ?? cls.ClassTeacherName ?? '—'}</td>
                     <td>{cls.capacity || cls.Capacity || 'N/A'}</td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -156,7 +158,7 @@ const Classes = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>
                     <div className="empty-state">
                       <School size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
                       <p className="empty-state-text">No classes found</p>

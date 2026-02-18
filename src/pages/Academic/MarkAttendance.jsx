@@ -74,9 +74,9 @@ const MarkAttendance = () => {
     { enabled: !!selectedClassId && !!selectedDate && isWeekday }
   )
 
-  const records = attendanceRes?.data?.data?.records ?? attendanceRes?.records ?? []
-  const attendanceAvailable = attendanceRes?.data?.data?.attendanceAvailable ?? attendanceRes?.attendanceAvailable ?? true
-  const attendanceUnavailableReason = attendanceRes?.data?.data?.attendanceUnavailableReason ?? attendanceRes?.attendanceUnavailableReason ?? null
+  const records = attendanceRes?.data?.records ?? attendanceRes?.data?.data?.records ?? attendanceRes?.records ?? []
+  const attendanceAvailable = attendanceRes?.data?.attendanceAvailable ?? attendanceRes?.data?.data?.attendanceAvailable ?? attendanceRes?.attendanceAvailable ?? true
+  const attendanceUnavailableReason = attendanceRes?.data?.attendanceUnavailableReason ?? attendanceRes?.data?.data?.attendanceUnavailableReason ?? attendanceRes?.attendanceUnavailableReason ?? null
   const initialStatuses = useMemo(() => {
     const map = {}
     records.forEach((r) => {

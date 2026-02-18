@@ -12,17 +12,23 @@ import './index.css'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Enable request cancellation
       refetchOnWindowFocus: false,
-      retry: 1,
-      // Stale time - data is considered fresh for 30 seconds
+      retry: (failureCount, error) => {
+        // Don't retry auth or permission errors
+        const status = error?.status ?? error?.response?.status
+        if (status === 401 || status === 403 || status === 404) return false
+        return failureCount < 2
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
       staleTime: 30 * 1000,
-      // Cache time - unused data stays in cache for 5 minutes
       cacheTime: 5 * 60 * 1000,
     },
     mutations: {
-      // Retry mutations once on failure
-      retry: 1,
+      retry: (failureCount, error) => {
+        const status = error?.status ?? error?.response?.status
+        if (status === 401 || status === 403 || status === 404) return false
+        return failureCount < 1
+      },
     },
   },
 })
