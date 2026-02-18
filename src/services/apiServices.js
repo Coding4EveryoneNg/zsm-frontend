@@ -109,7 +109,7 @@ export const subjectsService = {
 // Assignments Services
 export const assignmentsService = {
   getAssignments: (params) => api.get('/assignments', { params }),
-  getAssignment: (id) => api.get(`/assignments/${id}`),
+  getAssignment: (id, params) => api.get(`/assignments/${id}`, { params }),
   createAssignment: (data) => api.post('/assignments', data),
   updateAssignment: (id, data) => api.put(`/assignments/${id}`, data),
   deleteAssignment: (id) => api.delete(`/assignments/${id}`),
