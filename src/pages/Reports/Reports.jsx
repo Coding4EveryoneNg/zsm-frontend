@@ -1,12 +1,13 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useQuery, useMutation } from 'react-query'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
+import LazyChart from '../../components/Charts/LazyChart'
 import { reportsService, dashboardService, coursesService, commonService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { BarChart3, Download, Filter, TrendingUp, ArrowLeft, FileText, FileSpreadsheet } from 'lucide-react'
-import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartConfig'
+import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartHelpers'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSchool, useSwitchSchool } from '../../contexts/SchoolContext'
 import toast from 'react-hot-toast'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
 import { safeStrLower, formatDecimal, roundDecimal } from '../../utils/safeUtils'
@@ -16,9 +17,10 @@ const Reports = () => {
   const { studentId, view } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { effectiveSchoolId, selectedSchoolId, setSelectedSchoolId, availableSchools, canUseSchoolSwitching, canSwitchSchools } = useSchool()
+  const switchSchoolMutation = useSwitchSchool()
   const [selectedTerm, setSelectedTerm] = useState('')
   const [selectedSession, setSelectedSession] = useState('')
-  const [selectedSchoolId, setSelectedSchoolId] = useState('')
 
   const roleLower = String(user?.role ?? '').toLowerCase()
   const isAdmin = roleLower === 'admin'
@@ -28,29 +30,12 @@ const Reports = () => {
   const isStudent = roleLower === 'student'
   const showSchoolFilter = isAdmin
   const showTermSessionFilters = isAdmin || isPrincipal || isTeacher
+  const schoolsList = canUseSchoolSwitching ? availableSchools : []
 
-  // School dropdown for Admin (data scoped by selected school)
-  const { data: schoolsData } = useQuery(
-    'schools-dropdown',
-    () => commonService.getSchoolsDropdown(),
-    { enabled: isAdmin }
-  )
-  const { data: schoolSwitchingData } = useQuery(
-    ['dashboard', 'school-switching'],
-    () => dashboardService.getSchoolSwitchingData(),
-    { enabled: isAdmin || isPrincipal || isTeacher }
-  )
-  const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
-  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
-  const defaultSchoolId = schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id ?? ''
-
-  useEffect(() => {
-    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
-      setSelectedSchoolId(principalOrAdminSchoolId || defaultSchoolId || '')
-    }
-  }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
-
-  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : principalOrAdminSchoolId
+  const handleSchoolChange = (schoolId) => {
+    setSelectedSchoolId(schoolId)
+    if (canSwitchSchools && schoolId) switchSchoolMutation.mutate(schoolId)
+  }
 
   // Terms dropdown (requires schoolId – per school)
   const { data: termsData } = useQuery(
@@ -74,7 +59,8 @@ const Reports = () => {
     () => dashboardService.getStudentDashboard(),
     { 
       enabled: isStudent,
-      refetchInterval: 60000
+      refetchInterval: 60000,
+      refetchOnError: false
     }
   )
 
@@ -84,7 +70,8 @@ const Reports = () => {
     () => dashboardService.getParentDashboard(),
     { 
       enabled: isParent,
-      refetchInterval: 60000
+      refetchInterval: 60000,
+      refetchOnError: false
     }
   )
 
@@ -214,6 +201,7 @@ const Reports = () => {
     },
     { 
       refetchInterval: 60000,
+      refetchOnError: false,
       enabled: (!!studentId && (isParent || isTeacher)) || (isTeacher && !studentId) || isPrincipal || isStudent
     }
   )
@@ -317,19 +305,8 @@ const Reports = () => {
         }
       }
 
-      const chartType = safeStrLower(chart.type)
-      switch (chartType) {
-        case 'bar':
-          return <Bar data={chart} options={chartOptions} />
-        case 'line':
-          return <Line data={chart} options={chartOptions} />
-        case 'pie':
-          return <Pie data={chart} options={chartOptions} />
-        case 'doughnut':
-          return <Doughnut data={chart} options={chartOptions} />
-        default:
-          return null
-      }
+      const chartType = safeStrLower(chart.type) || 'bar'
+      return <LazyChart type={chartType} data={chart} options={chartOptions} />
     } catch (err) {
       try { if (typeof logger?.error === 'function') logger.error('Chart render error:', err) } catch (_) { /* no-op */ }
       return null
@@ -531,7 +508,8 @@ const Reports = () => {
               <select
                 className="form-select"
                 value={selectedSchoolId || effectiveSchoolId || ''}
-                onChange={(e) => setSelectedSchoolId(e.target.value)}
+                onChange={(e) => handleSchoolChange(e.target.value)}
+                disabled={switchSchoolMutation.isLoading}
               >
                 <option value="">Select school</option>
                 {Array.isArray(schoolsList) && schoolsList.map((s) => (
@@ -690,8 +668,9 @@ const Reports = () => {
             <h2 className="card-title">Subject Performance</h2>
           </div>
           <div style={{ height: '350px', padding: '1rem' }}>
-            <Bar 
-              data={subjectPerformanceChart} 
+            <LazyChart
+              type="bar"
+              data={subjectPerformanceChart}
               options={{
                 ...safeChartOptions,
                 plugins: {
@@ -700,7 +679,7 @@ const Reports = () => {
                     display: false
                   }
                 }
-              }} 
+              }}
             />
           </div>
         </div>
@@ -767,8 +746,9 @@ const Reports = () => {
                 <h2 className="card-title">Performance by Class</h2>
               </div>
               <div style={{ height: '350px', padding: '1rem' }}>
-                <Bar 
-                  data={classPerformanceChart} 
+                <LazyChart
+                  type="bar"
+                  data={classPerformanceChart}
                   options={{
                     ...safeChartOptions,
                     plugins: {
@@ -777,7 +757,7 @@ const Reports = () => {
                         display: false
                       }
                     }
-                  }} 
+                  }}
                 />
               </div>
             </div>
@@ -789,8 +769,9 @@ const Reports = () => {
                 <h2 className="card-title">Payment Status Distribution</h2>
               </div>
               <div style={{ height: '350px', padding: '1rem' }}>
-                <Pie 
-                  data={paymentStatusChart} 
+                <LazyChart
+                  type="pie"
+                  data={paymentStatusChart}
                   options={{
                     ...safeChartOptions,
                     plugins: {
@@ -799,7 +780,7 @@ const Reports = () => {
                         display: false
                       }
                     }
-                  }} 
+                  }}
                 />
               </div>
             </div>

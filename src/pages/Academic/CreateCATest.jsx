@@ -68,7 +68,7 @@ const CreateCATest = () => {
   }, [isTeacher, subjectsRes, teacherAssignedSubjects])
 
   const selectedClass = Array.isArray(classes) ? classes.find((c) => (c.id || c.Id) === formData.classId) : null
-  const { data: sessionsData } = useQuery('sessions-dropdown', () => commonService.getSessionsDropdown())
+  const { data: sessionsData } = useQuery(['sessions-dropdown'], () => commonService.getSessionsDropdown(), { staleTime: 5 * 60 * 1000 })
   const sessions = sessionsData?.data ?? sessionsData?.Data ?? []
   const selectedSession = formData.sessionId && formData.sessionId.length === 36
     ? sessions.find((s) => (s.id || s.Id) === formData.sessionId)

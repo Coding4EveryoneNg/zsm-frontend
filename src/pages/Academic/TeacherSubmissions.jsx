@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { useNavigate } from 'react-router-dom'
 import { assignmentsService, commonService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSchool } from '../../contexts/SchoolContext'
 import Loading from '../../components/Common/Loading'
 import { FileText, CheckCircle, Clock, User, BookOpen, Filter, X, Star } from 'lucide-react'
 import { format } from 'date-fns'
@@ -28,8 +29,13 @@ const TeacherSubmissions = () => {
   const [showBulkGrade, setShowBulkGrade] = useState(false)
   const pageSize = 20
 
+  const { effectiveSchoolId } = useSchool()
   // Fetch classes and students for filters (students dropdown only takes schoolId; filter by class on frontend)
-  const { data: classesData } = useQuery('classes-dropdown', () => commonService.getClassesDropdown())
+  const { data: classesData } = useQuery(
+    ['classes-dropdown', effectiveSchoolId],
+    () => commonService.getClassesDropdown(effectiveSchoolId ? { schoolId: effectiveSchoolId } : {}),
+    { enabled: !!user }
+  )
   const classes = classesData?.data ?? classesData?.Data ?? []
   const selectedClass = classes.find((c) => (c.id || c.Id) === selectedClassId)
   const schoolIdFromClass = selectedClass?.schoolId ?? selectedClass?.SchoolId

@@ -27,6 +27,8 @@ const Header = () => {
   const { data: unreadData } = useQuery({
     queryKey: ['unreadNotificationsCount'],
     queryFn: () => notificationsService.getUnreadCount(),
+    refetchOnError: false,
+    retry: false,
   })
   const unreadCount = unreadData?.data?.unreadCount ?? 0
 
@@ -48,8 +50,12 @@ const Header = () => {
       }}
     >
       <div 
+        role="button"
+        tabIndex={0}
+        aria-label="Go to dashboard"
         style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer' }}
         onClick={() => navigate(dashboardPath)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(dashboardPath) } }}
         onMouseEnter={(e) => {
           e.currentTarget.style.opacity = '0.8'
         }}
@@ -72,6 +78,8 @@ const Header = () => {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
         <button
+          type="button"
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
           onClick={toggleTheme}
           style={{
             background: 'var(--bg-tertiary)',
@@ -98,6 +106,8 @@ const Header = () => {
           {isDark ? <Sun size={20} /> : <Moon size={20} />}
         </button>
         <button
+          type="button"
+          aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
           onClick={() => navigate('/notifications')}
           title="Notifications"
           style={{
@@ -166,6 +176,8 @@ const Header = () => {
           </div>
         </div>
         <button
+          type="button"
+          aria-label="Log out"
           onClick={handleLogout}
           style={{
             background: 'none',

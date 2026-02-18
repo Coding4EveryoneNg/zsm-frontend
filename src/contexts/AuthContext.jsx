@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react'
 import { authService } from '../services/authService'
 import toast from 'react-hot-toast'
 import logger from '../utils/logger'
@@ -77,10 +77,15 @@ export const AuthProvider = ({ children }) => {
       if (response.success) {
         const data = response.data ?? response
         const rawUser = data?.user ?? data?.User ?? data?.data?.user ?? data?.data?.User ?? response.user ?? response.User
-        if (rawUser) {
+        const token = data?.token ?? data?.Token ?? ''
+        const expiresAt = data?.expiresAt ?? data?.ExpiresAt
+        if (rawUser && token) {
           const user = normalizeUser(rawUser)
           setUser(user)
           setIsAuthenticated(true)
+          localStorage.setItem('token', token)
+          localStorage.setItem('user', JSON.stringify(user))
+          if (expiresAt) localStorage.setItem('tokenExpiry', expiresAt)
         }
         toast.success('Login successful!')
         return { success: true, user: rawUser ? normalizeUser(rawUser) : null }
@@ -109,14 +114,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(userData))
   }
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     loading,
     isAuthenticated,
     login,
     logout,
     updateUser,
-  }
+  }), [user, loading, isAuthenticated])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

@@ -1,12 +1,12 @@
-import React from 'react'
+import React, { useMemo, useCallback } from 'react'
 import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
+import LazyChart from '../../components/Charts/LazyChart'
 import { dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import { Users, GraduationCap, School, BookOpen, Zap, Plus, Eye, CreditCard, FileText, Settings } from 'lucide-react'
-import { defaultChartOptions } from '../../utils/chartConfig'
+import { defaultChartOptions } from '../../utils/chartHelpers'
 import { safeStrLower } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 
@@ -17,12 +17,12 @@ const AdminDashboard = () => {
   const { data: summaryRes, isLoading: summaryLoading, error: summaryError } = useQuery(
     'adminDashboardSummary',
     () => dashboardService.getAdminSummary(),
-    { refetchInterval: 30000, retry: 1, onError: (err) => logger.error('Admin dashboard summary error:', err) }
+    { refetchInterval: 30000, refetchOnError: false, retry: 1, onError: (err) => logger.error('Admin dashboard summary error:', err) }
   )
   const { data: activitiesRes, isLoading: activitiesLoading, error: activitiesError } = useQuery(
     'adminDashboardActivities',
     () => dashboardService.getAdminActivities(),
-    { refetchInterval: 30000, retry: 1, onError: (err) => logger.error('Admin dashboard activities error:', err) }
+    { refetchInterval: 30000, refetchOnError: false, retry: 1, onError: (err) => logger.error('Admin dashboard activities error:', err) }
   )
 
   if (summaryLoading) return <Loading />
@@ -35,15 +35,14 @@ const AdminDashboard = () => {
   const charts = activitiesPayload.charts ?? activitiesPayload.Charts ?? []
   const recentActivities = activitiesPayload.recentActivities ?? activitiesPayload.RecentActivities ?? []
 
-  const statCards = [
+  const statCards = useMemo(() => [
     { title: 'Total Students', value: stats.totalStudents || 0, icon: Users, color: 'var(--primary-yellow)' },
     { title: 'Total Teachers', value: stats.totalTeachers || 0, icon: GraduationCap, color: 'var(--info)' },
     { title: 'Total Classes', value: stats.totalClasses || 0, icon: School, color: 'var(--success)' },
     { title: 'Total Subjects', value: stats.totalSubjects || 0, icon: BookOpen, color: 'var(--warning)' },
-  ]
+  ], [stats.totalStudents, stats.totalTeachers, stats.totalClasses, stats.totalSubjects])
 
-  // Render chart based on chart data from API
-  const renderChart = (chart) => {
+  const renderChart = useCallback((chart) => {
     if (!chart || !chart.labels || !chart.datasets) return null
 
     const chartOptions = {
@@ -58,20 +57,9 @@ const AdminDashboard = () => {
       }
     }
 
-    const chartType = safeStrLower(chart.type)
-    switch (chartType) {
-      case 'bar':
-        return <Bar data={chart} options={chartOptions} />
-      case 'line':
-        return <Line data={chart} options={chartOptions} />
-      case 'pie':
-        return <Pie data={chart} options={chartOptions} />
-      case 'doughnut':
-        return <Doughnut data={chart} options={chartOptions} />
-      default:
-        return null
-    }
-  }
+    const chartType = safeStrLower(chart.type) || 'bar'
+    return <LazyChart type={chartType} data={chart} options={chartOptions} />
+  }, [])
 
   return (
     <div className="page-container">
@@ -156,9 +144,12 @@ const AdminDashboard = () => {
         {statCards.map((stat, index) => {
           const Icon = stat.icon
           return (
-            <div 
-              key={index} 
-              className="card" 
+            <div
+              key={stat.title || index}
+              role="button"
+              tabIndex={0}
+              aria-label={`${stat.title}: ${stat.value}. Click to view`}
+              className="card"
               style={{ textAlign: 'center', cursor: 'pointer' }}
               onClick={() => {
                 if (stat.title === 'Total Students') navigate('/students')
@@ -166,6 +157,7 @@ const AdminDashboard = () => {
                 else if (stat.title === 'Total Classes') navigate('/classes')
                 else if (stat.title === 'Total Subjects') navigate('/subjects')
               }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (stat.title === 'Total Students') navigate('/students'); else if (stat.title === 'Total Teachers') navigate('/teachers'); else if (stat.title === 'Total Classes') navigate('/classes'); else if (stat.title === 'Total Subjects') navigate('/subjects') } }}
             >
               <Icon size={32} color={stat.color} style={{ marginBottom: '1rem' }} />
               <h3 style={{ fontSize: '2rem', fontWeight: 'bold', color: stat.color, marginBottom: '0.5rem' }}>

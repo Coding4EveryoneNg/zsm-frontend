@@ -1,14 +1,14 @@
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from 'react-query'
-import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
+import LazyChart from '../../components/Charts/LazyChart'
 import { dashboardService, userManagementService, schoolsService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { 
   ArrowLeft, School, Users, GraduationCap, TrendingUp, CreditCard, 
   BarChart3, DollarSign, Building2, UserCheck, RefreshCw
 } from 'lucide-react'
-import { defaultChartOptions } from '../../utils/chartConfig'
+import { defaultChartOptions } from '../../utils/chartHelpers'
 import { safeStrLower } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 import toast from 'react-hot-toast'
@@ -102,19 +102,8 @@ const SchoolDetails = () => {
       }
     }
 
-    const chartType = safeStrLower(chart.type)
-    switch (chartType) {
-      case 'bar':
-        return <Bar data={chart} options={chartOptions} />
-      case 'line':
-        return <Line data={chart} options={chartOptions} />
-      case 'pie':
-        return <Pie data={chart} options={chartOptions} />
-      case 'doughnut':
-        return <Doughnut data={chart} options={chartOptions} />
-      default:
-        return null
-    }
+    const chartType = safeStrLower(chart.type) || 'bar'
+    return <LazyChart type={chartType} data={chart} options={chartOptions} />
   }
 
   const statCards = [
@@ -216,7 +205,7 @@ const SchoolDetails = () => {
                 {statCards.map((stat, index) => {
                   const Icon = stat.icon
                   return (
-                    <div key={index} className="card" style={{ textAlign: 'center' }}>
+                    <div key={stat.title || index} className="card" style={{ textAlign: 'center' }}>
                       <Icon size={32} color={stat.color} style={{ marginBottom: '1rem' }} />
                       <h3 style={{ fontSize: '2rem', fontWeight: 'bold', color: stat.color, marginBottom: '0.5rem' }}>
                         {stat.value}

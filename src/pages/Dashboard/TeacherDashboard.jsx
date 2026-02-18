@@ -1,12 +1,12 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useCallback } from 'react'
 import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
+import LazyChart from '../../components/Charts/LazyChart'
 import { dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import { Users, FileText, ClipboardList, TrendingUp, Zap, Plus, Eye, Clock, CheckCircle, BookOpen, FileCheck } from 'lucide-react'
-import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartConfig'
+import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartHelpers'
 import { safeStrLower, formatDecimal } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 
@@ -17,6 +17,7 @@ const TeacherDashboard = () => {
     () => dashboardService.getTeacherDashboard(),
     { 
       refetchInterval: 30000,
+      refetchOnError: false,
       retry: 1,
       onError: (err) => {
         logger.error('Teacher dashboard error:', err)
@@ -41,8 +42,7 @@ const TeacherDashboard = () => {
   const classPerformance = dashboard.classPerformance || dashboard.ClassPerformance || []
   const recentActivities = dashboard.recentActivities || dashboard.RecentActivities || []
 
-  // Render chart based on chart data from API
-  const renderChart = (chart) => {
+  const renderChart = useCallback((chart) => {
     if (!chart || !chart.labels || !chart.datasets) return null
 
     const chartOptions = {
@@ -57,27 +57,16 @@ const TeacherDashboard = () => {
       }
     }
 
-    const chartType = safeStrLower(chart.type)
-    switch (chartType) {
-      case 'bar':
-        return <Bar data={chart} options={chartOptions} />
-      case 'line':
-        return <Line data={chart} options={chartOptions} />
-      case 'pie':
-        return <Pie data={chart} options={chartOptions} />
-      case 'doughnut':
-        return <Doughnut data={chart} options={chartOptions} />
-      default:
-        return null
-    }
-  }
+    const chartType = safeStrLower(chart.type) || 'bar'
+    return <LazyChart type={chartType} data={chart} options={chartOptions} />
+  }, [])
 
-  const statCards = [
+  const statCards = useMemo(() => [
     { title: 'Total Students', value: stats.totalStudents || 0, icon: Users, color: 'var(--primary-yellow)' },
     { title: 'Active Assignments', value: stats.activeAssignments || 0, icon: FileText, color: 'var(--info)' },
     { title: 'Pending Grading', value: stats.pendingGrading || 0, icon: ClipboardList, color: 'var(--warning)' },
     { title: 'Average Performance', value: `${formatDecimal(stats.averagePerformance ?? 0)}%`, icon: TrendingUp, color: 'var(--success)' },
-  ]
+  ], [stats.totalStudents, stats.activeAssignments, stats.pendingGrading, stats.averagePerformance])
 
   return (
     <div className="page-container">
@@ -239,11 +228,20 @@ const TeacherDashboard = () => {
         {statCards.map((stat, index) => {
           const Icon = stat.icon
           return (
-            <div key={index} className="card" style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => {
-              if (stat.title === 'Pending Grading') navigate('/assignments/submissions')
-              else if (stat.title === 'Active Assignments') navigate('/assignments')
-              else if (stat.title === 'Total Students') navigate('/students')
-            }}>
+            <div
+              key={stat.title || index}
+              role="button"
+              tabIndex={0}
+              aria-label={`${stat.title}: ${stat.value}. Click to view`}
+              className="card"
+              style={{ textAlign: 'center', cursor: 'pointer' }}
+              onClick={() => {
+                if (stat.title === 'Pending Grading') navigate('/assignments/submissions')
+                else if (stat.title === 'Active Assignments') navigate('/assignments')
+                else if (stat.title === 'Total Students') navigate('/students')
+              }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (stat.title === 'Pending Grading') navigate('/assignments/submissions'); else if (stat.title === 'Active Assignments') navigate('/assignments'); else if (stat.title === 'Total Students') navigate('/students') } }}
+            >
               <Icon size={32} color={stat.color} style={{ marginBottom: '1rem' }} />
               <h3 style={{ fontSize: '2rem', fontWeight: 'bold', color: stat.color, marginBottom: '0.5rem' }}>
                 {stat.value}

@@ -1,13 +1,13 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { useQuery } from 'react-query'
-import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
+import LazyChart from '../../components/Charts/LazyChart'
 import { dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { useNavigate } from 'react-router-dom'
 import { BookOpen, ClipboardList, FileText, Award, Calendar, TrendingUp, FileBarChart } from 'lucide-react'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
 import ErrorBoundary from '../../components/Common/ErrorBoundary'
-import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartConfig'
+import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartHelpers'
 import { getErrorMessage } from '../../utils/errorHandler'
 import { ensureArray, safeFormatDate, safeStrLower, formatDecimal, roundDecimal } from '../../utils/safeUtils'
 import { useAuth } from '../../contexts/AuthContext'
@@ -23,6 +23,7 @@ const StudentDashboard = () => {
     { 
       enabled: !authLoading && !!isAuthenticated,
       refetchInterval: 30000,
+      refetchOnError: false,
       retry: 2,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
       onError: (err) => {
@@ -133,9 +134,8 @@ const StudentDashboard = () => {
   const studentGuidId = safeDashboard.studentGuidId ?? safeDashboard.StudentGuidId ?? null
 
   const chartColorPrimary = (chartColors && chartColors.primary) ? chartColors.primary : '#6366f1'
-  // Convert ChartData to Chart.js format (charts already ensured as array above)
   const safeCharts = charts
-  const convertedCharts = safeCharts.map(chart => {
+  const convertedCharts = useMemo(() => safeCharts.map(chart => {
     if (!chart || typeof chart !== 'object') return null
     try {
       const labels = Array.isArray(chart.labels ?? chart.Labels) ? (chart.labels ?? chart.Labels) : []
@@ -161,15 +161,15 @@ const StudentDashboard = () => {
     } catch (_) {
       return null
     }
-  }).filter(chart => chart !== null && Array.isArray(chart?.labels) && Array.isArray(chart?.datasets))
+  }).filter(chart => chart !== null && Array.isArray(chart?.labels) && Array.isArray(chart?.datasets)), [safeCharts, chartColorPrimary])
 
   const avgNum = typeof stats.averageScore === 'number' && !Number.isNaN(stats.averageScore) ? stats.averageScore : 0
-  const statCards = [
+  const statCards = useMemo(() => [
     { title: 'Active Assignments', value: stats.activeAssignments || 0, icon: FileText, color: 'var(--primary-yellow)' },
     { title: 'Upcoming Exams', value: stats.upcomingExams || 0, icon: ClipboardList, color: 'var(--info)' },
     { title: 'Completed Assignments', value: stats.completedCourses || 0, icon: BookOpen, color: 'var(--success)' },
     { title: 'Average Grade', value: `${formatDecimal(avgNum)}%`, icon: TrendingUp, color: 'var(--warning)' },
-  ]
+  ], [stats.activeAssignments, stats.upcomingExams, stats.completedCourses, avgNum])
 
   // Prepare chart data (ensure subjectPerformance is array to avoid .map throw)
   const safeSubjectPerformance = Array.isArray(subjectPerformance) ? subjectPerformance : []
@@ -206,22 +206,7 @@ const StudentDashboard = () => {
         }
       }
     }
-    try {
-      switch (chartType) {
-        case 'bar':
-          return <Bar data={chart} options={chartOptions} />
-        case 'line':
-          return <Line data={chart} options={chartOptions} />
-        case 'pie':
-          return <Pie data={chart} options={chartOptions} />
-        case 'doughnut':
-          return <Doughnut data={chart} options={chartOptions} />
-        default:
-          return <Bar data={chart} options={chartOptions} />
-      }
-    } catch {
-      return null
-    }
+    return <LazyChart type={chartType} data={chart} options={chartOptions} />
   }
 
   // Show error banner if there was an error but we still have some data
@@ -292,7 +277,7 @@ const StudentDashboard = () => {
             const Icon = stat?.icon
             if (!Icon || typeof Icon !== 'function') return null
             return (
-              <div key={index} className="card" style={{ textAlign: 'center' }}>
+              <div key={stat.title || index} className="card" style={{ textAlign: 'center' }}>
                 <Icon size={32} color={stat.color} style={{ marginBottom: '1rem' }} />
                 <h3 style={{ fontSize: '2rem', fontWeight: 'bold', color: stat.color, marginBottom: '0.5rem' }}>
                   {stat.value}
@@ -321,15 +306,16 @@ const StudentDashboard = () => {
                   <h2 className="card-title">Subject Performance</h2>
                 </div>
                 <div style={{ height: '350px', padding: '1rem' }}>
-                  <Bar 
-                    data={performanceChartData} 
+                  <LazyChart
+                    type="bar"
+                    data={performanceChartData}
                     options={{
                       ...opts,
                       plugins: {
                         ...(opts.plugins || {}),
                         title: { display: false }
                       }
-                    }} 
+                    }}
                   />
                 </div>
               </div>

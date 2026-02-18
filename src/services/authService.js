@@ -9,6 +9,7 @@ function normalizeUser(user) {
 }
 
 export const authService = {
+  /** Returns raw API response. Auth persistence is handled by AuthContext. */
   login: async (email, password, rememberMe = false) => {
   try {
     const response = await api.post('/auth/login', {
@@ -21,18 +22,9 @@ export const authService = {
     const rawUser = data?.user ?? data?.User ?? data?.data?.user ?? data?.data?.User;
     const user = rawUser ? normalizeUser(rawUser) : rawUser;
 
-    localStorage.setItem('token', data.token ?? data.Token ?? '');
-    if (user ?? rawUser) {
-      localStorage.setItem('user', JSON.stringify(user ?? rawUser));
-    }
-
-    if (data.expiresAt) {
-      localStorage.setItem('tokenExpiry', data.expiresAt);
-    }
-
     return {
       success: true,
-      data
+      data: { ...data, user: user ?? rawUser }
     };
   } catch (error) {
     const data = error.response?.data ?? error

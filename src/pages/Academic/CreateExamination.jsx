@@ -26,7 +26,7 @@ const CreateExamination = () => {
   })
 
   // Auto-calculate duration (minutes) from start and end time on exam date
-  const durationMinutes = (() => {
+  const durationMinutes = useMemo(() => {
     if (!formData.examDate || !formData.startTime || !formData.endTime) return ''
     try {
       const start = new Date(`${formData.examDate}T${formData.startTime}`)
@@ -36,7 +36,7 @@ const CreateExamination = () => {
     } catch {
       return ''
     }
-  })()
+  }, [formData.examDate, formData.startTime, formData.endTime])
   const [questionText, setQuestionText] = useState('')
   const [questionType, setQuestionType] = useState('MultipleChoice')
   const [questionMarks, setQuestionMarks] = useState('')
@@ -83,7 +83,7 @@ const CreateExamination = () => {
     return teacherAssignedSubjects
   }, [isTeacher, subjectsRes, teacherAssignedSubjects])
 
-  const { data: sessionsData } = useQuery('sessions-dropdown', () => commonService.getSessionsDropdown())
+  const { data: sessionsData } = useQuery(['sessions-dropdown'], () => commonService.getSessionsDropdown(), { staleTime: 5 * 60 * 1000 })
   const sessions = sessionsData?.data ?? sessionsData?.Data ?? []
   const selectedSession = formData.sessionId && formData.sessionId.length === 36
     ? sessions.find((s) => (s.id || s.Id) === formData.sessionId)

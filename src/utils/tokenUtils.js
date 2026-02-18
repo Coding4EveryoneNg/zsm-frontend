@@ -36,7 +36,7 @@ export const getTokenExpiry = (token) => {
     const payload = JSON.parse(atob(token.split('.')[1]))
     return new Date(payload.exp * 1000)
   } catch (error) {
-    console.error('Error parsing token:', error)
+    logger.error('Error parsing token:', error)
     return null
   }
 }
@@ -56,7 +56,7 @@ export const getTimeUntilExpiry = (token) => {
     const diff = Math.floor((exp - now) / 1000)
     return diff > 0 ? diff : 0
   } catch (error) {
-    console.error('Error parsing token:', error)
+    logger.error('Error parsing token:', error)
     return null
   }
 }

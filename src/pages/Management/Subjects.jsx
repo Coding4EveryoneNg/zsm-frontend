@@ -1,43 +1,30 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useQuery } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { subjectsService, commonService, dashboardService } from '../../services/apiServices'
+import { subjectsService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSchool, useSwitchSchool } from '../../contexts/SchoolContext'
 import { Plus, Search, BookOpen } from 'lucide-react'
 
 const Subjects = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { effectiveSchoolId, selectedSchoolId, setSelectedSchoolId, availableSchools, canUseSchoolSwitching, canSwitchSchools } = useSchool()
+  const switchSchoolMutation = useSwitchSchool()
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedSchoolId, setSelectedSchoolId] = useState('')
 
   const isAdmin = (user?.role ?? user?.Role ?? '').toString() === 'Admin'
   const isStudent = (user?.role ?? user?.Role ?? '').toString().toLowerCase() === 'student'
+  const schoolsList = canUseSchoolSwitching ? availableSchools : []
 
-  const { data: schoolsData } = useQuery(
-    'schools-dropdown',
-    () => commonService.getSchoolsDropdown(),
-    { enabled: isAdmin }
-  )
-  const { data: schoolSwitchingData } = useQuery(
-    ['dashboard', 'school-switching'],
-    () => dashboardService.getSchoolSwitchingData(),
-    { enabled: isAdmin }
-  )
-  const principalOrAdminSchoolId = schoolSwitchingData?.data?.currentSchoolId ?? schoolSwitchingData?.data?.CurrentSchoolId ?? schoolSwitchingData?.currentSchoolId ?? schoolSwitchingData?.CurrentSchoolId
-  const schoolsList = schoolsData?.data ?? schoolsData?.Data ?? []
-  const defaultSchoolId = schoolsList?.[0]?.id ?? schoolsList?.[0]?.Id ?? ''
-
-  useEffect(() => {
-    if (isAdmin && schoolsList?.length > 0 && !selectedSchoolId) {
-      setSelectedSchoolId(principalOrAdminSchoolId || defaultSchoolId || '')
-    }
-  }, [isAdmin, schoolsList, principalOrAdminSchoolId, defaultSchoolId, selectedSchoolId])
-
-  const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : null
+  const handleSchoolChange = (schoolId) => {
+    setSelectedSchoolId(schoolId)
+    setPage(1)
+    if (canSwitchSchools && schoolId) switchSchoolMutation.mutate(schoolId)
+  }
 
   const { data, isLoading } = useQuery(
     ['subjects', page, pageSize, effectiveSchoolId, isStudent],
@@ -76,7 +63,8 @@ const Subjects = () => {
               <select
                 className="form-input"
                 value={selectedSchoolId || effectiveSchoolId || ''}
-                onChange={(e) => { setSelectedSchoolId(e.target.value); setPage(1) }}
+                onChange={(e) => handleSchoolChange(e.target.value)}
+                disabled={switchSchoolMutation.isLoading}
               >
                 <option value="">Select school</option>
                 {schoolsList.map((s) => (

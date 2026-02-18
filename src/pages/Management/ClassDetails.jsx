@@ -6,6 +6,7 @@ import { ArrowLeft, School, Users, Save } from 'lucide-react'
 import { classesService, commonService } from '../../services/apiServices'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
+import { handleError } from '../../utils/errorHandler'
 
 const ClassDetails = () => {
   const { id } = useParams()
@@ -48,7 +49,7 @@ const ClassDetails = () => {
         queryClient.invalidateQueries(['class', id])
         setIsEditing(false)
       },
-      onError: (err) => toast.error(err?.response?.data?.message || err?.message || 'Failed to update')
+      onError: (err) => handleError(err, 'Failed to update')
     }
   )
 

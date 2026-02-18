@@ -21,7 +21,7 @@ export default defineConfig({
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-query': ['react-query'],
-          'vendor-charts': ['chart.js', 'react-chartjs-2', 'recharts'],
+          'vendor-charts': ['chart.js', 'react-chartjs-2'],
           'vendor-forms': ['react-hook-form'],
           'vendor-ui': ['lucide-react', 'react-hot-toast', 'clsx']
         },

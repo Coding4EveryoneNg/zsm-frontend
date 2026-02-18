@@ -4,6 +4,7 @@ import { subscriptionService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { CheckCircle, XCircle, Building2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { handleError } from '../../utils/errorHandler'
 import { formatDecimal } from '../../utils/safeUtils'
 
 const PendingSubscriptionPayments = () => {
@@ -31,7 +32,7 @@ const PendingSubscriptionPayments = () => {
         }
       },
       onError: (err) => {
-        toast.error(err?.errors?.[0] ?? err?.message ?? err?.response?.data?.errors?.[0] ?? 'Failed to confirm payment.')
+        handleError(err, 'Failed to confirm payment.')
       },
     }
   )
@@ -52,7 +53,7 @@ const PendingSubscriptionPayments = () => {
         }
       },
       onError: (err) => {
-        toast.error(err?.errors?.[0] ?? err?.message ?? err?.response?.data?.errors?.[0] ?? 'Failed to reject payment.')
+        handleError(err, 'Failed to reject payment.')
       },
     }
   )

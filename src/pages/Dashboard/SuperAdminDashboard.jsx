@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { useNavigate } from 'react-router-dom'
-import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
+import LazyChart from '../../components/Charts/LazyChart'
 import { dashboardService, examinationsService, schoolApplicationsService, schoolsService, tenantsService, notificationsService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import ConfirmDialog from '../../components/Common/ConfirmDialog'
@@ -11,7 +11,7 @@ import {
   GraduationCap, DollarSign, Clock, AlertTriangle, Trophy, 
   ClipboardList, BarChart3, RefreshCw, Globe, ChevronDown, Search, Bell
 } from 'lucide-react'
-import { defaultChartOptions } from '../../utils/chartConfig'
+import { defaultChartOptions } from '../../utils/chartHelpers'
 import { safeStrLower, formatDecimal } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
 import toast from 'react-hot-toast'
@@ -59,6 +59,7 @@ const SuperAdminDashboard = () => {
     }),
     { 
       refetchInterval: 300000, // 5 minutes
+      refetchOnError: false,
       retry: 1,
       onError: (err) => {
         logger.error('SuperAdmin dashboard error:', err)
@@ -145,13 +146,13 @@ const SuperAdminDashboard = () => {
     }
   )
 
-  // Fetch unread notifications count
+  // Fetch unread notifications count (shared with Header - no refetchInterval to avoid error bursts)
   const { data: unreadNotificationsData } = useQuery(
-    'unreadNotificationsCount',
+    ['unreadNotificationsCount'],
     () => notificationsService.getUnreadCount(),
     {
-      refetchInterval: 60000, // Refresh every minute
-      retry: 1,
+      refetchOnError: false,
+      retry: false,
       onError: (err) => {
         logger.error('Failed to fetch unread notifications count:', err)
       }
@@ -175,15 +176,28 @@ const SuperAdminDashboard = () => {
   const unreadNotificationsCount = unreadNotificationsData?.data?.unreadCount || dashboard.unreadNotificationsCount || dashboard.UnreadNotificationsCount || 0
 
   if (isLoading) return <Loading />
+
+  if (error) {
+    return (
+      <div className="page-container" style={{ padding: '2rem' }}>
+        <div className="card" style={{ maxWidth: '500px', margin: '0 auto' }}>
+          <div className="card-header"><h2 className="card-title">Dashboard Error</h2></div>
+          <div className="card-body">
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              {error?.message || 'Failed to load SuperAdmin dashboard. Please try again.'}
+            </p>
+            <button type="button" className="btn btn-primary" onClick={() => refetch()}>
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
   
-  // Debug: Log the actual response structure
-  console.log('Raw SuperAdmin Dashboard Response:', dashboardData)
-  console.log('Dashboard Data:', dashboard)
-  console.log('Dashboard Data Keys:', Object.keys(dashboard))
-  console.log('TotalStudentsAcrossSchools:', dashboard.totalStudentsAcrossSchools, dashboard.TotalStudentsAcrossSchools)
-  console.log('TotalTeachersAcrossSchools:', dashboard.totalTeachersAcrossSchools, dashboard.TotalTeachersAcrossSchools)
-  console.log('TotalClassesAcrossSchools:', dashboard.totalClassesAcrossSchools, dashboard.TotalClassesAcrossSchools)
-  console.log('TotalUsers:', dashboard.totalUsers, dashboard.TotalUsers)
+  if (import.meta.env.DEV) {
+    logger.debug('Raw SuperAdmin Dashboard Response:', dashboardData)
+  }
   
   const stats = dashboard.stats || dashboard.Stats || {}
   const globalStats = dashboard.globalStatistics || dashboard.GlobalStatistics || {}
@@ -199,28 +213,24 @@ const SuperAdminDashboard = () => {
   const financialSummaryData = financialSummary?.data || {}
   const globalStatisticsData = globalStatistics?.data || {}
 
-  // Use financial summary data if available, otherwise calculate from GlobalRevenue
-  const calculatedFinancialMetrics = {
-    totalRevenue: financialSummaryData.totalGlobalRevenue || financialSummaryData.TotalGlobalRevenue || 
+  const calculatedFinancialMetrics = React.useMemo(() => ({
+    totalRevenue: financialSummaryData.totalGlobalRevenue || financialSummaryData.TotalGlobalRevenue ||
       globalRevenue
         .filter(p => (p.status || p.Status || '').toLowerCase() === 'paid')
         .reduce((sum, p) => sum + (parseFloat(p.amount || p.Amount || 0)), 0),
-    totalPendingPayments: financialSummaryData.totalGlobalPendingPayments || financialSummaryData.TotalGlobalPendingPayments || 
+    totalPendingPayments: financialSummaryData.totalGlobalPendingPayments || financialSummaryData.TotalGlobalPendingPayments ||
       globalRevenue
         .filter(p => (p.status || p.Status || '').toLowerCase() === 'pending')
         .reduce((sum, p) => sum + (parseFloat(p.amount || p.Amount || 0)), 0),
-    totalOverduePayments: financialSummaryData.totalGlobalOverduePayments || financialSummaryData.TotalGlobalOverduePayments || 
+    totalOverduePayments: financialSummaryData.totalGlobalOverduePayments || financialSummaryData.TotalGlobalOverduePayments ||
       globalRevenue
         .filter(p => (p.status || p.Status || '').toLowerCase() === 'overdue')
         .reduce((sum, p) => sum + (parseFloat(p.amount || p.Amount || 0)), 0),
     pendingPaymentsCount: globalRevenue.filter(p => (p.status || p.Status || '').toLowerCase() === 'pending').length,
     overduePaymentsCount: globalRevenue.filter(p => (p.status || p.Status || '').toLowerCase() === 'overdue').length
-  }
+  }), [financialSummaryData, globalRevenue])
 
-  // Map global statistics with fallbacks
-  // Use dedicated global statistics endpoint first, then fallback to dashboard data
-  // Note: ASP.NET Core defaults to camelCase JSON serialization, so check camelCase first
-  const mappedGlobalStats = {
+  const mappedGlobalStats = React.useMemo(() => ({
     totalSchools: globalStatisticsData.totalSchools || globalStatisticsData.TotalSchools || dashboard.totalSchools || dashboard.TotalSchools || globalStats.totalSchools || globalStats.TotalSchools || stats.totalSchools || stats.TotalSchools || 0,
     // Read from dedicated global statistics endpoint
     totalStudentsAcrossSchools: globalStatisticsData.totalStudentsAcrossSchools || globalStatisticsData.TotalStudentsAcrossSchools || dashboard.totalStudentsAcrossSchools || dashboard.TotalStudentsAcrossSchools || globalStats.totalStudentsAcrossSchools || globalStats.TotalStudentsAcrossSchools || 0,
@@ -233,10 +243,9 @@ const SuperAdminDashboard = () => {
     totalPendingPayments: financialSummaryData.totalGlobalPendingPayments || financialSummaryData.TotalGlobalPendingPayments || globalStats.totalPendingPayments || globalStats.TotalPendingPayments || calculatedFinancialMetrics.totalPendingPayments || 0,
     totalOverduePayments: financialSummaryData.totalGlobalOverduePayments || financialSummaryData.TotalGlobalOverduePayments || globalStats.totalOverduePayments || globalStats.TotalOverduePayments || calculatedFinancialMetrics.totalOverduePayments || 0,
     topPerformingSchools: globalStats.topPerformingSchools || globalStats.TopPerformingSchools || []
-  }
+  }), [globalStatisticsData, dashboard, globalStats, stats, financialSummaryData, calculatedFinancialMetrics])
   
-  // Debug logging
-  console.log('Global Statistics Data:', globalStatisticsData)
+  logger.debug('Global Statistics Data:', globalStatisticsData)
   logger.debug('Mapped Global Stats:', mappedGlobalStats)
   logger.debug('Financial Summary Data:', financialSummaryData)
 
@@ -278,19 +287,8 @@ const SuperAdminDashboard = () => {
       }
     }
 
-    const chartType = safeStrLower(chart.type)
-    switch (chartType) {
-      case 'bar':
-        return <Bar data={chart} options={chartOptions} />
-      case 'line':
-        return <Line data={chart} options={chartOptions} />
-      case 'pie':
-        return <Pie data={chart} options={chartOptions} />
-      case 'doughnut':
-        return <Doughnut data={chart} options={chartOptions} />
-      default:
-        return null
-    }
+    const chartType = safeStrLower(chart.type) || 'bar'
+    return <LazyChart type={chartType} data={chart} options={chartOptions} />
   }
 
   const handleRefresh = () => {
@@ -789,19 +787,39 @@ const SuperAdminDashboard = () => {
           <div className="card-body">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
               {quickActions.map((action, index) => (
-                <div key={index} className="card" style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => {
-                  if (action.url) {
-                    // Map MVC URLs to client routes
-                    const urlMap = {
-                      '/TenantManagement/Index': '/settings/tenants',
-                      '/SuperAdminManagement/Index': '/superadmins',
-                      '/Dashboard/GlobalFinance': '/dashboard/finance/global',
-                      '/SchoolApplicationManagement/Index': '/settings/school-applications'
+                <div
+                  key={action.url || action.title || index}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${action.title || 'Quick action'}: ${action.description || ''}`}
+                  className="card"
+                  style={{ textAlign: 'center', cursor: 'pointer' }}
+                  onClick={() => {
+                    if (action.url) {
+                      const urlMap = {
+                        '/TenantManagement/Index': '/settings/tenants',
+                        '/SuperAdminManagement/Index': '/superadmins',
+                        '/Dashboard/GlobalFinance': '/dashboard/finance/global',
+                        '/SchoolApplicationManagement/Index': '/settings/school-applications'
+                      }
+                      const route = urlMap[action.url] || action.url
+                      navigate(route)
                     }
-                    const route = urlMap[action.url] || action.url
-                    navigate(route)
-                  }
-                }}>
+                  }}
+                  onKeyDown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ' ') && action.url) {
+                      e.preventDefault()
+                      const urlMap = {
+                        '/TenantManagement/Index': '/settings/tenants',
+                        '/SuperAdminManagement/Index': '/superadmins',
+                        '/Dashboard/GlobalFinance': '/dashboard/finance/global',
+                        '/SchoolApplicationManagement/Index': '/settings/school-applications'
+                      }
+                      const route = urlMap[action.url] || action.url
+                      navigate(route)
+                    }
+                  }}
+                >
                   <div className="card-body">
                     <div style={{ fontSize: '2.5rem', marginBottom: '1rem', color: `var(--${action.color || 'primary'})` }}>
                       {action.icon === 'business' && <Building2 size={40} />}
