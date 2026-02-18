@@ -115,12 +115,6 @@ const Sidebar = () => {
       roles: ['Teacher'],
     },
     {
-      title: 'Grade CA Tests',
-      icon: FileCheck,
-      path: '/catests',
-      roles: ['Teacher'],
-    },
-    {
       title: 'Mark Attendance',
       icon: ClipboardCheck,
       path: '/attendance/mark',
@@ -142,7 +136,7 @@ const Sidebar = () => {
       title: 'CA Tests',
       icon: FileCheck,
       path: '/catests',
-      roles: ['Teacher', 'Admin', 'Principal'],
+      roles: ['Student', 'Teacher', 'Admin', 'Principal'],
     },
     {
       title: 'Courses',

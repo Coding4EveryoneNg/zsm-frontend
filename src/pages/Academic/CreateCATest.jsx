@@ -23,7 +23,10 @@ const CreateCATest = () => {
     questions: []
   })
   const [questionText, setQuestionText] = useState('')
+  const [questionType, setQuestionType] = useState('Essay')
   const [questionMarks, setQuestionMarks] = useState('')
+  const [correctAnswer, setCorrectAnswer] = useState('')
+  const [options, setOptions] = useState(['', '', '', ''])
 
   const isTeacher = (user?.role || user?.Role || '').toString().toLowerCase() === 'teacher'
   const { data: schoolData } = useQuery(
@@ -130,6 +133,9 @@ const CreateCATest = () => {
     if (formData.questions?.length > 0) {
       payload.questions = formData.questions.map((q, idx) => ({
         questionText: q.questionText,
+        questionType: q.questionType || 'Essay',
+        correctAnswer: (q.questionType === 'TrueFalse' || q.questionType === 'MultipleChoice') ? (q.correctAnswer || null) : null,
+        options: q.questionType === 'MultipleChoice' && q.options?.length ? q.options.filter(opt => opt?.trim()) : null,
         marks: parseFloat(q.marks) || 0,
         order: idx + 1
       }))
@@ -255,27 +261,105 @@ const CreateCATest = () => {
                 Questions (optional)
               </h3>
               <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                Add questions to structure your CA Test. Total marks will be calculated from questions if added.
+                Add questions with True/False, Multiple Choice, or Essay. Total marks will be calculated from questions if added.
               </p>
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Question text</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="Question text"
+                  placeholder="Enter question text"
                   value={questionText}
                   onChange={(e) => setQuestionText(e.target.value)}
-                  style={{ flex: '1 1 200px' }}
+                  style={{ width: '100%', marginBottom: '0.75rem' }}
                 />
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="form-input"
-                  placeholder="Marks"
-                  value={questionMarks}
-                  onChange={(e) => setQuestionMarks(e.target.value)}
-                  style={{ width: '100px' }}
-                />
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                  <div>
+                    <label className="form-label" style={{ marginBottom: '0.25rem', display: 'block', fontSize: '0.875rem' }}>Type</label>
+                    <select
+                      className="form-input"
+                      value={questionType}
+                      onChange={(e) => {
+                        const newType = e.target.value
+                        setQuestionType(newType)
+                        if (newType !== 'MultipleChoice') setOptions(['', '', '', ''])
+                        if (newType !== 'TrueFalse' && newType !== 'MultipleChoice') setCorrectAnswer('')
+                      }}
+                      style={{ minWidth: '140px' }}
+                    >
+                      <option value="Essay">Essay</option>
+                      <option value="MultipleChoice">Multiple Choice</option>
+                      <option value="TrueFalse">True/False</option>
+                      <option value="ShortAnswer">Short Answer</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ marginBottom: '0.25rem', display: 'block', fontSize: '0.875rem' }}>Marks</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-input"
+                      placeholder="Marks"
+                      value={questionMarks}
+                      onChange={(e) => setQuestionMarks(e.target.value)}
+                      style={{ width: '80px' }}
+                    />
+                  </div>
+                </div>
+                {(questionType === 'MultipleChoice' || questionType === 'TrueFalse') && (
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label className="form-label" style={{ marginBottom: '0.25rem', display: 'block', fontSize: '0.875rem' }}>
+                      {questionType === 'TrueFalse' ? 'Correct answer' : 'Options (one per line)'}
+                    </label>
+                    {questionType === 'TrueFalse' ? (
+                      <select
+                        className="form-input"
+                        value={correctAnswer}
+                        onChange={(e) => setCorrectAnswer(e.target.value)}
+                        style={{ width: '120px' }}
+                      >
+                        <option value="">Select</option>
+                        <option value="True">True</option>
+                        <option value="False">False</option>
+                      </select>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {options.map((opt, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ width: '24px', color: 'var(--text-muted)' }}>{String.fromCharCode(65 + i)}.</span>
+                            <input
+                              type="text"
+                              className="form-input"
+                              placeholder={`Option ${String.fromCharCode(65 + i)}`}
+                              value={opt}
+                              onChange={(e) => {
+                                const arr = [...options]
+                                arr[i] = e.target.value
+                                setOptions(arr)
+                              }}
+                              style={{ flex: 1 }}
+                            />
+                          </div>
+                        ))}
+                        <div style={{ marginTop: '0.5rem' }}>
+                          <label className="form-label" style={{ fontSize: '0.875rem' }}>Correct answer</label>
+                          <select
+                            className="form-input"
+                            value={correctAnswer}
+                            onChange={(e) => setCorrectAnswer(e.target.value)}
+                            style={{ width: '100%', marginTop: '0.25rem' }}
+                          >
+                            <option value="">Select correct option</option>
+                            {options.filter(o => o?.trim()).map((o, i) => (
+                              <option key={i} value={o.trim()}>{String.fromCharCode(65 + i)}. {o.trim() || '(empty)'}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <button
                   type="button"
                   className="btn btn-outline-primary"
@@ -284,13 +368,27 @@ const CreateCATest = () => {
                       toast.error('Please enter question text')
                       return
                     }
+                    if ((questionType === 'TrueFalse' || questionType === 'MultipleChoice') && !correctAnswer?.trim()) {
+                      toast.error('Please select correct answer')
+                      return
+                    }
                     const marks = parseFloat(questionMarks) || 0
+                    const newQ = {
+                      questionText: questionText.trim(),
+                      questionType,
+                      marks,
+                      correctAnswer: (questionType === 'TrueFalse' || questionType === 'MultipleChoice') ? correctAnswer : null,
+                      options: questionType === 'MultipleChoice' ? options.filter(o => o?.trim()) : null
+                    }
                     setFormData({
                       ...formData,
-                      questions: [...(formData.questions || []), { questionText: questionText.trim(), marks }]
+                      questions: [...(formData.questions || []), newQ]
                     })
                     setQuestionText('')
                     setQuestionMarks('')
+                    setCorrectAnswer('')
+                    setOptions(['', '', '', ''])
+                    setQuestionType('Essay')
                   }}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                 >
@@ -318,7 +416,10 @@ const CreateCATest = () => {
                         }}
                       >
                         <span style={{ flex: 1, fontSize: '0.875rem' }}>
-                          {idx + 1}. {q.questionText} <span style={{ color: 'var(--text-muted)' }}>({q.marks} marks)</span>
+                          {idx + 1}. {q.questionText}
+                          <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                            [{q.questionType || 'Essay'}] ({q.marks} marks)
+                          </span>
                         </span>
                         <button
                           type="button"

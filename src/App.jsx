@@ -293,9 +293,9 @@ function App() {
         <Route path="/assignments/submissions" element={<ProtectedRoute allowedRoles={['Teacher']}><LazyRoute><TeacherSubmissions /></LazyRoute></ProtectedRoute>} />
         <Route path="/attendance/mark" element={<ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}><LazyRoute><MarkAttendance /></LazyRoute></ProtectedRoute>} />
         <Route path="/attendance/term" element={<ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}><LazyRoute><ClassAttendanceList /></LazyRoute></ProtectedRoute>} />
-        <Route path="/catests" element={<ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}><LazyRoute><CATests /></LazyRoute></ProtectedRoute>} />
+        <Route path="/catests" element={<ProtectedRoute allowedRoles={['Student', 'Teacher', 'Admin', 'Principal']}><LazyRoute><CATests /></LazyRoute></ProtectedRoute>} />
         <Route path="/catests/create" element={<ProtectedRoute allowedRoles={['Teacher']}><LazyRoute><CreateCATest /></LazyRoute></ProtectedRoute>} />
-        <Route path="/catests/:id" element={<ProtectedRoute allowedRoles={['Teacher', 'Admin', 'Principal']}><LazyRoute><CATestDetails /></LazyRoute></ProtectedRoute>} />
+        <Route path="/catests/:id" element={<ProtectedRoute allowedRoles={['Student', 'Teacher', 'Admin', 'Principal']}><LazyRoute><CATestDetails /></LazyRoute></ProtectedRoute>} />
         <Route path="/examinations" element={<ProtectedRoute><LazyRoute><Examinations /></LazyRoute></ProtectedRoute>} />
         <Route path="/academic/examination-timetable" element={<ProtectedRoute allowedRoles={['Student', 'Teacher', 'Admin', 'Principal']}><LazyRoute><ExaminationTimetable /></LazyRoute></ProtectedRoute>} />
         <Route path="/academic/class-timetable" element={<ProtectedRoute allowedRoles={['Student', 'Teacher', 'Admin', 'Principal']}><LazyRoute><ClassTimetable /></LazyRoute></ProtectedRoute>} />
