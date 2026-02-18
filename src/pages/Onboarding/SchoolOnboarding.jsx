@@ -72,7 +72,8 @@ const SchoolOnboarding = () => {
         schoolDescription: data.schoolDescription || null,
         schoolType: data.schoolType || null,
         curriculum: data.curriculum || null,
-        subscriptionPlanId: selectedPlanId || undefined
+        subscriptionPlanId: selectedPlanId || undefined,
+        hasAttendanceModule: !!data.hasAttendanceModule
       }
 
       const response = await schoolApplicationsService.createApplication(requestData)
@@ -584,6 +585,18 @@ const SchoolOnboarding = () => {
                     <option value="Other">Other</option>
                   </select>
                 </div>
+              </div>
+
+              <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="checkbox"
+                  id="hasAttendanceModule"
+                  {...register('hasAttendanceModule')}
+                  style={{ width: '1.125rem', height: '1.125rem', accentColor: '#f0b90b' }}
+                />
+                <label htmlFor="hasAttendanceModule" style={{ margin: 0, fontWeight: 500, color: textColor, cursor: 'pointer' }}>
+                  Enable attendance module (daily attendance for students)
+                </label>
               </div>
 
               {plans.length > 0 && (

@@ -5,7 +5,7 @@ import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2'
 import { dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import DashboardCalendar from '../../components/Dashboard/DashboardCalendar'
-import { Users, FileText, ClipboardList, TrendingUp, Zap, Plus, Eye, Clock, CheckCircle, BookOpen } from 'lucide-react'
+import { Users, FileText, ClipboardList, TrendingUp, Zap, Plus, Eye, Clock, CheckCircle, BookOpen, FileCheck } from 'lucide-react'
 import { defaultChartOptions, chartColors, createBarChartData, createLineChartData, createPieChartData } from '../../utils/chartConfig'
 import { safeStrLower, formatDecimal } from '../../utils/safeUtils'
 import logger from '../../utils/logger'
@@ -124,6 +124,14 @@ const TeacherDashboard = () => {
               Create Examination
             </button>
             <button
+              className="btn btn-secondary"
+              onClick={() => navigate('/catests/create')}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Plus size={18} />
+              Create CA Test
+            </button>
+            <button
               className="btn btn-info"
               onClick={() => navigate('/assignments')}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
@@ -132,12 +140,28 @@ const TeacherDashboard = () => {
               View Assignments
             </button>
             <button
+              className="btn btn-outline-primary"
+              onClick={() => navigate('/examinations')}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Eye size={18} />
+              View Examinations
+            </button>
+            <button
               className="btn btn-warning"
-              onClick={() => navigate('/assignments?filter=pending')}
+              onClick={() => navigate('/assignments/submissions')}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
               <Clock size={18} />
-              Pending Grading
+              Grade Assignments
+            </button>
+            <button
+              className="btn btn-outline-warning"
+              onClick={() => navigate('/catests')}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <ClipboardList size={18} />
+              Grade CA Tests
             </button>
             <button
               className="btn btn-outline-primary"
@@ -208,7 +232,7 @@ const TeacherDashboard = () => {
           const Icon = stat.icon
           return (
             <div key={index} className="card" style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => {
-              if (stat.title === 'Pending Grading') navigate('/assignments?filter=pending')
+              if (stat.title === 'Pending Grading') navigate('/assignments/submissions')
               else if (stat.title === 'Active Assignments') navigate('/assignments')
               else if (stat.title === 'Total Students') navigate('/students')
             }}>
