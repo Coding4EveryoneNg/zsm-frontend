@@ -32,10 +32,15 @@ const CATests = () => {
 
   const effectiveSchoolId = isAdmin ? (selectedSchoolId || principalOrAdminSchoolId || defaultSchoolId) : null
 
+  const isTeacher = (user?.role ?? user?.Role ?? '').toString().toLowerCase() === 'teacher'
+  const isStudent = (user?.role ?? user?.Role ?? '').toString().toLowerCase() === 'student'
+  const isPrincipal = (user?.role ?? user?.Role ?? '').toString().toLowerCase() === 'principal'
+  const queryEnabled = isTeacher || isStudent || isPrincipal || (isAdmin && (!!effectiveSchoolId || schoolsList?.length > 0))
+
   const { data, isLoading, error } = useQuery(
     ['catests', page, effectiveSchoolId],
     () => caTestsService.getCATests({ page, pageSize, schoolId: effectiveSchoolId }),
-    { keepPreviousData: true, enabled: !isAdmin || !!effectiveSchoolId }
+    { keepPreviousData: true, enabled: queryEnabled }
   )
 
   if (isLoading) return <Loading />
@@ -53,7 +58,7 @@ const CATests = () => {
     )
   }
 
-  const catests = data?.data?.catests ?? data?.data?.CATests ?? data?.catests ?? data?.CATests ?? []
+  const catests = data?.data?.catests ?? data?.data?.CATests ?? data?.catests ?? data?.CATests ?? (Array.isArray(data?.data) ? data.data : []) ?? []
   const totalCount = data?.data?.totalCount ?? data?.totalCount ?? catests.length
   const totalPages = data?.data?.totalPages ?? data?.totalPages ?? Math.ceil(Math.max(1, totalCount) / pageSize)
 

@@ -148,6 +148,14 @@ const TeacherDashboard = () => {
               View Examinations
             </button>
             <button
+              className="btn btn-outline-primary"
+              onClick={() => navigate('/catests')}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Eye size={18} />
+              View CA Tests
+            </button>
+            <button
               className="btn btn-warning"
               onClick={() => navigate('/assignments/submissions')}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
