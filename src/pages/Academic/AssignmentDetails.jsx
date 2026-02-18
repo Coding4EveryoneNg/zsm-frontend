@@ -97,6 +97,8 @@ const AssignmentDetails = () => {
   const submission = assignment.submission || assignment.Submission
   const isStudent = String(user?.role ?? '').toLowerCase() === 'student'
   const isTeacher = String(user?.role ?? '').toLowerCase() === 'teacher'
+  const isAdminOrPrincipal = ['admin', 'principal'].includes(String(user?.role ?? '').toLowerCase())
+  const canApproveDraft = isTeacher || isAdminOrPrincipal
   const assignmentStatus = (assignment.status ?? assignment.Status ?? 'Active').toString()
   const isDraft = assignmentStatus.toLowerCase() === 'draft'
   const canSubmit = isStudent && !isSubmitted
@@ -212,7 +214,7 @@ const AssignmentDetails = () => {
           <ArrowLeft size={18} />
           Back
         </button>
-        {isTeacher && isDraft && (
+        {canApproveDraft && isDraft && (
           <button
             className="btn btn-primary"
             onClick={() => publishMutation.mutate()}
@@ -229,7 +231,7 @@ const AssignmentDetails = () => {
           <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
             {assignment.title || assignment.Title}
           </h1>
-          {isDraft && isTeacher && (
+          {isDraft && canApproveDraft && (
             <span className="badge badge-warning" style={{ marginRight: '0.5rem' }}>
               Draft
             </span>

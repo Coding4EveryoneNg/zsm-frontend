@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react'
-import { useQuery } from 'react-query'
+import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { useNavigate } from 'react-router-dom'
 import { assignmentsService, commonService, dashboardService } from '../../services/apiServices'
 import Loading from '../../components/Common/Loading'
 import { useAuth } from '../../contexts/AuthContext'
-import { FileText, Clock, CheckCircle, XCircle, Calendar, User, BookOpen, PlayCircle } from 'lucide-react'
+import { FileText, Clock, CheckCircle, XCircle, Calendar, User, BookOpen, PlayCircle, Check } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 const Assignments = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState('all') // all, pending, submitted
   const [selectedSchoolId, setSelectedSchoolId] = useState('')
@@ -42,6 +44,18 @@ const Assignments = () => {
   const urlParams = new URLSearchParams(window.location.search)
   const studentId = urlParams.get('studentId')
 
+  const isTeacher = user?.role === 'Teacher'
+  const isAdminOrPrincipal = ['Admin', 'Principal'].includes(user?.role ?? '')
+  const publishMutation = useMutation(
+    (assignmentId) => assignmentsService.publishAssignment(assignmentId),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('assignments')
+        toast.success('Assignment approved and published.')
+      },
+      onError: (err) => toast.error(err?.response?.data?.message || err?.response?.data?.errors?.[0] || 'Failed to approve assignment')
+    }
+  )
   const { data, isLoading, error } = useQuery(
     ['assignments', page, user?.role, studentId, effectiveSchoolId],
     () => {
@@ -53,7 +67,7 @@ const Assignments = () => {
       if (isAdmin && effectiveSchoolId) params.schoolId = effectiveSchoolId
       return assignmentsService.getAssignments(params)
     },
-    { keepPreviousData: true, enabled: user?.role === 'Parent' ? true : !isAdmin || !!effectiveSchoolId }
+    { keepPreviousData: true, enabled: user?.role === 'Parent' ? !!user : (isTeacher ? !!user : (!isAdmin || !!effectiveSchoolId)) }
   )
 
   if (isLoading) return <Loading />
@@ -72,12 +86,11 @@ const Assignments = () => {
   }
 
   // API returns: { success: true, data: PaginatedResponse<AssignmentListItemResponse>, errors: [] }
-  // After axios interceptor: { success: true, data: PaginatedResponse, errors: [] }
   // PaginatedResponse has: { items: [], currentPage, pageSize, totalCount, totalPages }
-  const paginatedData = data?.data || data
-  const assignments = paginatedData?.items || paginatedData?.assignments || (Array.isArray(data?.data) ? data.data : [])
-  const totalCount = paginatedData?.totalCount || paginatedData?.totalCount || assignments.length
-  const totalPages = paginatedData?.totalPages || Math.ceil(totalCount / pageSize)
+  const paginatedData = data?.data ?? data
+  const assignments = paginatedData?.items ?? paginatedData?.Items ?? paginatedData?.assignments ?? paginatedData?.Assignments ?? (Array.isArray(data?.data) ? data.data : [])
+  const totalCount = paginatedData?.totalCount ?? paginatedData?.TotalCount ?? (Array.isArray(assignments) ? assignments.length : 0)
+  const totalPages = paginatedData?.totalPages ?? paginatedData?.TotalPages ?? (Math.ceil(totalCount / pageSize) || 1)
 
   const filteredAssignments = filter === 'all' 
     ? assignments 
@@ -280,6 +293,21 @@ const Assignments = () => {
                   >
                     <PlayCircle size={18} style={{ marginRight: '0.5rem' }} />
                     Start assignment
+                  </button>
+                )}
+                {isAdminOrPrincipal && (assignment.status ?? assignment.Status ?? '').toString().toLowerCase() === 'draft' && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ flexShrink: 0 }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      publishMutation.mutate(assignmentId)
+                    }}
+                    disabled={publishMutation.isLoading}
+                  >
+                    <Check size={18} style={{ marginRight: '0.5rem' }} />
+                    {publishMutation.isLoading ? 'Approving...' : 'Approve'}
                   </button>
                 )}
               </div>

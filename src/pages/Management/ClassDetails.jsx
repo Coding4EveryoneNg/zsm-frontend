@@ -21,9 +21,10 @@ const ClassDetails = () => {
 
   if (isLoading) return <Loading />
 
-  const classResponse = data?.data
+  const classResponse = data?.data ?? data
   const cls =
     classResponse?.class ||
+    classResponse?.Class ||
     classResponse?.data ||
     classResponse ||
     null
@@ -159,9 +160,11 @@ const ClassDetails = () => {
                   <p style={{ color: 'var(--text-primary)', margin: 0 }}>
                     {(() => {
                       const tid = cls.classTeacherId ?? cls.ClassTeacherId
+                      const nameFromApi = cls.classTeacherName ?? cls.ClassTeacherName
                       if (!tid) return 'Not set'
+                      if (nameFromApi) return nameFromApi
                       const t = teachers.find((x) => (x.id ?? x.Id) === tid)
-                      return t ? (t.name ?? t.Name ?? `${t.firstName ?? t.FirstName ?? ''} ${t.lastName ?? t.LastName ?? ''}`.trim()) : 'Unknown'
+                      return t ? (t.name ?? t.Name ?? `${t.firstName ?? t.FirstName ?? ''} ${t.lastName ?? t.LastName ?? ''}`.trim()) : 'Loading...'
                     })()}
                   </p>
                   <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsEditing(true)}>

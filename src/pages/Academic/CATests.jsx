@@ -120,8 +120,18 @@ const CATests = () => {
                 </thead>
                 <tbody>
                   {catests.map((ct) => {
-                    const ctStatus = (ct.status ?? ct.Status ?? 'Active').toString().toLowerCase()
-                    const isDraft = ctStatus === 'draft'
+                    const ctStatus = (ct.status ?? ct.Status ?? 'Draft').toString()
+                    const ctStatusLower = ctStatus.toLowerCase()
+                    const isDraft = ctStatusLower === 'draft'
+                    const isAwaitingApproval = ctStatusLower === 'awaitingapproval'
+                    const isRejected = ctStatusLower === 'rejected'
+                    const statusBadge = isDraft
+                      ? <span className="badge badge-warning"><Clock size={12} style={{ marginRight: '0.25rem' }} />Draft</span>
+                      : isAwaitingApproval
+                      ? <span className="badge badge-warning">Awaiting Approval</span>
+                      : isRejected
+                      ? <span className="badge badge-danger">Rejected</span>
+                      : <span className="badge badge-success">Active</span>
                     return (
                     <tr key={ct.id ?? ct.Id}>
                       <td>
@@ -130,16 +140,7 @@ const CATests = () => {
                       <td>{ct.subjectName ?? ct.SubjectName}</td>
                       <td>{ct.className ?? ct.ClassName}</td>
                       <td>{ct.termName ?? ct.TermName}</td>
-                      <td>
-                        {isDraft ? (
-                          <span className="badge badge-warning">
-                            <Clock size={12} style={{ marginRight: '0.25rem' }} />
-                            Draft
-                          </span>
-                        ) : (
-                          <span className="badge badge-success">Active</span>
-                        )}
-                      </td>
+                      <td>{statusBadge}</td>
                       <td>{ct.maxMarks ?? ct.MaxMarks}</td>
                       <td>
                         <span style={{ display: 'block', fontSize: '0.875rem' }}>

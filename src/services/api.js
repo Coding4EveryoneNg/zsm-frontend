@@ -8,6 +8,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 seconds - prevent indefinite hangs
 })
 
 // Request interceptor to add auth token and check expiry
@@ -95,7 +96,15 @@ api.interceptors.response.use(
       }
     }
     
-    return Promise.reject(error.response?.data || error)
+    // Build a normalized error object so components can reliably access message
+    const data = error.response?.data ?? error
+    const message = data?.message ?? (Array.isArray(data?.errors) ? data.errors[0] : null) ?? error.message
+    const err = new Error(typeof message === 'string' ? message : 'Request failed')
+    err.response = error.response
+    err.status = error.response?.status ?? error.status
+    err.data = data
+    err.originalError = error
+    return Promise.reject(err)
   }
 )
 

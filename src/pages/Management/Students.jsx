@@ -66,7 +66,7 @@ const Students = () => {
       if (isTeacher && selectedClassId) params.classId = selectedClassId
       return studentsService.getStudents(params)
     },
-    { keepPreviousData: true, enabled: isTeacher || isPrincipal || (isAdmin && !!effectiveSchoolId) || (!isAdmin && !!principalOrAdminSchoolId) }
+    { keepPreviousData: true, enabled: !!user && (isTeacher || isPrincipal || (isAdmin && !!effectiveSchoolId) || (isPrincipal && !!principalOrAdminSchoolId)) }
   )
 
   const handleExportExcel = async () => {
@@ -87,9 +87,9 @@ const Students = () => {
 
   if (isLoading) return <Loading />
 
-  const rawStudents = data?.data?.students ?? data?.data?.Students ?? []
-  const totalPages = data?.data?.totalPages ?? data?.data?.TotalPages ?? 1
-  const currentPage = data?.data?.currentPage ?? data?.data?.CurrentPage ?? page
+  const rawStudents = data?.data?.students ?? data?.data?.Students ?? data?.students ?? data?.Students ?? []
+  const totalPages = data?.data?.totalPages ?? data?.data?.TotalPages ?? data?.totalPages ?? 1
+  const currentPage = data?.data?.currentPage ?? data?.data?.CurrentPage ?? data?.currentPage ?? page
 
   // Client-side search: filter by name, email, studentId, className
   const students = Array.isArray(rawStudents)

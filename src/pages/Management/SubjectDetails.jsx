@@ -31,6 +31,7 @@ const SubjectDetails = () => {
     subjectResponse?.data ||
     subjectResponse ||
     null
+  const hasWeights = subject && ('assignmentWeightPercent' in subject || 'AssignmentWeightPercent' in subject)
 
   const a = subject?.assignmentWeightPercent ?? subject?.AssignmentWeightPercent ?? 33.33
   const c = subject?.catestWeightPercent ?? subject?.CATestWeightPercent ?? 33.33
@@ -38,8 +39,8 @@ const SubjectDetails = () => {
   const totalWeights = a + c + e
 
   useEffect(() => {
-    if (subject && !editWeights) setWeights({ a, c, e })
-  }, [subject, a, c, e, editWeights])
+    if (subject && !editWeights && hasWeights) setWeights({ a, c, e })
+  }, [subject, a, c, e, editWeights, hasWeights])
 
   const updateMutation = useMutation(
     (payload) => subjectsService.updateSubject(id, payload),
@@ -131,7 +132,7 @@ const SubjectDetails = () => {
               </span>
             </p>
           </div>
-          {canEdit && (
+          {canEdit && hasWeights && (
             <div style={{ gridColumn: '1 / -1' }}>
               <label className="form-label">Assessment weights (%)</label>
               {editWeights ? (

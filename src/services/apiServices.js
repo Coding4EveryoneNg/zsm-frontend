@@ -145,6 +145,8 @@ export const caTestsService = {
   getCATest: (id) => api.get(`/catests/${id}`),
   createCATest: (data) => api.post('/catests', data),
   submitCATest: (id) => api.post(`/catests/${id}/submit`),
+  approveCATest: (id) => api.post(`/catests/${id}/approve`),
+  rejectCATest: (id, rejectionComments) => api.post(`/catests/${id}/reject`, { rejectionComments }),
   gradeSubmission: (submissionId, data) => api.post(`/catests/submissions/${submissionId}/grade`, data),
 }
 

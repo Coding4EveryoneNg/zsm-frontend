@@ -16,6 +16,7 @@ const CreateCATest = () => {
     description: '',
     subjectId: '',
     classId: '',
+    sessionId: '',
     termId: '',
     maxMarks: '100',
     dueDate: ''
@@ -61,7 +62,12 @@ const CreateCATest = () => {
   }, [isTeacher, subjectsRes, teacherAssignedSubjects])
 
   const selectedClass = Array.isArray(classes) ? classes.find((c) => (c.id || c.Id) === formData.classId) : null
-  const schoolIdForTerms = selectedClass?.schoolId ?? selectedClass?.SchoolId
+  const { data: sessionsData } = useQuery('sessions-dropdown', () => commonService.getSessionsDropdown())
+  const sessions = sessionsData?.data ?? sessionsData?.Data ?? []
+  const selectedSession = formData.sessionId && formData.sessionId.length === 36
+    ? sessions.find((s) => (s.id || s.Id) === formData.sessionId)
+    : null
+  const schoolIdForTerms = selectedSession?.schoolId ?? selectedSession?.SchoolId ?? selectedClass?.schoolId ?? selectedClass?.SchoolId
   const { data: termsData } = useQuery(
     ['terms-dropdown', schoolIdForTerms],
     () => commonService.getTermsDropdown({ schoolId: schoolIdForTerms }),
@@ -195,11 +201,25 @@ const CreateCATest = () => {
                 </select>
               </div>
               <div>
+                <label className="form-label">Session</label>
+                <select
+                  className="form-select"
+                  value={formData.sessionId}
+                  onChange={(e) => setFormData({ ...formData, sessionId: e.target.value, termId: '' })}
+                >
+                  <option value="">Select session</option>
+                  {sessions.map((s) => (
+                    <option key={s.id ?? s.Id} value={s.id ?? s.Id}>{s.name ?? s.Name} {s.isCurrent || s.IsCurrent ? '(Current)' : ''}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label className="form-label">Term <span style={{ color: '#ef4444' }}>*</span></label>
                 <select
                   className="form-select"
                   value={formData.termId}
                   onChange={(e) => setFormData({ ...formData, termId: e.target.value })}
+                  disabled={!schoolIdForTerms}
                 >
                   <option value="">Select term</option>
                   {terms.map((t) => (
